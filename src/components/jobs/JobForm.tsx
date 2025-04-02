@@ -1,17 +1,11 @@
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { JobApplication } from "@/data/mockJobs";
+import CompanyInfoFields from "./form/CompanyInfoFields";
+import LocationStatusFields from "./form/LocationStatusFields";
+import AdditionalInfoFields from "./form/AdditionalInfoFields";
+import JobDescriptionField from "./form/JobDescriptionField";
 
 interface JobFormProps {
   onSubmit: (job: JobApplication) => void;
@@ -69,91 +63,26 @@ const JobForm = ({ onSubmit, onCancel }: JobFormProps) => {
       handleSubmit();
     }}>
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="company">Company Name*</Label>
-            <Input 
-              id="company" 
-              name="company" 
-              value={jobData.company} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="position">Position*</Label>
-            <Input 
-              id="position" 
-              name="position" 
-              value={jobData.position} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-        </div>
+        <CompanyInfoFields 
+          jobData={jobData} 
+          handleChange={handleChange} 
+        />
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
-            <Input 
-              id="location" 
-              name="location" 
-              value={jobData.location} 
-              onChange={handleChange} 
-              placeholder="e.g. Remote, New York, NY" 
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={jobData.status} onValueChange={handleStatusChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="saved">Saved</SelectItem>
-                <SelectItem value="applied">Applied</SelectItem>
-                <SelectItem value="interview">Interview</SelectItem>
-                <SelectItem value="offer">Offer</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <LocationStatusFields 
+          jobData={jobData} 
+          handleChange={handleChange} 
+          handleStatusChange={handleStatusChange} 
+        />
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="companyWebsite">Company Website</Label>
-            <Input 
-              id="companyWebsite" 
-              name="companyWebsite" 
-              value={jobData.companyWebsite} 
-              onChange={handleChange} 
-              placeholder="https://..." 
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="salary">Salary (if known)</Label>
-            <Input 
-              id="salary" 
-              name="salary" 
-              value={jobData.salary} 
-              onChange={handleChange} 
-              placeholder="e.g. $70,000 - $90,000" 
-            />
-          </div>
-        </div>
+        <AdditionalInfoFields 
+          jobData={jobData} 
+          handleChange={handleChange} 
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="jobDescription">Job Description</Label>
-          <Textarea 
-            id="jobDescription" 
-            name="jobDescription" 
-            value={jobData.jobDescription} 
-            onChange={handleChange} 
-            placeholder="Paste job description or add notes..."
-            rows={4} 
-          />
-        </div>
+        <JobDescriptionField 
+          jobData={jobData} 
+          handleChange={handleChange} 
+        />
       </div>
       
       <button 
