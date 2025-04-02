@@ -1,21 +1,28 @@
 
+import { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import StatsOverview from "@/components/dashboard/StatsOverview";
 import JobList from "@/components/jobs/JobList";
 import AddJobModal from "@/components/jobs/AddJobModal";
-import { mockJobs } from "@/data/mockJobs";
+import { mockJobs, JobApplication } from "@/data/mockJobs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
+  const [jobs, setJobs] = useState<JobApplication[]>(mockJobs);
+  
+  const handleAddJob = (newJob: JobApplication) => {
+    setJobs(prevJobs => [newJob, ...prevJobs]);
+  };
+
   return (
     <Layout>
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <AddJobModal />
+          <AddJobModal onAddJob={handleAddJob} />
         </div>
         
-        <StatsOverview jobs={mockJobs} />
+        <StatsOverview jobs={jobs} />
         
         <Tabs defaultValue="all" className="w-full">
           <div className="flex justify-between items-center mb-6">
@@ -43,14 +50,14 @@ const Index = () => {
           
           <TabsContent value="all">
             <div className="bg-white rounded-lg p-6">
-              <JobList jobs={mockJobs} />
+              <JobList jobs={jobs} />
             </div>
           </TabsContent>
           
           <TabsContent value="active">
             <div className="bg-white rounded-lg p-6">
               <JobList 
-                jobs={mockJobs.filter(
+                jobs={jobs.filter(
                   job => job.status === "applied" || job.status === "interview"
                 )} 
               />
@@ -60,7 +67,7 @@ const Index = () => {
           <TabsContent value="saved">
             <div className="bg-white rounded-lg p-6">
               <JobList 
-                jobs={mockJobs.filter(job => job.status === "saved")} 
+                jobs={jobs.filter(job => job.status === "saved")} 
               />
             </div>
           </TabsContent>

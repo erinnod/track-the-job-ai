@@ -22,9 +22,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { JobApplication } from "@/data/mockJobs";
 
 interface AddJobModalProps {
-  onAddJob?: () => void;
+  onAddJob?: (job: JobApplication) => void;
 }
 
 const AddJobModal = ({ onAddJob }: AddJobModalProps) => {
@@ -45,17 +46,37 @@ const AddJobModal = ({ onAddJob }: AddJobModalProps) => {
   };
   
   const handleStatusChange = (value: string) => {
-    setJobData(prev => ({ ...prev, status: value }));
+    setJobData(prev => ({ ...prev, status: value as JobApplication["status"] }));
   };
   
   const handleSubmit = () => {
-    // In a real app, we would save this to a database
+    if (!jobData.company.trim() || !jobData.position.trim()) {
+      toast.error("Company name and position are required");
+      return;
+    }
+    
+    // Create a new job with the form data
+    const newJob: JobApplication = {
+      id: Date.now().toString(), // Generate a unique ID
+      company: jobData.company,
+      position: jobData.position,
+      location: jobData.location || "Not specified",
+      status: jobData.status as JobApplication["status"],
+      appliedDate: jobData.status === "saved" ? "" : new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      companyWebsite: jobData.companyWebsite,
+      salary: jobData.salary,
+      jobDescription: jobData.jobDescription,
+      remote: jobData.location.toLowerCase().includes("remote")
+    };
+    
+    // Pass the new job to the parent component
+    if (onAddJob) {
+      onAddJob(newJob);
+    }
+    
     toast.success("Job added successfully!");
     setOpen(false);
-    
-    if (onAddJob) {
-      onAddJob();
-    }
     
     // Reset form
     setJobData({
