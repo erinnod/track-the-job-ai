@@ -67,6 +67,7 @@ export default {
                     blue: "#1EAEDB",
                     skyblue: "#33C3F0",
                     charcoal: "#221F26",
+                    darkcharcoal: "#17151A", // Added for dark mode
                     lightgray: "#F6F6F7",
                     mediumgray: "#8A898C",
                     silvergray: "#9F9EA1"

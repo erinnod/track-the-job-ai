@@ -11,7 +11,7 @@ const Index = () => {
     <Layout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-jobtrakr-charcoal">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-jobtrakr-charcoal dark:text-white">Dashboard</h1>
           <AddJobModal />
         </div>
         
@@ -19,10 +19,10 @@ const Index = () => {
         
         <Tabs defaultValue="all" className="w-full">
           <div className="flex justify-between items-center mb-4">
-            <TabsList>
-              <TabsTrigger value="all">All Applications</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="saved">Saved</TabsTrigger>
+            <TabsList className="dark:bg-gray-800">
+              <TabsTrigger value="all" className="dark:data-[state=active]:bg-jobtrakr-blue dark:data-[state=active]:text-white">All Applications</TabsTrigger>
+              <TabsTrigger value="active" className="dark:data-[state=active]:bg-jobtrakr-blue dark:data-[state=active]:text-white">Active</TabsTrigger>
+              <TabsTrigger value="saved" className="dark:data-[state=active]:bg-jobtrakr-blue dark:data-[state=active]:text-white">Saved</TabsTrigger>
             </TabsList>
           </div>
           
