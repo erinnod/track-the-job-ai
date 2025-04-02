@@ -17,9 +17,15 @@ interface JobListProps {
   jobs: JobApplication[];
 }
 
-const JobList = ({ jobs }: JobListProps) => {
+const JobList = ({ jobs: initialJobs }: JobListProps) => {
   const [sortBy, setSortBy] = useState("newest");
   const [searchTerm, setSearchTerm] = useState("");
+  // Add state to track jobs that can be removed
+  const [jobs, setJobs] = useState<JobApplication[]>(initialJobs);
+  
+  const handleRemoveJob = (id: string) => {
+    setJobs(prevJobs => prevJobs.filter(job => job.id !== id));
+  };
   
   const filteredJobs = jobs.filter(job => 
     job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -88,7 +94,13 @@ const JobList = ({ jobs }: JobListProps) => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sortedJobs.length > 0 ? (
-          sortedJobs.map(job => <JobCard key={job.id} job={job} />)
+          sortedJobs.map(job => (
+            <JobCard 
+              key={job.id} 
+              job={job} 
+              onRemove={handleRemoveJob}
+            />
+          ))
         ) : (
           <div className="col-span-full text-center py-10">
             <p className="text-gray-500">No jobs found. Try adjusting your search.</p>

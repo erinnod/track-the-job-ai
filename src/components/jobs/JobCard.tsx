@@ -10,12 +10,15 @@ import {
   MapPin, 
   DollarSign,
   Building,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface JobCardProps {
   job: JobApplication;
+  onRemove: (id: string) => void;
 }
 
 // Function to get a pastel color based on job position or company
@@ -34,7 +37,9 @@ const getPastelColor = (job: JobApplication) => {
   return colors[index];
 };
 
-const JobCard = ({ job }: JobCardProps) => {
+const JobCard = ({ job, onRemove }: JobCardProps) => {
+  const { toast } = useToast();
+  
   const formattedDate = (dateString: string) => {
     if (!dateString) return "Not applied yet";
     try {
@@ -42,6 +47,14 @@ const JobCard = ({ job }: JobCardProps) => {
     } catch (e) {
       return dateString;
     }
+  };
+  
+  const handleRemove = () => {
+    onRemove(job.id);
+    toast({
+      title: "Job removed",
+      description: `${job.position} at ${job.company} has been removed`,
+    });
   };
   
   // Get the appropriate background color
@@ -52,14 +65,13 @@ const JobCard = ({ job }: JobCardProps) => {
       {/* Date display at top */}
       <div className="flex justify-between items-center px-4 pt-4">
         <span className="text-sm text-gray-600">{job.appliedDate ? new Date(job.appliedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : "Saved"}</span>
-        {/* Removed the visibility of the close/bookmark button */}
-        <div className="invisible">
-          {job.status === "saved" ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
-          )}
-        </div>
+        {/* Make the close button visible again */}
+        <button 
+          onClick={handleRemove}
+          className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-white/50 transition-colors"
+        >
+          <X size={16} />
+        </button>
       </div>
       
       <CardContent className="p-4">
