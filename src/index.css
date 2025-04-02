@@ -33,7 +33,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222 47% 31%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* Increased border radius */
   }
 
   .dark {
@@ -73,6 +73,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   }
 }
 
@@ -81,9 +82,44 @@
   @apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow;
 }
 
+/* Card pastel backgrounds */
+.card-peach {
+  @apply bg-[#FDE1D3];
+}
+
+.card-blue {
+  @apply bg-[#D3E4FD];
+}
+
+.card-green {
+  @apply bg-[#DCFCE7];
+}
+
+.card-purple {
+  @apply bg-[#EDE9FE];
+}
+
+.card-pink {
+  @apply bg-[#FFE4E6];
+}
+
+.card-gray {
+  @apply bg-[#F1F0FB];
+}
+
 #root {
   width: 100%;
   margin: 0;
   padding: 0;
   text-align: left;
+}
+
+/* Custom button styles for job cards */
+.job-card-button {
+  @apply rounded-full bg-black text-white hover:bg-gray-800 px-5 py-1.5 text-sm font-medium;
+}
+
+/* Tag styles */
+.job-tag {
+  @apply text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700;
 }

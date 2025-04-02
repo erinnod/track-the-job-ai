@@ -2,16 +2,14 @@
 import { JobApplication, statusLabels } from "@/data/mockJobs";
 import { 
   Card, 
-  CardContent, 
+  CardContent,
   CardFooter,
-  CardHeader
 } from "@/components/ui/card";
 import { 
   Calendar, 
   MapPin, 
-  ExternalLink, 
   DollarSign,
-  Building
+  Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +17,22 @@ import { formatDistanceToNow } from "date-fns";
 interface JobCardProps {
   job: JobApplication;
 }
+
+// Function to get a pastel color based on job position or company
+const getPastelColor = (job: JobApplication) => {
+  // Simple function to generate a consistent color based on the first letter of position
+  const colors = [
+    "bg-[#FDE1D3]", // Soft Peach (like Amazon card)
+    "bg-[#D3E4FD]", // Soft Blue (like Twitter card)
+    "bg-[#DCFCE7]", // Soft Green (like Google card)
+    "bg-[#EDE9FE]", // Soft Purple (like Dribbble card)
+    "bg-[#FFE4E6]", // Soft Pink (like Airbnb card)
+    "bg-[#F1F0FB]", // Soft Gray
+  ];
+  
+  const index = job.company.charCodeAt(0) % colors.length;
+  return colors[index];
+};
 
 const JobCard = ({ job }: JobCardProps) => {
   const formattedDate = (dateString: string) => {
@@ -30,57 +44,67 @@ const JobCard = ({ job }: JobCardProps) => {
     }
   };
   
+  // Get the appropriate background color
+  const cardBgColor = getPastelColor(job);
+  
   return (
-    <Card className="h-full bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            {job.logo ? (
-              <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
-                <img 
-                  src={job.logo} 
-                  alt={`${job.company} logo`} 
-                  className="w-8 h-8 object-contain"
-                />
-              </div>
-            ) : (
-              <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center">
-                <Building className="w-5 h-5 text-gray-500" />
-              </div>
-            )}
-            <div>
-              <h3 className="font-semibold text-gray-900">{job.position}</h3>
-              <p className="text-sm text-gray-500">{job.company}</p>
-            </div>
-          </div>
-          <div className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700">
-            {statusLabels[job.status]}
-          </div>
-        </div>
-      </CardHeader>
+    <Card className={`h-full border-0 overflow-hidden ${cardBgColor} shadow-none rounded-xl`}>
+      {/* Date display at top */}
+      <div className="flex justify-between items-center px-4 pt-4">
+        <span className="text-sm text-gray-600">{job.appliedDate ? new Date(job.appliedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : "Saved"}</span>
+        <button className="text-gray-500 hover:text-gray-700">
+          {job.status === "saved" ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+          )}
+        </button>
+      </div>
       
-      <CardContent className="pb-2">
-        <div className="flex items-center mt-2 text-sm text-gray-600">
-          <MapPin className="h-4 w-4 mr-1 text-gray-400" />
-          <span>{job.location}</span>
+      <CardContent className="p-4">
+        {/* Company logo and info */}
+        <div className="mb-3">
+          <div className="text-sm text-gray-700 mb-1">{job.company}</div>
+          <h3 className="font-bold text-lg text-gray-900 mb-1">{job.position}</h3>
         </div>
         
-        {job.salary && (
-          <div className="mt-2 text-sm flex items-center text-gray-600">
-            <DollarSign className="h-4 w-4 mr-1 text-gray-400" />
-            <span>{job.salary}</span>
-          </div>
-        )}
+        {/* Tags section */}
+        <div className="flex flex-wrap gap-2 my-3">
+          {job.type && (
+            <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
+              {job.type}
+            </span>
+          )}
+          {job.level && (
+            <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
+              {job.level} level
+            </span>
+          )}
+          {job.remote !== undefined && (
+            <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
+              {job.location.includes("Remote") ? "Remote" : "On-site"}
+            </span>
+          )}
+          {/* Additional tag if needed */}
+          {job.status === "interview" && (
+            <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
+              Interview
+            </span>
+          )}
+        </div>
       </CardContent>
       
-      <CardFooter className="flex justify-between items-center pt-2 border-t border-gray-100">
-        <div className="flex items-center text-xs text-gray-500">
-          <Calendar className="h-3.5 w-3.5 mr-1" />
-          {formattedDate(job.appliedDate)}
+      <CardFooter className="flex items-center justify-between p-4 pt-0">
+        <div className="flex items-center text-sm text-gray-700">
+          <DollarSign className="h-4 w-4 mr-1 text-gray-500" />
+          {job.salary || "$Not specified"}
         </div>
-        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 p-0">
-          <span className="mr-1">Details</span>
-          <ExternalLink className="h-3.5 w-3.5" />
+        <Button 
+          variant="default" 
+          size="sm" 
+          className="rounded-full bg-black text-white hover:bg-gray-800 px-5"
+        >
+          Details
         </Button>
       </CardFooter>
     </Card>

@@ -42,21 +42,27 @@ const Index = () => {
           </div>
           
           <TabsContent value="all">
-            <JobList jobs={mockJobs} />
+            <div className="bg-white rounded-lg p-6">
+              <JobList jobs={mockJobs} />
+            </div>
           </TabsContent>
           
           <TabsContent value="active">
-            <JobList 
-              jobs={mockJobs.filter(
-                job => job.status === "applied" || job.status === "interview"
-              )} 
-            />
+            <div className="bg-white rounded-lg p-6">
+              <JobList 
+                jobs={mockJobs.filter(
+                  job => job.status === "applied" || job.status === "interview"
+                )} 
+              />
+            </div>
           </TabsContent>
           
           <TabsContent value="saved">
-            <JobList 
-              jobs={mockJobs.filter(job => job.status === "saved")} 
-            />
+            <div className="bg-white rounded-lg p-6">
+              <JobList 
+                jobs={mockJobs.filter(job => job.status === "saved")} 
+              />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
