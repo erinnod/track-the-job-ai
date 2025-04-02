@@ -10,10 +10,11 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
   
   return (
     <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
@@ -71,7 +72,10 @@ const Navbar = () => {
               <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100">
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100">
+              <DropdownMenuItem 
+                className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100"
+                onClick={() => navigate('/settings')}
+              >
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />

@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Applications from "./pages/Applications";
 import Kanban from "./pages/Kanban";
 import Documents from "./pages/Documents";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/applications" element={<Applications />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/documents" element={<Documents />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
