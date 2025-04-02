@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/lib/supabase";
 
 export const ProfileTab = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   
   // Profile form state
   const personalForm = useForm({
@@ -31,21 +32,75 @@ export const ProfileTab = () => {
   });
 
   // Handle saving personal info
-  const onPersonalSubmit = (data) => {
-    console.log("Saving personal data:", data);
-    toast({
-      title: "Personal information updated",
-      description: "Your personal information has been saved successfully.",
-    });
+  const onPersonalSubmit = async (data) => {
+    try {
+      setIsLoading(true);
+      console.log("Saving personal data:", data);
+      
+      // Save to Supabase - assumes you have a "profiles" table
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: (await supabase.auth.getUser()).data.user?.id,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          updated_at: new Date()
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Personal information updated",
+        description: "Your personal information has been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving personal data:", error);
+      toast({
+        title: "Error saving information",
+        description: "There was a problem saving your changes.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle saving professional info
-  const onProfessionalSubmit = (data) => {
-    console.log("Saving professional data:", data);
-    toast({
-      title: "Professional details updated",
-      description: "Your professional details have been saved successfully.",
-    });
+  const onProfessionalSubmit = async (data) => {
+    try {
+      setIsLoading(true);
+      console.log("Saving professional data:", data);
+      
+      // Save to Supabase - assumes you have a "professional_details" table
+      const { error } = await supabase
+        .from('professional_details')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          title: data.title,
+          company: data.company,
+          industry: data.industry,
+          location: data.location,
+          updated_at: new Date()
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Professional details updated",
+        description: "Your professional details have been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving professional data:", error);
+      toast({
+        title: "Error saving information",
+        description: "There was a problem saving your changes.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -122,7 +177,9 @@ export const ProfileTab = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Changes"}
+              </Button>
             </CardFooter>
           </form>
         </Form>
@@ -189,7 +246,9 @@ export const ProfileTab = () => {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Changes"}
+              </Button>
             </CardFooter>
           </form>
         </Form>

@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Mail, Smartphone } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export const NotificationsTab = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   
   // Notifications state
   const [notifications, setNotifications] = useState({
@@ -20,12 +22,41 @@ export const NotificationsTab = () => {
   });
 
   // Handle saving notification preferences
-  const saveNotifications = () => {
-    console.log("Saving notification preferences:", notifications);
-    toast({
-      title: "Notification preferences updated",
-      description: "Your notification preferences have been saved successfully.",
-    });
+  const saveNotifications = async () => {
+    try {
+      setIsLoading(true);
+      console.log("Saving notification preferences:", notifications);
+      
+      // Save to Supabase - assumes you have a "notification_preferences" table
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          email_enabled: notifications.email,
+          sms_enabled: notifications.sms,
+          job_matches: notifications.jobMatches,
+          application_status: notifications.applicationStatus,
+          interview_reminders: notifications.interviewReminders,
+          marketing: notifications.marketing,
+          updated_at: new Date()
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Notification preferences updated",
+        description: "Your notification preferences have been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving notification preferences:", error);
+      toast({
+        title: "Error saving preferences",
+        description: "There was a problem saving your notification preferences.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle changing notification settings
@@ -108,7 +139,9 @@ export const NotificationsTab = () => {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={saveNotifications}>Save Preferences</Button>
+        <Button onClick={saveNotifications} disabled={isLoading}>
+          {isLoading ? "Saving..." : "Save Preferences"}
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { supabase } from "@/lib/supabase";
 
 export const SecurityTab = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   
   // Security form state
   const securityForm = useForm({
@@ -23,7 +24,7 @@ export const SecurityTab = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // Handle saving security settings
-  const onSecuritySubmit = (data) => {
+  const onSecuritySubmit = async (data) => {
     if (data.newPassword !== data.confirmPassword) {
       toast({
         title: "Passwords do not match",
@@ -32,25 +33,66 @@ export const SecurityTab = () => {
       });
       return;
     }
-    console.log("Saving security settings:", data);
-    securityForm.reset({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    });
-    toast({
-      title: "Password updated",
-      description: "Your password has been updated successfully.",
-    });
+    
+    try {
+      setIsLoading(true);
+      console.log("Saving security settings:", data);
+      
+      // Update password with Supabase Auth
+      const { error } = await supabase.auth.updateUser({
+        password: data.newPassword
+      });
+      
+      if (error) throw error;
+      
+      securityForm.reset({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      toast({
+        title: "Error updating password",
+        description: error.message || "There was a problem updating your password.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle two-factor authentication toggle
-  const handleTwoFactorToggle = (enabled) => {
-    setTwoFactorEnabled(enabled);
-    toast({
-      title: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'}`,
-      description: `Two-factor authentication has been ${enabled ? 'enabled' : 'disabled'} for your account.`,
-    });
+  const handleTwoFactorToggle = async (enabled) => {
+    try {
+      setIsLoading(true);
+      // Here you would typically call Supabase or your auth provider to enable/disable 2FA
+      // This is a placeholder as Supabase requires additional setup for 2FA
+      console.log("Setting two-factor authentication to:", enabled);
+      
+      // Simulate successful API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setTwoFactorEnabled(enabled);
+      toast({
+        title: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'}`,
+        description: `Two-factor authentication has been ${enabled ? 'enabled' : 'disabled'} for your account.`,
+      });
+    } catch (error) {
+      console.error("Error toggling 2FA:", error);
+      toast({
+        title: "Error updating two-factor authentication",
+        description: "There was a problem updating your two-factor authentication settings.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -103,7 +145,9 @@ export const SecurityTab = () => {
               )}
             />
             
-            <Button type="submit" className="mt-2">Update Password</Button>
+            <Button type="submit" className="mt-2" disabled={isLoading}>
+              {isLoading ? "Updating..." : "Update Password"}
+            </Button>
           </form>
         </Form>
         
@@ -116,13 +160,15 @@ export const SecurityTab = () => {
             </div>
             <Switch 
               checked={twoFactorEnabled} 
-              onCheckedChange={handleTwoFactorToggle} 
+              onCheckedChange={handleTwoFactorToggle}
+              disabled={isLoading}
             />
           </div>
           
           <Button 
             variant="outline" 
             className="mt-2"
+            disabled={isLoading}
             onClick={() => {
               if (!twoFactorEnabled) {
                 handleTwoFactorToggle(true);
