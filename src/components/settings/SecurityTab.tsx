@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { supabase } from "@/lib/supabase";
 
 interface SecurityFormValues {
@@ -41,9 +41,18 @@ export const SecurityTab = () => {
       return;
     }
     
+    if (data.newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       setIsLoading(true);
-      console.log("Saving security settings:", data);
+      console.log("Saving security settings");
       
       // Update password with Supabase Auth
       const { error } = await supabase.auth.updateUser({
@@ -135,6 +144,7 @@ export const SecurityTab = () => {
                   <FormControl>
                     <Input {...field} type="password" />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -148,6 +158,7 @@ export const SecurityTab = () => {
                   <FormControl>
                     <Input {...field} type="password" />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

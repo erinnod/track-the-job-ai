@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,15 +18,71 @@ interface ProfessionalFormValues {
 export const ProfessionalForm = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   const professionalForm = useForm<ProfessionalFormValues>({
     defaultValues: {
-      title: "Senior Developer",
-      company: "Tech Solutions Inc.",
-      industry: "Information Technology",
-      location: "San Francisco, CA"
+      title: "",
+      company: "",
+      industry: "",
+      location: ""
     }
   });
+
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchProfessionalData = async () => {
+      try {
+        setIsInitializing(true);
+        
+        // Get current user
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) throw userError;
+        
+        const userId = userData.user?.id;
+        
+        if (!userId) {
+          throw new Error("User not authenticated");
+        }
+        
+        // Get professional data
+        const { data, error } = await supabase
+          .from('professional_details')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          // PGRST116 is the error code for "No rows returned" - we handle this by using defaults
+          throw error;
+        }
+        
+        if (data) {
+          professionalForm.reset({
+            title: data.title || "",
+            company: data.company || "",
+            industry: data.industry || "",
+            location: data.location || ""
+          });
+        }
+        
+      } catch (error: any) {
+        console.error("Error fetching professional data:", error);
+        // If we can't load, still allow entering new info
+        professionalForm.reset({
+          title: "Senior Developer",
+          company: "Tech Solutions Inc.",
+          industry: "Information Technology",
+          location: "San Francisco, CA"
+        });
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    
+    fetchProfessionalData();
+  }, []);
 
   // Handle saving professional info
   const onProfessionalSubmit = async (data: ProfessionalFormValues) => {
@@ -134,7 +190,7 @@ export const ProfessionalForm = () => {
             />
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || isInitializing}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </CardFooter>

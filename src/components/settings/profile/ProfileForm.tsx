@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,16 +19,73 @@ interface PersonalFormValues {
 export const ProfileForm = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   // Profile form state
   const personalForm = useForm<PersonalFormValues>({
     defaultValues: {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@example.com",
-      phone: "+1 (555) 123-4567"
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: ""
     }
   });
+
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setIsInitializing(true);
+        
+        // Get current user
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) throw userError;
+        
+        const userId = userData.user?.id;
+        
+        if (!userId) {
+          throw new Error("User not authenticated");
+        }
+        
+        // Get profile data
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          // PGRST116 is the error code for "No rows returned" - we handle this by using defaults
+          throw error;
+        }
+        
+        if (data) {
+          personalForm.reset({
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+            email: data.email || userData.user.email || "",
+            phone: data.phone || "",
+          });
+        } else {
+          // If no profile exists yet, set email from auth
+          personalForm.setValue("email", userData.user.email || "");
+        }
+        
+      } catch (error: any) {
+        console.error("Error fetching user data:", error);
+        toast({
+          title: "Error loading profile",
+          description: error.message || "Could not load your profile information.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
   // Handle saving personal info
   const onPersonalSubmit = async (data: PersonalFormValues) => {
@@ -44,7 +101,7 @@ export const ProfileForm = () => {
         throw new Error("User not authenticated");
       }
       
-      // Save to Supabase - assumes you have a "profiles" table
+      // Save to Supabase
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -74,6 +131,19 @@ export const ProfileForm = () => {
     }
   };
 
+  const getInitials = () => {
+    const firstName = personalForm.getValues("firstName");
+    const lastName = personalForm.getValues("lastName");
+    
+    if (firstName && lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    } else if (firstName) {
+      return firstName.charAt(0).toUpperCase();
+    } else {
+      return "U";
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -86,7 +156,7 @@ export const ProfileForm = () => {
             <div className="flex flex-col items-center space-y-3 mb-6">
               <Avatar className="h-24 w-24">
                 <AvatarImage src="" />
-                <AvatarFallback className="text-xl">JD</AvatarFallback>
+                <AvatarFallback className="text-xl">{getInitials()}</AvatarFallback>
               </Avatar>
               <Button variant="outline" size="sm">Change Profile Picture</Button>
             </div>
@@ -147,7 +217,7 @@ export const ProfileForm = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || isInitializing}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </CardFooter>
