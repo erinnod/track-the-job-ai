@@ -1,4 +1,3 @@
-
 import { JobApplication, statusLabels } from "@/data/mockJobs";
 import { 
   Card, 
@@ -22,7 +21,6 @@ interface JobCardProps {
   onRemove: (id: string) => void;
 }
 
-// Function to get a color based on job status
 const getStatusColor = (status: JobApplication['status']) => {
   switch (status) {
     case 'offer':
@@ -61,20 +59,16 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
   };
   
   const handleViewDetails = () => {
-    // For now we'll show a toast with job details
-    // In a future update this could navigate to a job details page
     toast({
       title: `${job.position} at ${job.company}`,
       description: `Status: ${statusLabels[job.status]} | Location: ${job.location}`,
     });
   };
   
-  // Get the appropriate background color based on job status
   const cardBgColor = getStatusColor(job.status);
   
   return (
     <Card className={`h-full border-0 overflow-hidden ${cardBgColor} shadow-none rounded-xl`}>
-      {/* Date display at top */}
       <div className="flex justify-between items-center px-4 pt-4">
         <span className="text-sm text-gray-600">{job.appliedDate ? new Date(job.appliedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : "Saved"}</span>
         <button 
@@ -86,13 +80,11 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
       </div>
       
       <CardContent className="p-4">
-        {/* Company logo and info */}
         <div className="mb-3">
           <div className="text-sm text-gray-700 mb-1">{job.company}</div>
           <h3 className="font-bold text-lg text-gray-900 mb-1">{job.position}</h3>
         </div>
         
-        {/* Tags section */}
         <div className="flex flex-wrap gap-2 my-3">
           {job.type && (
             <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
@@ -109,8 +101,7 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
               {job.location.includes("Remote") ? "Remote" : "On-site"}
             </span>
           )}
-          {/* Status tag */}
-          <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
+          <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700 font-bold">
             {statusLabels[job.status]}
           </span>
         </div>
