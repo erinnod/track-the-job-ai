@@ -40,13 +40,29 @@ export const ProfileForm = () => {
         // Get current user
         const { data: userData, error: userError } = await supabase.auth.getUser();
         
-        if (userError) throw userError;
+        if (userError) {
+          console.error("Error getting user:", userError);
+          toast({
+            title: "Authentication error",
+            description: "Please sign in to view your profile.",
+            variant: "destructive",
+          });
+          return;
+        }
         
         const userId = userData.user?.id;
         
         if (!userId) {
-          throw new Error("User not authenticated");
+          console.error("No user ID found");
+          toast({
+            title: "Authentication error",
+            description: "Please sign in to view your profile.",
+            variant: "destructive",
+          });
+          return;
         }
+        
+        console.log("Fetching profile for user ID:", userId);
         
         // Get profile data
         const { data, error } = await supabase
@@ -55,25 +71,33 @@ export const ProfileForm = () => {
           .eq('id', userId)
           .single();
         
-        if (error && error.code !== 'PGRST116') {
-          // PGRST116 is the error code for "No rows returned" - we handle this by using defaults
-          throw error;
-        }
-        
-        if (data) {
+        if (error) {
+          console.error("Error fetching profile:", error);
+          
+          // If it's just "No rows returned", we'll create a profile later
+          if (error.code !== 'PGRST116') {
+            toast({
+              title: "Error loading profile",
+              description: "Could not load your profile information. " + error.message,
+              variant: "destructive",
+            });
+          } else {
+            console.log("No profile found, will create one on first save");
+            // Initialize with authenticated email
+            personalForm.setValue("email", userData.user.email || "");
+          }
+        } else if (data) {
+          console.log("Profile data loaded:", data);
           personalForm.reset({
             firstName: data.first_name || "",
             lastName: data.last_name || "",
             email: data.email || userData.user.email || "",
             phone: data.phone || "",
           });
-        } else {
-          // If no profile exists yet, set email from auth
-          personalForm.setValue("email", userData.user.email || "");
         }
         
       } catch (error: any) {
-        console.error("Error fetching user data:", error);
+        console.error("Exception fetching user data:", error);
         toast({
           title: "Error loading profile",
           description: error.message || "Could not load your profile information.",
@@ -94,12 +118,19 @@ export const ProfileForm = () => {
       console.log("Saving personal data:", data);
       
       // Get current user
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        throw new Error("Authentication error: " + userError.message);
+      }
+      
       const userId = userData.user?.id;
       
       if (!userId) {
         throw new Error("User not authenticated");
       }
+      
+      console.log("Saving profile for user ID:", userId);
       
       // Save to Supabase
       const { error } = await supabase
@@ -113,14 +144,19 @@ export const ProfileForm = () => {
           updated_at: new Date().toISOString()
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error saving profile:", error);
+        throw error;
+      }
+      
+      console.log("Profile saved successfully");
       
       toast({
         title: "Personal information updated",
         description: "Your personal information has been saved successfully.",
       });
     } catch (error: any) {
-      console.error("Error saving personal data:", error);
+      console.error("Exception saving personal data:", error);
       toast({
         title: "Error saving information",
         description: error.message || "There was a problem saving your changes.",
