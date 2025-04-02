@@ -1,4 +1,3 @@
-
 import { JobApplication, statusLabels } from "@/data/mockJobs";
 import { useState, useEffect } from "react";
 import JobListHeader from "./JobListHeader";
@@ -82,7 +81,6 @@ const JobList = ({ jobs: initialJobs }: JobListProps) => {
         <JobSearchBar 
           searchTerm={searchTerm} 
           setSearchTerm={setSearchTerm} 
-          className="w-full"
         />
         
         <StatusFilterDropdown 
