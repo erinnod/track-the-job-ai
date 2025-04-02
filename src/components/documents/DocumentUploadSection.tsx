@@ -1,16 +1,16 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Trash2 } from "lucide-react";
 import DocumentCard from "./DocumentCard";
+import { useDocuments } from "@/hooks/useDocuments";
 
 interface DocumentUploadSectionProps {
   title: string;
@@ -19,24 +19,16 @@ interface DocumentUploadSectionProps {
   acceptedFileTypes: string;
 }
 
-interface Document {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  dateUploaded: string;
-  fileType: "resume" | "coverletter" | "other";
-}
-
-const DocumentUploadSection = ({ 
-  title, 
-  description, 
-  fileType, 
-  acceptedFileTypes 
+const DocumentUploadSection = ({
+  title,
+  description,
+  fileType,
+  acceptedFileTypes,
 }: DocumentUploadSectionProps) => {
-  const [documents, setDocuments] = useState<Document[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
+  const { documents, isLoading, isUploading, uploadDocument, deleteDocument } =
+    useDocuments({ fileType });
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -50,7 +42,7 @@ const DocumentUploadSection = ({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files);
     }
@@ -62,46 +54,45 @@ const DocumentUploadSection = ({
     }
   };
 
-  const handleFiles = (files: FileList) => {
+  const handleFiles = async (files: FileList) => {
     const accepted = acceptedFileTypes.split(",");
-    const newFiles = Array.from(files).filter(file => {
-      const extension = `.${file.name.split('.').pop()?.toLowerCase()}`;
+    const newFiles = Array.from(files).filter((file) => {
+      const extension = `.${file.name.split(".").pop()?.toLowerCase()}`;
       return accepted.includes(extension);
     });
 
     if (newFiles.length !== files.length) {
       toast({
         title: "Invalid file type",
-        description: `Please upload only ${acceptedFileTypes.replace(/\./g, "")} files.`,
-        variant: "destructive"
+        description: `Please upload only ${acceptedFileTypes.replace(
+          /\./g,
+          ""
+        )} files.`,
+        variant: "destructive",
       });
-      
+
       if (newFiles.length === 0) return;
     }
 
-    const newDocuments = newFiles.map(file => ({
-      id: Math.random().toString(36).substring(2, 9),
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      dateUploaded: new Date().toISOString(),
-      fileType
-    }));
+    // Show a toast with progress info for multiple files
+    if (newFiles.length > 1) {
+      toast({
+        title: "Uploading documents",
+        description: `Uploading ${newFiles.length} files...`,
+      });
+    }
 
-    setDocuments(prev => [...prev, ...newDocuments]);
-    
-    toast({
-      title: "Document uploaded",
-      description: `${newFiles.length} file(s) successfully uploaded.`
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    setDocuments(prev => prev.filter(doc => doc.id !== id));
-    toast({
-      title: "Document deleted",
-      description: "The document has been removed."
-    });
+    // Upload each file
+    for (const file of newFiles) {
+      // For single file, show file-specific info
+      if (newFiles.length === 1) {
+        toast({
+          title: "Uploading document",
+          description: `Uploading ${file.name}...`,
+        });
+      }
+      await uploadDocument(file, fileType);
+    }
   };
 
   return (
@@ -111,7 +102,7 @@ const DocumentUploadSection = ({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div 
+        <div
           className={`border-2 border-dashed rounded-lg p-6 text-center ${
             isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
           }`}
@@ -123,7 +114,9 @@ const DocumentUploadSection = ({
             <div className="rounded-full bg-primary/10 p-2">
               <Upload className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold">Drag files here or click to upload</h3>
+            <h3 className="text-lg font-semibold">
+              Drag files here or click to upload
+            </h3>
             <p className="text-sm text-gray-500">
               Supported formats: {acceptedFileTypes.replace(/\./g, "")}
             </p>
@@ -135,28 +128,39 @@ const DocumentUploadSection = ({
               accept={acceptedFileTypes}
               onChange={handleFileChange}
             />
-            <Button 
-              variant="outline" 
-              onClick={() => document.getElementById(`file-upload-${fileType}`)?.click()}
+            <Button
+              variant="outline"
+              onClick={() =>
+                document.getElementById(`file-upload-${fileType}`)?.click()
+              }
+              disabled={isUploading}
             >
               <Upload className="mr-2 h-4 w-4" />
-              Choose Files
+              {isUploading ? "Uploading..." : "Choose Files"}
             </Button>
           </div>
         </div>
 
-        {documents.length > 0 && (
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <p className="text-sm text-gray-500">Loading documents...</p>
+          </div>
+        ) : documents.length > 0 ? (
           <div className="space-y-4">
             <h3 className="font-medium">Uploaded Documents</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {documents.map(doc => (
-                <DocumentCard 
-                  key={doc.id} 
-                  document={doc} 
-                  onDelete={handleDelete}
+              {documents.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  document={doc}
+                  onDelete={deleteDocument}
                 />
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500">No documents uploaded yet.</p>
           </div>
         )}
       </CardContent>

@@ -1,126 +1,298 @@
-
-import { Briefcase, Bell, Search, PlusCircle, Menu } from "lucide-react";
+import { Bell, Search, PlusCircle, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAvatar } from "@/contexts/AvatarContext";
+import { useToast } from "@/components/ui/use-toast";
+import AddJobModal from "@/components/jobs/AddJobModal";
+import { JobApplication } from "@/data/mockJobs";
+import { supabase } from "@/lib/supabase";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const navigate = useNavigate();
-  
+  const { user, logout, isAuthenticated } = useAuth();
+  const { lastUpdate } = useAvatar();
+  const { toast } = useToast();
+
+  // Fetch user's avatar when component mounts or when avatar is updated
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      if (!user?.id) return;
+
+      try {
+        // Get the user's profile
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+          return;
+        }
+
+        if (data?.avatar_url) {
+          // Get the public URL for the avatar
+          const { data: urlData } = await supabase.storage
+            .from("avatars")
+            .getPublicUrl(data.avatar_url);
+
+          if (urlData?.publicUrl) {
+            // Add cache busting query parameter to force refresh
+            const cacheBustUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+            setAvatarUrl(cacheBustUrl);
+          }
+        }
+      } catch (error) {
+        console.error("Exception fetching avatar:", error);
+      }
+    };
+
+    fetchUserAvatar();
+  }, [user, lastUpdate]); // Re-run when user changes or when avatar is updated
+
+  const getInitials = () => {
+    if (!user) return "U";
+
+    const userMeta = user.user_metadata;
+    console.log("User metadata for initials:", userMeta);
+
+    if (userMeta && userMeta.first_name && userMeta.last_name) {
+      return `${userMeta.first_name.charAt(0)}${userMeta.last_name.charAt(
+        0
+      )}`.toUpperCase();
+    }
+
+    if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+
+    return "U";
+  };
+
+  const getUserDisplayName = () => {
+    if (!user) return "User";
+
+    const userMeta = user.user_metadata;
+    console.log("User metadata for display name:", userMeta);
+
+    if (userMeta && userMeta.first_name && userMeta.last_name) {
+      return `${userMeta.first_name} ${userMeta.last_name}`;
+    }
+
+    return user.email?.split("@")[0] || "User";
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+      navigate("/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddJob = (job: JobApplication) => {
+    // Here you would typically save the job to your backend/API
+    toast({
+      title: "Job Added",
+      description: `Successfully added ${job.position} at ${job.company}`,
+    });
+
+    // Navigate to the applications page to see the newly added job
+    navigate("/applications");
+  };
+
   return (
-    <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center">
-          <Link to="/" className="flex items-center">
-            <Briefcase className="h-6 w-6 text-blue-600 mr-2" />
-            <h1 className="text-xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">JobTrakr</h1>
-          </Link>
-        </div>
-        
-        <div className="hidden md:flex items-center space-x-8">
-          <button className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
-            Find Jobs
-          </button>
-          <button className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
-            Messages
-          </button>
-          <button className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
-            Community
-          </button>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" className="text-gray-600 hidden sm:flex hover:bg-gray-100 hover:text-blue-600 rounded-full">
-            <Search className="h-5 w-5" />
-          </Button>
-          
-          <Button variant="outline" size="sm" className="hidden sm:flex text-blue-600 border-blue-600 hover:bg-blue-50 rounded-full">
-            <PlusCircle className="h-5 w-5 mr-2" />
-            Add Job
-          </Button>
-          
-          <div className="relative">
-            <Bell className="h-5 w-5 text-gray-600 cursor-pointer hover:text-blue-600 transition-colors" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center shadow-sm">
-              3
-            </span>
+    <header className="fixed top-0 left-0 right-0 z-30 bg-white">
+      <div className="mx-auto">
+        <div className="flex items-center justify-between h-16 px-6 md:px-12 lg:px-16 border-b border-slate-200">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center">
+              <img
+                src="/images/jobtrakr-logo.png"
+                alt="JobTrakr Logo"
+                className="h-9"
+                style={{ width: "auto" }}
+              />
+            </Link>
           </div>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Avatar className="h-9 w-9 cursor-pointer border-2 border-gray-200 hover:border-blue-200 transition-colors">
-                <AvatarFallback className="bg-blue-100 text-blue-700 font-medium">
-                  JD
-                </AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 mt-1 z-50">
-              <div className="flex flex-col space-y-1 p-2">
-                <p className="font-medium">John Doe</p>
-                <p className="text-sm text-gray-500">john.doe@example.com</p>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100">
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100"
-                onClick={() => navigate('/settings')}
+
+          {/* Center navigation */}
+          <nav className="hidden md:flex items-center">
+            <Link
+              to="/messages"
+              className="relative mx-4 py-1 text-slate-600 hover:text-blue-600 text-sm font-medium after:absolute after:w-0 after:h-0.5 after:bg-blue-600 after:bottom-0 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+            >
+              Messages
+            </Link>
+            <Link
+              to="/community"
+              className="relative mx-4 py-1 text-slate-600 hover:text-blue-600 text-sm font-medium after:absolute after:w-0 after:h-0.5 after:bg-blue-600 after:bottom-0 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+            >
+              Community
+            </Link>
+          </nav>
+
+          {/* Right section: search, add job, notifications, avatar */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-500 hidden sm:flex hover:bg-slate-100 rounded-full w-9 h-9 p-0"
+              onClick={() => {}}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+
+            <div className="hidden sm:block">
+              <AddJobModal onAddJob={handleAddJob} />
+            </div>
+
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0 relative"
               >
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 text-red-500 hover:text-red-600">
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="md:hidden text-gray-600 hover:bg-gray-100" 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+                <Bell className="h-4 w-4" />
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
+                  3
+                </span>
+              </Button>
+            )}
+
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-blue-500 transition-all">
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl} alt="Profile picture" />
+                    ) : null}
+                    <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-medium text-sm">
+                      {getInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 p-2 mt-2 z-50 rounded-lg shadow-lg animate-in fade-in-80 data-[side=bottom]:slide-in-from-top-2"
+                >
+                  <div className="flex items-center gap-3 p-2 border-b border-slate-100 pb-3 mb-1">
+                    <Avatar className="h-10 w-10">
+                      {avatarUrl ? (
+                        <AvatarImage src={avatarUrl} alt="Profile" />
+                      ) : null}
+                      <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-slate-800 leading-tight">
+                        {getUserDisplayName()}
+                      </p>
+                      <p className="text-xs text-slate-500 leading-tight mt-0.5">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuItem
+                    className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 rounded-md transition-colors my-1 p-2 text-sm"
+                    onClick={() => navigate("/settings")}
+                  >
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700 rounded-md transition-colors my-1 p-2 text-sm mt-1"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/login")}
+                  className="text-slate-600 hover:text-blue-600 hover:bg-slate-50 text-sm font-medium"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => navigate("/signup")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                >
+                  Sign Up
+                </Button>
+              </div>
+            )}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
-      
-      {/* Mobile menu dropdown */}
+
+      {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 shadow-md">
-          <div className="space-y-3">
-            <button className="block w-full text-left py-2 text-gray-600 hover:text-blue-600 font-medium">
-              Find Jobs
-            </button>
-            <button className="block w-full text-left py-2 text-gray-600 hover:text-blue-600 font-medium">
+        <div className="md:hidden bg-white border-b border-slate-200 shadow-md animate-in slide-in-from-top duration-200">
+          <div className="px-6 py-4 space-y-2">
+            <Link
+              to="/messages"
+              className="block w-full text-left py-2.5 px-3 text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-md transition-colors text-sm"
+            >
               Messages
-            </button>
-            <button className="block w-full text-left py-2 text-gray-600 hover:text-blue-600 font-medium">
+            </Link>
+            <Link
+              to="/community"
+              className="block w-full text-left py-2.5 px-3 text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-md transition-colors text-sm"
+            >
               Community
-            </button>
-            <Button variant="outline" size="sm" className="w-full justify-start text-gray-600 hover:bg-gray-100">
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-slate-600 hover:text-blue-600 hover:bg-slate-50 py-2.5 px-3 h-auto rounded-md"
+            >
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
-            <Button variant="default" size="sm" className="w-full justify-start bg-blue-600 hover:bg-blue-700">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Job
-            </Button>
+            <div className="w-full pt-1">
+              <AddJobModal onAddJob={handleAddJob} />
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </header>
   );
 };
 

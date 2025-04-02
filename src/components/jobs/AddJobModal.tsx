@@ -1,18 +1,18 @@
-
 import { useState } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { JobApplication } from "@/data/mockJobs";
+import { useJobs } from "@/contexts/JobContext";
 import JobForm from "./JobForm";
 
 interface AddJobModalProps {
@@ -21,21 +21,25 @@ interface AddJobModalProps {
 
 const AddJobModal = ({ onAddJob }: AddJobModalProps) => {
   const [open, setOpen] = useState(false);
-  
+  const { addJob } = useJobs();
+
   const handleSubmit = (job: JobApplication) => {
-    // Pass the new job to the parent component
+    // Add the job to context
+    addJob(job);
+
+    // Also call the onAddJob prop if provided (for backward compatibility)
     if (onAddJob) {
       onAddJob(job);
     }
-    
+
     toast.success("Job added successfully!");
     setOpen(false);
   };
-  
+
   const handleCancel = () => {
     setOpen(false);
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -48,17 +52,21 @@ const AddJobModal = ({ onAddJob }: AddJobModalProps) => {
         <DialogHeader>
           <DialogTitle>Add New Job Application</DialogTitle>
         </DialogHeader>
-        
+
         <JobForm onSubmit={handleSubmit} onCancel={handleCancel} />
-        
+
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>
-          <Button onClick={() => {
-            // Find the form submit button by its id and click it
-            document.getElementById("job-form-submit")?.click();
-          }}>Save Job</Button>
+          <Button
+            onClick={() => {
+              // Find the form submit button by its id and click it
+              document.getElementById("job-form-submit")?.click();
+            }}
+          >
+            Save Job
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
