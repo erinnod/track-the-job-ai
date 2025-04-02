@@ -1,6 +1,6 @@
 
 import { JobApplication, statusLabels } from "@/data/mockJobs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import JobListHeader from "./JobListHeader";
 import JobSearchBar from "./JobSearchBar";
 import StatusFilterDropdown from "./StatusFilterDropdown";
@@ -16,6 +16,11 @@ const JobList = ({ jobs: initialJobs }: JobListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [jobs, setJobs] = useState<JobApplication[]>(initialJobs);
   const [statusFilter, setStatusFilter] = useState<JobApplication['status'][]>([]);
+  
+  // Update local jobs state when initialJobs prop changes
+  useEffect(() => {
+    setJobs(initialJobs);
+  }, [initialJobs]);
   
   const handleRemoveJob = (id: string) => {
     setJobs(prevJobs => prevJobs.filter(job => job.id !== id));
