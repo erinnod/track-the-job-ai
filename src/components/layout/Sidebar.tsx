@@ -6,9 +6,7 @@ import {
   BarChart, 
   FileText, 
   Calendar, 
-  Settings, 
-  Search,
-  MessageSquare
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -25,26 +23,26 @@ const SidebarLink = ({ icon: Icon, label, to, active }: SidebarLinkProps) => {
     <Link
       to={to}
       className={cn(
-        "flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors",
+        "flex items-center space-x-3 px-4 py-2 rounded-md transition-colors",
         active 
-          ? "bg-[#5465FF] text-white" 
-          : "text-gray-400 hover:text-white hover:bg-[#1A1F2C]"
+          ? "bg-blue-50 text-blue-700" 
+          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
       )}
     >
       <Icon className="h-5 w-5" />
-      <span className="font-medium">{label}</span>
+      <span>{label}</span>
     </Link>
   );
 };
 
 const Sidebar = () => {
   return (
-    <div className="w-64 bg-[#131A2C] border-r border-[#242C44] h-[calc(100vh-64px)] pt-6 hidden sm:block">
+    <div className="w-64 bg-white border-r border-gray-200 h-[calc(100vh-64px)] pt-6 hidden md:block">
       <div className="px-4 mb-6">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">
           Main
         </h2>
-        <nav className="mt-3 space-y-1">
+        <nav className="space-y-1">
           <SidebarLink 
             icon={LayoutDashboard} 
             label="Dashboard" 
@@ -61,19 +59,14 @@ const Sidebar = () => {
             label="Kanban Board" 
             to="/kanban" 
           />
-          <SidebarLink 
-            icon={Search} 
-            label="Job Search" 
-            to="/search" 
-          />
         </nav>
       </div>
       
       <div className="px-4 mb-6">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">
           Tools
         </h2>
-        <nav className="mt-3 space-y-1">
+        <nav className="space-y-1">
           <SidebarLink 
             icon={FileText} 
             label="Documents" 
@@ -85,11 +78,6 @@ const Sidebar = () => {
             to="/calendar" 
           />
           <SidebarLink 
-            icon={MessageSquare} 
-            label="Messages" 
-            to="/messages" 
-          />
-          <SidebarLink 
             icon={BarChart} 
             label="Analytics" 
             to="/analytics" 
@@ -98,10 +86,10 @@ const Sidebar = () => {
       </div>
       
       <div className="px-4 mb-6">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">
           Settings
         </h2>
-        <nav className="mt-3 space-y-1">
+        <nav className="space-y-1">
           <SidebarLink 
             icon={Settings} 
             label="Settings" 

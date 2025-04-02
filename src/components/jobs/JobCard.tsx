@@ -1,5 +1,5 @@
 
-import { JobApplication, statusColors, statusLabels } from "@/data/mockJobs";
+import { JobApplication, statusLabels } from "@/data/mockJobs";
 import { 
   Card, 
   CardContent, 
@@ -9,30 +9,16 @@ import {
 import { 
   Calendar, 
   MapPin, 
-  MoreHorizontal, 
   ExternalLink, 
-  Edit, 
-  Trash,
-  Bookmark,
-  Clock,
-  DollarSign
+  DollarSign,
+  Building
 } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 
 interface JobCardProps {
   job: JobApplication;
 }
-
-// Array of card style classes - we'll use the same style for all cards in the new design
-const cardStyles = ["card-navy", "card-navy", "card-navy", "card-navy"];
 
 const JobCard = ({ job }: JobCardProps) => {
   const formattedDate = (dateString: string) => {
@@ -44,92 +30,57 @@ const JobCard = ({ job }: JobCardProps) => {
     }
   };
   
-  // Get a consistent style based on the job ID
-  const cardStyleIndex = parseInt(job.id.toString().charAt(0)) % cardStyles.length;
-  const cardStyle = cardStyles[cardStyleIndex];
-  
   return (
-    <Card className="h-full transition-all duration-200 border-[1px] bg-gradient-to-br from-[#131A2C] to-[#0F1624] shadow-lg rounded-xl overflow-hidden hover:shadow-xl hover:border-[#5465FF]/30">
-      <CardHeader className="pb-2 flex flex-row justify-between items-start">
-        <div className="flex flex-col w-full">
-          <div className="flex justify-between items-start w-full">
-            <div className="text-xs text-gray-400 mb-2 flex items-center">
-              <Clock className="h-3.5 w-3.5 mr-1 text-gray-400" />
-              {formattedDate(job.appliedDate)}
-            </div>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full text-gray-400 hover:text-[#5465FF]">
-              <Bookmark className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="flex items-start space-x-3">
+    <Card className="h-full bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-3">
             {job.logo ? (
-              <div className="rounded-xl overflow-hidden w-10 h-10 flex-shrink-0 flex items-center justify-center bg-[#1A1F2C] border border-[#242C44]">
+              <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
                 <img 
                   src={job.logo} 
                   alt={`${job.company} logo`} 
-                  className="w-6 h-6 object-contain"
+                  className="w-8 h-8 object-contain"
                 />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-[#1A1F2C] flex items-center justify-center flex-shrink-0 border border-[#242C44]">
-                <span className="text-white font-bold">
-                  {job.company.charAt(0)}
-                </span>
+              <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center">
+                <Building className="w-5 h-5 text-gray-500" />
               </div>
             )}
             <div>
-              <h3 className="font-semibold text-lg text-white">{job.position}</h3>
-              <p className="text-gray-400">{job.company}</p>
+              <h3 className="font-semibold text-gray-900">{job.position}</h3>
+              <p className="text-sm text-gray-500">{job.company}</p>
             </div>
+          </div>
+          <div className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700">
+            {statusLabels[job.status]}
           </div>
         </div>
       </CardHeader>
       
-      <CardContent className="pb-3">
-        <div className="flex items-center mt-2 text-sm text-gray-400">
+      <CardContent className="pb-2">
+        <div className="flex items-center mt-2 text-sm text-gray-600">
           <MapPin className="h-4 w-4 mr-1 text-gray-400" />
           <span>{job.location}</span>
         </div>
         
         {job.salary && (
-          <div className="mt-3 text-sm flex items-center">
+          <div className="mt-2 text-sm flex items-center text-gray-600">
             <DollarSign className="h-4 w-4 mr-1 text-gray-400" />
-            <span className="text-white">{job.salary}</span>
+            <span>{job.salary}</span>
           </div>
         )}
-        
-        <div className="mt-4 flex flex-wrap gap-2">
-          {job.type && (
-            <span className="text-xs py-1 px-3 rounded-full bg-[#1A1F2C] border border-[#242C44] text-gray-300">
-              {job.type}
-            </span>
-          )}
-          {job.level && (
-            <span className="text-xs py-1 px-3 rounded-full bg-[#1A1F2C] border border-[#242C44] text-gray-300">
-              {job.level} level
-            </span>
-          )}
-          <span className="text-xs py-1 px-3 rounded-full bg-[#1A1F2C] border border-[#242C44] text-gray-300">
-            {job.remote ? 'Remote' : 'On-site'}
-          </span>
-        </div>
       </CardContent>
       
-      <CardFooter className="pt-0 flex justify-between items-center">
-        <div className="flex items-center">
-          <span className={`inline-block h-2.5 w-2.5 rounded-full mr-2 ${
-            job.status === 'offer' ? 'bg-green-500' :
-            job.status === 'interview' ? 'bg-yellow-500' :
-            job.status === 'applied' ? 'bg-blue-500' :
-            job.status === 'rejected' ? 'bg-red-500' : 'bg-gray-500'
-          }`}></span>
-          <span className="text-xs text-gray-400">
-            {statusLabels[job.status]}
-          </span>
+      <CardFooter className="flex justify-between items-center pt-2 border-t border-gray-100">
+        <div className="flex items-center text-xs text-gray-500">
+          <Calendar className="h-3.5 w-3.5 mr-1" />
+          {formattedDate(job.appliedDate)}
         </div>
-        <Button variant="default" className="text-xs rounded-xl bg-[#5465FF] hover:bg-[#788BFF] text-white">
-          Details
+        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 p-0">
+          <span className="mr-1">Details</span>
+          <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       </CardFooter>
     </Card>

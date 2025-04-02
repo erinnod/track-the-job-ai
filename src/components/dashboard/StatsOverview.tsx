@@ -20,35 +20,35 @@ const StatsOverview = ({ jobs }: StatsOverviewProps) => {
       title: "Total Applications",
       value: stats.total,
       icon: Briefcase,
-      color: "text-jobtrakr-blue",
+      color: "text-blue-600",
       bgColor: "bg-blue-50"
     },
     {
       title: "Active Applications",
       value: stats.applied + stats.interview,
       icon: Calendar,
-      color: "text-yellow-500",
+      color: "text-yellow-600",
       bgColor: "bg-yellow-50"
     },
     {
       title: "Offers Received",
       value: stats.offer,
       icon: CheckCircle,
-      color: "text-green-500",
+      color: "text-green-600",
       bgColor: "bg-green-50"
     },
     {
       title: "Rejected",
       value: stats.rejected,
       icon: XCircle,
-      color: "text-red-500",
+      color: "text-red-600",
       bgColor: "bg-red-50"
     },
     {
       title: "Saved Jobs",
       value: stats.saved,
       icon: Clock,
-      color: "text-gray-500",
+      color: "text-gray-600",
       bgColor: "bg-gray-50"
     }
   ];
@@ -58,7 +58,7 @@ const StatsOverview = ({ jobs }: StatsOverviewProps) => {
       {statCards.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <Card key={index}>
+          <Card key={index} className="bg-white border border-gray-200">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">
                 {stat.title}
@@ -66,7 +66,7 @@ const StatsOverview = ({ jobs }: StatsOverviewProps) => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold">{stat.value}</span>
+                <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
                 <div className={`p-2 rounded-full ${stat.bgColor}`}>
                   <Icon className={`h-5 w-5 ${stat.color}`} />
                 </div>

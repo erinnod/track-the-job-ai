@@ -9,9 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const Index = () => {
   return (
     <Layout>
-      <div className="space-y-8 px-1">
+      <div className="space-y-8">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <AddJobModal />
         </div>
         
@@ -19,22 +19,22 @@ const Index = () => {
         
         <Tabs defaultValue="all" className="w-full">
           <div className="flex justify-between items-center mb-6">
-            <TabsList className="bg-[#1A1F2C] rounded-xl p-1 border border-[#242C44]">
+            <TabsList className="bg-gray-100 p-1">
               <TabsTrigger 
                 value="all" 
-                className="px-4 rounded-xl data-[state=active]:bg-[#5465FF] data-[state=active]:text-white"
+                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900"
               >
                 All Applications
               </TabsTrigger>
               <TabsTrigger 
                 value="active" 
-                className="px-4 rounded-xl data-[state=active]:bg-[#5465FF] data-[state=active]:text-white"
+                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900"
               >
                 Active
               </TabsTrigger>
               <TabsTrigger 
                 value="saved" 
-                className="px-4 rounded-xl data-[state=active]:bg-[#5465FF] data-[state=active]:text-white"
+                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900"
               >
                 Saved
               </TabsTrigger>

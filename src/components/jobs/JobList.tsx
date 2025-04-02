@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
 interface JobListProps {
   jobs: JobApplication[];
@@ -49,19 +48,19 @@ const JobList = ({ jobs }: JobListProps) => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <h2 className="text-2xl font-bold text-white">Recommended jobs</h2>
-          <span className="ml-3 text-sm bg-[#1A1F2C]/80 border border-[#242C44] text-gray-300 px-3 py-1 rounded-full">
+          <h2 className="text-xl font-semibold text-gray-900">Job Applications</h2>
+          <span className="ml-3 text-sm bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full">
             {sortedJobs.length}
           </span>
         </div>
         
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-400">Sort by:</span>
+          <span className="text-sm text-gray-500">Sort by:</span>
           <Select defaultValue={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[160px] bg-[#131A2C] border-[#242C44] text-white">
+            <SelectTrigger className="w-[160px] bg-white border-gray-200">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
-            <SelectContent className="bg-[#131A2C] border-[#242C44]">
+            <SelectContent>
               <SelectItem value="newest">Newest First</SelectItem>
               <SelectItem value="oldest">Oldest First</SelectItem>
               <SelectItem value="company">Company Name</SelectItem>
@@ -76,12 +75,12 @@ const JobList = ({ jobs }: JobListProps) => {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search jobs..."
-            className="pl-9 bg-[#131A2C] border-[#242C44] text-white"
+            className="pl-9 bg-white border-gray-200"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline" className="bg-[#131A2C] border-[#242C44] text-white hover:bg-[#1A1F2C]">
+        <Button variant="outline" className="bg-white border-gray-200">
           <SlidersHorizontal className="h-4 w-4 mr-2" />
           Filters
         </Button>
@@ -92,7 +91,7 @@ const JobList = ({ jobs }: JobListProps) => {
           sortedJobs.map(job => <JobCard key={job.id} job={job} />)
         ) : (
           <div className="col-span-full text-center py-10">
-            <p className="text-gray-400">No jobs found. Try adjusting your search.</p>
+            <p className="text-gray-500">No jobs found. Try adjusting your search.</p>
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode } from "react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 
@@ -8,54 +8,12 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode now
-  const [country, setCountry] = useState<"USA" | "UK">("USA");
-
-  // Initialize dark mode from localStorage or system preference
-  useEffect(() => {
-    // Check localStorage first
-    const savedMode = localStorage.getItem("darkMode");
-    const savedCountry = localStorage.getItem("country") as "USA" | "UK";
-    
-    if (savedMode !== null) {
-      setIsDarkMode(savedMode === "true");
-    } else {
-      // Always default to dark mode now
-      setIsDarkMode(true);
-    }
-
-    // Set country preference
-    if (savedCountry) {
-      setCountry(savedCountry);
-    }
-  }, []);
-
-  // Update localStorage and document class when dark mode changes
-  useEffect(() => {
-    localStorage.setItem("darkMode", isDarkMode.toString());
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDarkMode]);
-
-  // Update localStorage when country changes
-  useEffect(() => {
-    localStorage.setItem("country", country);
-  }, [country]);
-
   return (
-    <div className="min-h-screen bg-white dark:bg-jobtrakr-charcoal">
-      <Navbar 
-        isDarkMode={isDarkMode} 
-        setIsDarkMode={setIsDarkMode} 
-        country={country}
-        setCountry={setCountry}
-      />
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 p-6 overflow-auto dark:text-white">{children}</main>
+        <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>
     </div>
   );
