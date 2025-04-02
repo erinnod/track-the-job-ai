@@ -28,17 +28,24 @@ export const NotificationsTab = () => {
       console.log("Saving notification preferences:", notifications);
       
       // Save to Supabase - assumes you have a "notification_preferences" table
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+      
       const { error } = await supabase
         .from('notification_preferences')
         .upsert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userId,
           email_enabled: notifications.email,
           sms_enabled: notifications.sms,
           job_matches: notifications.jobMatches,
           application_status: notifications.applicationStatus,
           interview_reminders: notifications.interviewReminders,
           marketing: notifications.marketing,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         });
       
       if (error) throw error;
@@ -47,11 +54,11 @@ export const NotificationsTab = () => {
         title: "Notification preferences updated",
         description: "Your notification preferences have been saved successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving notification preferences:", error);
       toast({
         title: "Error saving preferences",
-        description: "There was a problem saving your notification preferences.",
+        description: error.message || "There was a problem saving your notification preferences.",
         variant: "destructive",
       });
     } finally {
@@ -60,7 +67,7 @@ export const NotificationsTab = () => {
   };
 
   // Handle changing notification settings
-  const handleNotificationChange = (key, value) => {
+  const handleNotificationChange = (key: string, value: boolean) => {
     setNotifications(prev => ({
       ...prev,
       [key]: value

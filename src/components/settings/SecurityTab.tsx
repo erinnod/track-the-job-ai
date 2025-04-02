@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,12 +9,18 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { supabase } from "@/lib/supabase";
 
+interface SecurityFormValues {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export const SecurityTab = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
   // Security form state
-  const securityForm = useForm({
+  const securityForm = useForm<SecurityFormValues>({
     defaultValues: {
       currentPassword: "",
       newPassword: "",
@@ -24,7 +31,7 @@ export const SecurityTab = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // Handle saving security settings
-  const onSecuritySubmit = async (data) => {
+  const onSecuritySubmit = async (data: SecurityFormValues) => {
     if (data.newPassword !== data.confirmPassword) {
       toast({
         title: "Passwords do not match",
@@ -55,7 +62,7 @@ export const SecurityTab = () => {
         title: "Password updated",
         description: "Your password has been updated successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating password:", error);
       toast({
         title: "Error updating password",
@@ -68,7 +75,7 @@ export const SecurityTab = () => {
   };
 
   // Handle two-factor authentication toggle
-  const handleTwoFactorToggle = async (enabled) => {
+  const handleTwoFactorToggle = async (enabled: boolean) => {
     try {
       setIsLoading(true);
       // Here you would typically call Supabase or your auth provider to enable/disable 2FA
@@ -83,11 +90,11 @@ export const SecurityTab = () => {
         title: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'}`,
         description: `Two-factor authentication has been ${enabled ? 'enabled' : 'disabled'} for your account.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error toggling 2FA:", error);
       toast({
         title: "Error updating two-factor authentication",
-        description: "There was a problem updating your two-factor authentication settings.",
+        description: error.message || "There was a problem updating your two-factor authentication settings.",
         variant: "destructive"
       });
     } finally {

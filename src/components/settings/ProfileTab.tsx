@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,12 +9,26 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
 
+interface PersonalFormValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+interface ProfessionalFormValues {
+  title: string;
+  company: string;
+  industry: string;
+  location: string;
+}
+
 export const ProfileTab = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
   // Profile form state
-  const personalForm = useForm({
+  const personalForm = useForm<PersonalFormValues>({
     defaultValues: {
       firstName: "John",
       lastName: "Doe",
@@ -22,7 +37,7 @@ export const ProfileTab = () => {
     }
   });
 
-  const professionalForm = useForm({
+  const professionalForm = useForm<ProfessionalFormValues>({
     defaultValues: {
       title: "Senior Developer",
       company: "Tech Solutions Inc.",
@@ -32,21 +47,29 @@ export const ProfileTab = () => {
   });
 
   // Handle saving personal info
-  const onPersonalSubmit = async (data) => {
+  const onPersonalSubmit = async (data: PersonalFormValues) => {
     try {
       setIsLoading(true);
       console.log("Saving personal data:", data);
+      
+      // Get current user
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
       
       // Save to Supabase - assumes you have a "profiles" table
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          id: (await supabase.auth.getUser()).data.user?.id,
+          id: userId,
           first_name: data.firstName,
           last_name: data.lastName,
           email: data.email,
           phone: data.phone,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         });
       
       if (error) throw error;
@@ -55,11 +78,11 @@ export const ProfileTab = () => {
         title: "Personal information updated",
         description: "Your personal information has been saved successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving personal data:", error);
       toast({
         title: "Error saving information",
-        description: "There was a problem saving your changes.",
+        description: error.message || "There was a problem saving your changes.",
         variant: "destructive",
       });
     } finally {
@@ -68,21 +91,29 @@ export const ProfileTab = () => {
   };
 
   // Handle saving professional info
-  const onProfessionalSubmit = async (data) => {
+  const onProfessionalSubmit = async (data: ProfessionalFormValues) => {
     try {
       setIsLoading(true);
       console.log("Saving professional data:", data);
+      
+      // Get current user
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
       
       // Save to Supabase - assumes you have a "professional_details" table
       const { error } = await supabase
         .from('professional_details')
         .upsert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userId,
           title: data.title,
           company: data.company,
           industry: data.industry,
           location: data.location,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         });
       
       if (error) throw error;
@@ -91,11 +122,11 @@ export const ProfileTab = () => {
         title: "Professional details updated",
         description: "Your professional details have been saved successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving professional data:", error);
       toast({
         title: "Error saving information",
-        description: "There was a problem saving your changes.",
+        description: error.message || "There was a problem saving your changes.",
         variant: "destructive",
       });
     } finally {
