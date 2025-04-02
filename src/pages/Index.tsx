@@ -1,13 +1,51 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import Layout from "@/components/layout/Layout";
+import StatsOverview from "@/components/dashboard/StatsOverview";
+import JobList from "@/components/jobs/JobList";
+import AddJobModal from "@/components/jobs/AddJobModal";
+import { mockJobs } from "@/data/mockJobs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-jobtrakr-charcoal">Dashboard</h1>
+          <AddJobModal />
+        </div>
+        
+        <StatsOverview jobs={mockJobs} />
+        
+        <Tabs defaultValue="all" className="w-full">
+          <div className="flex justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="all">All Applications</TabsTrigger>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="saved">Saved</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="all">
+            <JobList jobs={mockJobs} />
+          </TabsContent>
+          
+          <TabsContent value="active">
+            <JobList 
+              jobs={mockJobs.filter(
+                job => job.status === "applied" || job.status === "interview"
+              )} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="saved">
+            <JobList 
+              jobs={mockJobs.filter(job => job.status === "saved")} 
+            />
+          </TabsContent>
+        </Tabs>
       </div>
-    </div>
+    </Layout>
   );
 };
 

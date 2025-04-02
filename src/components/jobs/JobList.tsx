@@ -1,0 +1,86 @@
+
+import { JobApplication } from "@/data/mockJobs";
+import JobCard from "./JobCard";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useState } from "react";
+
+interface JobListProps {
+  jobs: JobApplication[];
+}
+
+const JobList = ({ jobs }: JobListProps) => {
+  const [sortBy, setSortBy] = useState("newest");
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const filteredJobs = jobs.filter(job => 
+    job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    switch (sortBy) {
+      case "newest":
+        return new Date(b.appliedDate || b.lastUpdated).getTime() - 
+               new Date(a.appliedDate || a.lastUpdated).getTime();
+      case "oldest":
+        return new Date(a.appliedDate || a.lastUpdated).getTime() - 
+               new Date(b.appliedDate || b.lastUpdated).getTime();
+      case "company":
+        return a.company.localeCompare(b.company);
+      case "position":
+        return a.position.localeCompare(b.position);
+      default:
+        return 0;
+    }
+  });
+  
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search jobs..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full sm:w-52">
+          <Select defaultValue={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="company">Company Name</SelectItem>
+              <SelectItem value="position">Position</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {sortedJobs.length > 0 ? (
+          sortedJobs.map(job => <JobCard key={job.id} job={job} />)
+        ) : (
+          <div className="col-span-full text-center py-10">
+            <p className="text-gray-500">No jobs found. Try adjusting your search.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default JobList;
