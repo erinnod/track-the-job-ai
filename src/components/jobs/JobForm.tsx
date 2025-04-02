@@ -13,11 +13,19 @@ interface JobFormProps {
 }
 
 const JobForm = ({ onSubmit, onCancel }: JobFormProps) => {
-  const [jobData, setJobData] = useState({
+  const [jobData, setJobData] = useState<{
+    company: string;
+    position: string;
+    location: string;
+    status: JobApplication["status"]; // Use the status type from JobApplication
+    companyWebsite: string;
+    salary: string;
+    jobDescription: string;
+  }>({
     company: "",
     position: "",
     location: "",
-    status: "saved",
+    status: "saved", // Default status is "saved"
     companyWebsite: "",
     salary: "",
     jobDescription: ""
@@ -29,7 +37,13 @@ const JobForm = ({ onSubmit, onCancel }: JobFormProps) => {
   };
   
   const handleStatusChange = (value: string) => {
-    setJobData(prev => ({ ...prev, status: value as JobApplication["status"] }));
+    // Ensure value is a valid status type before assigning
+    if (["applied", "interview", "offer", "rejected", "saved"].includes(value)) {
+      setJobData(prev => ({ 
+        ...prev, 
+        status: value as JobApplication["status"] 
+      }));
+    }
   };
   
   const handleSubmit = () => {
@@ -44,7 +58,7 @@ const JobForm = ({ onSubmit, onCancel }: JobFormProps) => {
       company: jobData.company,
       position: jobData.position,
       location: jobData.location || "Not specified",
-      status: jobData.status as JobApplication["status"],
+      status: jobData.status,
       appliedDate: jobData.status === "saved" ? "" : new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       companyWebsite: jobData.companyWebsite,

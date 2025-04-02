@@ -4,7 +4,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { JobApplication } from "@/data/mockJobs";
 
 interface JobDescriptionFieldProps {
-  jobData: Partial<JobApplication>;
+  jobData: Partial<JobApplication> & {
+    jobDescription?: string;
+  };
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
