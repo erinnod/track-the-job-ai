@@ -23,6 +23,9 @@ export interface JobApplication {
     title: string;
     description?: string;
   }[];
+  type?: string;
+  level?: string;
+  remote?: boolean;
 }
 
 export const statusColors = {
@@ -76,7 +79,10 @@ export const mockJobs: JobApplication[] = [
         title: "Technical Interview",
         description: "90-minute video interview with the engineering team"
       }
-    ]
+    ],
+    type: "Full-time",
+    level: "Mid",
+    remote: true
   },
   {
     id: "2",
@@ -89,7 +95,10 @@ export const mockJobs: JobApplication[] = [
     logo: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=40&h=40&fit=crop",
     companyWebsite: "https://datasystems.io",
     salary: "$100,000 - $130,000",
-    jobDescription: "Full stack engineer working with Node.js, React, and PostgreSQL."
+    jobDescription: "Full stack engineer working with Node.js, React, and PostgreSQL.",
+    type: "Full-time",
+    level: "Senior",
+    remote: false
   },
   {
     id: "3",
@@ -104,7 +113,10 @@ export const mockJobs: JobApplication[] = [
     notes: [
       "Received rejection email on April 10",
       "Mentioned they'll keep my resume on file for future opportunities"
-    ]
+    ],
+    type: "Contract",
+    level: "Junior",
+    remote: true
   },
   {
     id: "4",
@@ -127,7 +139,10 @@ export const mockJobs: JobApplication[] = [
         phone: "555-123-4567",
         position: "Tech Lead"
       }
-    ]
+    ],
+    type: "Full-time",
+    level: "Mid",
+    remote: false
   },
   {
     id: "5",
@@ -139,7 +154,10 @@ export const mockJobs: JobApplication[] = [
     lastUpdated: "2023-04-05",
     logo: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=40&h=40&fit=crop",
     companyWebsite: "https://innovatetech.com",
-    jobDescription: "JavaScript developer role focused on building modern web applications with React and Node.js."
+    jobDescription: "JavaScript developer role focused on building modern web applications with React and Node.js.",
+    type: "Part-time",
+    level: "Junior",
+    remote: true
   }
 ];
 
