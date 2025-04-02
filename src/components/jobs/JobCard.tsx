@@ -22,20 +22,21 @@ interface JobCardProps {
   onRemove: (id: string) => void;
 }
 
-// Function to get a pastel color based on job position or company
-const getPastelColor = (job: JobApplication) => {
-  // Simple function to generate a consistent color based on the first letter of position
-  const colors = [
-    "bg-[#FDE1D3]", // Soft Peach (like Amazon card)
-    "bg-[#D3E4FD]", // Soft Blue (like Twitter card)
-    "bg-[#DCFCE7]", // Soft Green (like Google card)
-    "bg-[#EDE9FE]", // Soft Purple (like Dribbble card)
-    "bg-[#FFE4E6]", // Soft Pink (like Airbnb card)
-    "bg-[#F1F0FB]", // Soft Gray
-  ];
-  
-  const index = job.company.charCodeAt(0) % colors.length;
-  return colors[index];
+// Function to get a color based on job status
+const getStatusColor = (status: JobApplication['status']) => {
+  switch (status) {
+    case 'offer':
+      return "bg-[#DCFCE7]"; // Green for offers
+    case 'rejected':
+      return "bg-[#FFE4E6]"; // Red/pink for rejected
+    case 'interview':
+      return "bg-[#D3E4FD]"; // Blue for interview
+    case 'applied':
+      return "bg-[#EDE9FE]"; // Purple for applied
+    case 'saved':
+    default:
+      return "bg-[#F1F0FB]"; // Grey for saved/default
+  }
 };
 
 const JobCard = ({ job, onRemove }: JobCardProps) => {
@@ -68,15 +69,14 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
     });
   };
   
-  // Get the appropriate background color
-  const cardBgColor = getPastelColor(job);
+  // Get the appropriate background color based on job status
+  const cardBgColor = getStatusColor(job.status);
   
   return (
     <Card className={`h-full border-0 overflow-hidden ${cardBgColor} shadow-none rounded-xl`}>
       {/* Date display at top */}
       <div className="flex justify-between items-center px-4 pt-4">
         <span className="text-sm text-gray-600">{job.appliedDate ? new Date(job.appliedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : "Saved"}</span>
-        {/* Make the close button visible again */}
         <button 
           onClick={handleRemove}
           className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-white/50 transition-colors"
@@ -109,18 +109,15 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
               {job.location.includes("Remote") ? "Remote" : "On-site"}
             </span>
           )}
-          {/* Additional tag if needed */}
-          {job.status === "interview" && (
-            <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
-              Interview
-            </span>
-          )}
+          {/* Status tag */}
+          <span className="text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700">
+            {statusLabels[job.status]}
+          </span>
         </div>
       </CardContent>
       
       <CardFooter className="flex items-center justify-between p-4 pt-0">
         <div className="flex items-center text-sm text-gray-700">
-          {/* Fixed the double dollar sign by removing the DollarSign icon */}
           {job.salary || "Not specified"}
         </div>
         <Button 
