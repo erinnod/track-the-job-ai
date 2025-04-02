@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface JobCardProps {
   job: JobApplication;
@@ -39,6 +40,7 @@ const getPastelColor = (job: JobApplication) => {
 
 const JobCard = ({ job, onRemove }: JobCardProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const formattedDate = (dateString: string) => {
     if (!dateString) return "Not applied yet";
@@ -54,6 +56,15 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
     toast({
       title: "Job removed",
       description: `${job.position} at ${job.company} has been removed`,
+    });
+  };
+  
+  const handleViewDetails = () => {
+    // For now we'll show a toast with job details
+    // In a future update this could navigate to a job details page
+    toast({
+      title: `${job.position} at ${job.company}`,
+      description: `Status: ${statusLabels[job.status]} | Location: ${job.location}`,
     });
   };
   
@@ -116,6 +127,7 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
           variant="default" 
           size="sm" 
           className="rounded-full bg-black text-white hover:bg-gray-800 px-5"
+          onClick={handleViewDetails}
         >
           Details
         </Button>

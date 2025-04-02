@@ -9,7 +9,7 @@ import {
   Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 interface SidebarLinkProps {
   icon: React.ElementType;
@@ -36,6 +36,9 @@ const SidebarLink = ({ icon: Icon, label, to, active }: SidebarLinkProps) => {
 };
 
 const Sidebar = () => {
+  const location = useLocation();
+  const currentPath = location.pathname;
+  
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-[calc(100vh-64px)] pt-6 hidden md:block">
       <div className="px-4 mb-6">
@@ -47,17 +50,19 @@ const Sidebar = () => {
             icon={LayoutDashboard} 
             label="Dashboard" 
             to="/" 
-            active 
+            active={currentPath === '/'} 
           />
           <SidebarLink 
             icon={Briefcase} 
             label="My Applications" 
             to="/applications" 
+            active={currentPath === '/applications'}
           />
           <SidebarLink 
             icon={Kanban} 
             label="Kanban Board" 
             to="/kanban" 
+            active={currentPath === '/kanban'}
           />
         </nav>
       </div>
@@ -71,16 +76,19 @@ const Sidebar = () => {
             icon={FileText} 
             label="Documents" 
             to="/documents" 
+            active={currentPath === '/documents'}
           />
           <SidebarLink 
             icon={Calendar} 
             label="Calendar" 
             to="/calendar" 
+            active={currentPath === '/calendar'}
           />
           <SidebarLink 
             icon={BarChart} 
             label="Analytics" 
             to="/analytics" 
+            active={currentPath === '/analytics'}
           />
         </nav>
       </div>
@@ -94,6 +102,7 @@ const Sidebar = () => {
             icon={Settings} 
             label="Settings" 
             to="/settings" 
+            active={currentPath === '/settings'}
           />
         </nav>
       </div>
