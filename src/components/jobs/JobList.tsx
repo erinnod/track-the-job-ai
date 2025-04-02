@@ -9,8 +9,10 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 interface JobListProps {
   jobs: JobApplication[];
@@ -45,22 +47,21 @@ const JobList = ({ jobs }: JobListProps) => {
   
   return (
     <div>
-      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search jobs..."
-            className="pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <h2 className="text-2xl font-bold dark:text-white">Recommended jobs</h2>
+          <span className="ml-3 text-sm bg-white/10 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full">
+            {sortedJobs.length}
+          </span>
         </div>
-        <div className="w-full sm:w-52">
+        
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Sort by:</span>
           <Select defaultValue={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
+            <SelectTrigger className="w-[160px] bg-transparent border-gray-700">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-jobtrakr-cardDark dark:border-gray-800">
               <SelectItem value="newest">Newest First</SelectItem>
               <SelectItem value="oldest">Oldest First</SelectItem>
               <SelectItem value="company">Company Name</SelectItem>
@@ -68,6 +69,22 @@ const JobList = ({ jobs }: JobListProps) => {
             </SelectContent>
           </Select>
         </div>
+      </div>
+      
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search jobs..."
+            className="pl-9 bg-transparent border-gray-700"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Button variant="outline" className="dark:bg-transparent dark:border-gray-700 dark:text-white">
+          <SlidersHorizontal className="h-4 w-4 mr-2" />
+          Filters
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

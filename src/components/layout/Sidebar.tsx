@@ -26,7 +26,7 @@ const SidebarLink = ({ icon: Icon, label, to, active }: SidebarLinkProps) => {
         "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors",
         active 
           ? "bg-jobtrakr-blue text-white" 
-          : "text-gray-600 hover:bg-jobtrakr-lightgray"
+          : "text-gray-400 hover:text-white hover:bg-jobtrakr-cardLight"
       )}
     >
       <Icon className="h-5 w-5" />
@@ -37,9 +37,9 @@ const SidebarLink = ({ icon: Icon, label, to, active }: SidebarLinkProps) => {
 
 const Sidebar = () => {
   return (
-    <div className="w-60 bg-white border-r border-gray-200 h-[calc(100vh-64px)] pt-6 hidden sm:block">
+    <div className="w-60 bg-jobtrakr-cardDark border-r border-gray-800 h-[calc(100vh-64px)] pt-6 hidden sm:block">
       <div className="px-4 mb-6">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
           Main
         </h2>
         <nav className="mt-3 space-y-1">
@@ -63,7 +63,7 @@ const Sidebar = () => {
       </div>
       
       <div className="px-4 mb-6">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
           Tools
         </h2>
         <nav className="mt-3 space-y-1">
@@ -86,7 +86,7 @@ const Sidebar = () => {
       </div>
       
       <div className="px-4 mb-6">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
           Settings
         </h2>
         <nav className="mt-3 space-y-1">

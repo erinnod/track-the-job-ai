@@ -63,15 +63,22 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-                jobtrakr: {
-                    blue: "#1EAEDB",
-                    skyblue: "#33C3F0",
-                    charcoal: "#221F26",
-                    darkcharcoal: "#17151A", // Added for dark mode
-                    lightgray: "#F6F6F7",
-                    mediumgray: "#8A898C",
-                    silvergray: "#9F9EA1"
-                }
+				jobtrakr: {
+					blue: "#1EAEDB",
+					skyblue: "#33C3F0",
+					charcoal: "#151515", // Updated to be darker
+					darkcharcoal: "#111111", // Updated to be darker
+					lightgray: "#F6F6F7",
+					mediumgray: "#8A898C",
+					silvergray: "#9F9EA1",
+					cardLight: "#27282B", // For light cards in dark mode
+					cardMedium: "#1C1D20", // For medium cards in dark mode
+					cardDark: "#16171A", // For dark cards in dark mode
+					mint: "#DCFCE7", // Mint green for accents
+					peach: "#FFE4E6", // Peach for accents
+					lavender: "#EDE9FE", // Lavender for accents
+					skyblue: "#E0F2FE" // Sky blue for accents
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

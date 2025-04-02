@@ -18,11 +18,26 @@ const Index = () => {
         <StatsOverview jobs={mockJobs} />
         
         <Tabs defaultValue="all" className="w-full">
-          <div className="flex justify-between items-center mb-4">
-            <TabsList className="dark:bg-gray-800">
-              <TabsTrigger value="all" className="dark:data-[state=active]:bg-jobtrakr-blue dark:data-[state=active]:text-white">All Applications</TabsTrigger>
-              <TabsTrigger value="active" className="dark:data-[state=active]:bg-jobtrakr-blue dark:data-[state=active]:text-white">Active</TabsTrigger>
-              <TabsTrigger value="saved" className="dark:data-[state=active]:bg-jobtrakr-blue dark:data-[state=active]:text-white">Saved</TabsTrigger>
+          <div className="flex justify-between items-center mb-6">
+            <TabsList className="dark:bg-jobtrakr-cardDark rounded-full p-1">
+              <TabsTrigger 
+                value="all" 
+                className="px-4 rounded-full data-[state=active]:bg-jobtrakr-blue data-[state=active]:text-white"
+              >
+                All Applications
+              </TabsTrigger>
+              <TabsTrigger 
+                value="active" 
+                className="px-4 rounded-full data-[state=active]:bg-jobtrakr-blue data-[state=active]:text-white"
+              >
+                Active
+              </TabsTrigger>
+              <TabsTrigger 
+                value="saved" 
+                className="px-4 rounded-full data-[state=active]:bg-jobtrakr-blue data-[state=active]:text-white"
+              >
+                Saved
+              </TabsTrigger>
             </TabsList>
           </div>
           

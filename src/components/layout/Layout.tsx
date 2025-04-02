@@ -8,7 +8,7 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode now
   const [country, setCountry] = useState<"USA" | "UK">("USA");
 
   // Initialize dark mode from localStorage or system preference
@@ -20,9 +20,8 @@ const Layout = ({ children }: LayoutProps) => {
     if (savedMode !== null) {
       setIsDarkMode(savedMode === "true");
     } else {
-      // Check system preference
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setIsDarkMode(prefersDark);
+      // Always default to dark mode now
+      setIsDarkMode(true);
     }
 
     // Set country preference
@@ -47,7 +46,7 @@ const Layout = ({ children }: LayoutProps) => {
   }, [country]);
 
   return (
-    <div className="min-h-screen bg-jobtrakr-lightgray dark:bg-jobtrakr-charcoal">
+    <div className="min-h-screen bg-white dark:bg-jobtrakr-charcoal">
       <Navbar 
         isDarkMode={isDarkMode} 
         setIsDarkMode={setIsDarkMode} 

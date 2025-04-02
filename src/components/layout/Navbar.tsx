@@ -1,4 +1,3 @@
-
 import { BriefcaseBusiness, PlusCircle, Bell, Moon, Sun, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -22,39 +21,52 @@ interface NavbarProps {
 
 const Navbar = ({ isDarkMode, setIsDarkMode, country, setCountry }: NavbarProps) => {
   return (
-    <div className="bg-white dark:bg-jobtrakr-charcoal border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-      <div className="flex items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
+    <div className="bg-white dark:bg-jobtrakr-darkcharcoal border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
+      <div className="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center">
-          <BriefcaseBusiness className="h-8 w-8 text-jobtrakr-blue mr-2" />
-          <h1 className="text-2xl font-bold text-jobtrakr-charcoal dark:text-white">JobTrakr</h1>
+          <BriefcaseBusiness className="h-6 w-6 text-jobtrakr-blue mr-2" />
+          <h1 className="text-xl font-bold text-jobtrakr-charcoal dark:text-white">JobTrakr</h1>
+        </div>
+        
+        <div className="hidden md:flex items-center space-x-6">
+          <button className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+            Find Jobs
+          </button>
+          <button className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+            Messages
+          </button>
+          <button className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+            Community
+          </button>
+          <button className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+            FAQ
+          </button>
         </div>
         
         <div className="flex items-center space-x-4">
           {/* Country Toggle */}
-          <div className="hidden sm:flex items-center space-x-2">
-            <Globe className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+          <div className="hidden sm:flex items-center">
             <ToggleGroup type="single" value={country} onValueChange={(value) => value && setCountry(value as "USA" | "UK")}>
-              <ToggleGroupItem value="USA" size="sm" className="text-xs">
+              <ToggleGroupItem value="USA" size="sm" className="text-xs rounded-l-full rounded-r-none border-r-0">
                 USA
               </ToggleGroupItem>
-              <ToggleGroupItem value="UK" size="sm" className="text-xs">
+              <ToggleGroupItem value="UK" size="sm" className="text-xs rounded-r-full rounded-l-none">
                 UK
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
           
-          {/* Dark Mode Toggle */}
-          <div className="hidden sm:flex items-center space-x-2">
-            <Sun className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+          {/* Dark Mode Toggle - Keep this but make it subtle */}
+          <div className="hidden sm:flex items-center">
             <Switch 
               checked={isDarkMode}
               onCheckedChange={setIsDarkMode}
               aria-label="Toggle dark mode"
+              className="data-[state=checked]:bg-jobtrakr-blue"
             />
-            <Moon className="h-4 w-4 text-gray-500 dark:text-gray-300" />
           </div>
           
-          <Button variant="outline" size="sm" className="hidden sm:flex dark:border-gray-700 dark:text-white">
+          <Button variant="ghost" size="sm" className="hidden sm:flex dark:text-white">
             <PlusCircle className="h-4 w-4 mr-2" />
             Add Job
           </Button>
@@ -74,7 +86,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode, country, setCountry }: NavbarProps)
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="dark:bg-gray-800 dark:text-white dark:border-gray-700">
+            <DropdownMenuContent align="end" className="dark:bg-jobtrakr-cardDark dark:text-white dark:border-gray-800">
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               
