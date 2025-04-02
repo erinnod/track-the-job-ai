@@ -71,17 +71,18 @@ const JobList = ({ jobs: initialJobs }: JobListProps) => {
   });
   
   return (
-    <div>
+    <div className="w-full">
       <JobListHeader 
         jobCount={sortedJobs.length} 
         sortBy={sortBy} 
         setSortBy={setSortBy} 
       />
       
-      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 mb-6">
         <JobSearchBar 
           searchTerm={searchTerm} 
           setSearchTerm={setSearchTerm} 
+          className="w-full"
         />
         
         <StatusFilterDropdown 
