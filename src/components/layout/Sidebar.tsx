@@ -6,7 +6,9 @@ import {
   BarChart, 
   FileText, 
   Calendar, 
-  Settings 
+  Settings, 
+  Search,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -23,10 +25,10 @@ const SidebarLink = ({ icon: Icon, label, to, active }: SidebarLinkProps) => {
     <Link
       to={to}
       className={cn(
-        "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors",
+        "flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors",
         active 
-          ? "bg-jobtrakr-blue text-white" 
-          : "text-gray-400 hover:text-white hover:bg-jobtrakr-cardLight"
+          ? "bg-[#5465FF] text-white" 
+          : "text-gray-400 hover:text-white hover:bg-[#1A1F2C]"
       )}
     >
       <Icon className="h-5 w-5" />
@@ -37,7 +39,7 @@ const SidebarLink = ({ icon: Icon, label, to, active }: SidebarLinkProps) => {
 
 const Sidebar = () => {
   return (
-    <div className="w-60 bg-jobtrakr-cardDark border-r border-gray-800 h-[calc(100vh-64px)] pt-6 hidden sm:block">
+    <div className="w-64 bg-[#131A2C] border-r border-[#242C44] h-[calc(100vh-64px)] pt-6 hidden sm:block">
       <div className="px-4 mb-6">
         <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
           Main
@@ -59,6 +61,11 @@ const Sidebar = () => {
             label="Kanban Board" 
             to="/kanban" 
           />
+          <SidebarLink 
+            icon={Search} 
+            label="Job Search" 
+            to="/search" 
+          />
         </nav>
       </div>
       
@@ -76,6 +83,11 @@ const Sidebar = () => {
             icon={Calendar} 
             label="Calendar" 
             to="/calendar" 
+          />
+          <SidebarLink 
+            icon={MessageSquare} 
+            label="Messages" 
+            to="/messages" 
           />
           <SidebarLink 
             icon={BarChart} 

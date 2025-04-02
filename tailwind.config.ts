@@ -64,20 +64,25 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				jobtrakr: {
-					blue: "#1EAEDB",
-					skyblue: "#33C3F0",
-					charcoal: "#151515", // Updated to be darker
-					darkcharcoal: "#111111", // Updated to be darker
+					blue: "#4169E1", // Royal blue
+					skyblue: "#87CEEB",
+					charcoal: "#121212", // Much darker for main background
+					darkcharcoal: "#0A0A0A", // Even darker for cards
 					lightgray: "#F6F6F7",
 					mediumgray: "#8A898C",
 					silvergray: "#9F9EA1",
-					cardLight: "#27282B", // For light cards in dark mode
-					cardMedium: "#1C1D20", // For medium cards in dark mode
-					cardDark: "#16171A", // For dark cards in dark mode
-					mint: "#DCFCE7", // Mint green for accents
-					peach: "#FFE4E6", // Peach for accents
-					lavender: "#EDE9FE", // Lavender for accents
-					skyblue: "#E0F2FE" // Sky blue for accents
+					cardLight: "#1A1A1A", // Lighter card in dark mode
+					cardMedium: "#161616", // Medium card in dark mode
+					cardDark: "#121212", // Darker card in dark mode
+					// New color scheme matching the image
+					navy: "#131A2C",
+					darkNavy: "#0F1624",
+					purple: "#5465FF",
+					lightPurple: "#788BFF",
+					mint: "#DCFCE7", 
+					peach: "#FFE4E6", 
+					lavender: "#EDE9FE",
+					teal: "#BAF2E9"
 				}
 			},
 			borderRadius: {
