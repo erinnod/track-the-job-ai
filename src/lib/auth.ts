@@ -27,8 +27,9 @@ export async function signUp(data: SignUpData) {
           last_name: lastName,
         },
         emailRedirectTo:
-          process.env.NODE_ENV === "production"
-            ? "https://jobtrakr.co.uk/auth/callback"
+          process.env.NODE_ENV === "production" ||
+          window.location.hostname !== "localhost"
+            ? `${window.location.origin}/auth/callback`
             : `${window.location.origin}/auth/callback`,
       },
     });
