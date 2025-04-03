@@ -13,7 +13,7 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
       className="min-h-screen flex flex-col items-center justify-center p-4"
       style={{
         backgroundColor: "#e6f0ff", // Light blue fallback
-        backgroundImage: "url('/background.png')",
+        backgroundImage: "url('/images/background.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
