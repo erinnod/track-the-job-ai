@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { resetPassword } from "@/lib/auth";
 import { ArrowLeft } from "lucide-react";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 const ForgotPassword = () => {
   const { toast } = useToast();
@@ -59,17 +60,9 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
-      <div className="mb-12">
-        <img
-          src="/images/jobtrakr-logo.png"
-          alt="JobTrakr Logo"
-          className="h-16 w-auto"
-          style={{ maxWidth: "320px" }}
-        />
-      </div>
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
+    <AuthLayout>
+      <Card className="w-full max-w-md bg-white/80 backdrop-blur-md shadow-xl border border-white/20 rounded-xl overflow-hidden">
+        <CardHeader className="space-y-1 text-center pb-4">
           <CardTitle className="text-2xl font-bold">
             Reset Your Password
           </CardTitle>
@@ -92,17 +85,22 @@ const ForgotPassword = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
                   required
+                  className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
                 />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={isLoading}
+              >
                 {isLoading ? "Sending..." : "Send Reset Link"}
               </Button>
               <div className="text-center text-sm">
                 <Link
                   to="/login"
-                  className="text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1"
+                  className="text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1 font-medium"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back to login
@@ -112,7 +110,7 @@ const ForgotPassword = () => {
           </form>
         ) : (
           <CardContent className="space-y-4">
-            <div className="bg-green-50 p-4 rounded-md text-green-800 text-center">
+            <div className="bg-green-50/80 backdrop-blur-sm p-4 rounded-md text-green-800 text-center border border-green-200">
               <p className="mb-2 font-medium">Reset link sent!</p>
               <p className="text-sm">
                 We've sent a password reset link to <strong>{email}</strong>.
@@ -122,7 +120,7 @@ const ForgotPassword = () => {
             <div className="text-center mt-4">
               <Link
                 to="/login"
-                className="text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1"
+                className="text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1 font-medium"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to login
@@ -131,7 +129,7 @@ const ForgotPassword = () => {
           </CardContent>
         )}
       </Card>
-    </div>
+    </AuthLayout>
   );
 };
 

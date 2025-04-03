@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { signUp } from "@/lib/auth";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 const SignUp = () => {
   const { toast } = useToast();
@@ -102,17 +103,9 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
-      <div className="mb-12">
-        <img
-          src="/images/jobtrakr-logo.png"
-          alt="JobTrakr Logo"
-          className="h-16 w-auto"
-          style={{ maxWidth: "320px" }}
-        />
-      </div>
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
+    <AuthLayout>
+      <Card className="w-full max-w-md bg-white/80 backdrop-blur-md shadow-xl border border-white/20 rounded-xl overflow-hidden">
+        <CardHeader className="space-y-1 text-center pb-4">
           <CardTitle className="text-2xl font-bold">
             Create an account
           </CardTitle>
@@ -133,6 +126,7 @@ const SignUp = () => {
                   onChange={handleChange}
                   disabled={isLoading}
                   required
+                  className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -145,6 +139,7 @@ const SignUp = () => {
                   onChange={handleChange}
                   disabled={isLoading}
                   required
+                  className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
                 />
               </div>
             </div>
@@ -159,6 +154,7 @@ const SignUp = () => {
                 onChange={handleChange}
                 disabled={isLoading}
                 required
+                className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
               />
             </div>
             <div className="space-y-2">
@@ -171,6 +167,7 @@ const SignUp = () => {
                 onChange={handleChange}
                 disabled={isLoading}
                 required
+                className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
               />
             </div>
             <div className="space-y-2">
@@ -183,18 +180,23 @@ const SignUp = () => {
                 onChange={handleChange}
                 disabled={isLoading}
                 required
+                className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
               />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full bg-primary hover:bg-primary/90"
+              disabled={isLoading}
+            >
               {isLoading ? "Creating account..." : "Sign up"}
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="text-blue-600 hover:text-blue-800 underline"
+                className="text-blue-600 hover:text-blue-800 font-medium"
               >
                 Sign in
               </Link>
@@ -202,7 +204,7 @@ const SignUp = () => {
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </AuthLayout>
   );
 };
 

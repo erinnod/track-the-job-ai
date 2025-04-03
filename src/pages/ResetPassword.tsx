@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { updatePassword } from "@/lib/auth";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 const PASSWORD_MIN_LENGTH = 8;
 
@@ -151,20 +152,23 @@ const ResetPassword = () => {
   // Show loading state while checking session
   if (!sessionCheckComplete) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
-        <div className="text-center">
-          <p>Checking your reset link...</p>
-        </div>
-      </div>
+      <AuthLayout>
+        <Card className="w-full max-w-md bg-white/80 backdrop-blur-md shadow-xl border border-white/20 rounded-xl overflow-hidden">
+          <CardContent className="flex flex-col items-center justify-center space-y-4 py-8">
+            <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-blue-500 animate-spin"></div>
+            <p className="text-lg font-medium">Checking your reset link...</p>
+          </CardContent>
+        </Card>
+      </AuthLayout>
     );
   }
 
   // If the session is invalid (no valid reset token)
   if (!isValidSession) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 text-center">
+      <AuthLayout>
+        <Card className="w-full max-w-md bg-white/80 backdrop-blur-md shadow-xl border border-white/20 rounded-xl overflow-hidden">
+          <CardHeader className="space-y-1 text-center pb-4">
             <CardTitle className="text-2xl font-bold">
               Invalid Reset Link
             </CardTitle>
@@ -173,7 +177,10 @@ const ResetPassword = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert variant="destructive">
+            <Alert
+              variant="destructive"
+              className="bg-red-50/80 backdrop-blur-sm border border-red-200"
+            >
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>
@@ -183,29 +190,21 @@ const ResetPassword = () => {
           </CardContent>
           <CardFooter>
             <Button
-              className="w-full"
+              className="w-full bg-primary hover:bg-primary/90"
               onClick={() => navigate("/forgot-password")}
             >
               Request New Reset Link
             </Button>
           </CardFooter>
         </Card>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
-      <div className="mb-12">
-        <img
-          src="/images/jobtrakr-logo.png"
-          alt="JobTrakr Logo"
-          className="h-16 w-auto"
-          style={{ maxWidth: "320px" }}
-        />
-      </div>
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
+    <AuthLayout>
+      <Card className="w-full max-w-md bg-white/80 backdrop-blur-md shadow-xl border border-white/20 rounded-xl overflow-hidden">
+        <CardHeader className="space-y-1 text-center pb-4">
           <CardTitle className="text-2xl font-bold">
             Reset Your Password
           </CardTitle>
@@ -215,22 +214,38 @@ const ResetPassword = () => {
               : "Enter your new password below"}
           </CardDescription>
         </CardHeader>
-        {!isCompleted ? (
+        {isCompleted ? (
+          <CardContent className="space-y-4">
+            <div className="bg-green-50/80 backdrop-blur-sm p-4 rounded-md text-green-800 text-center border border-green-200">
+              <div className="flex justify-center mb-2">
+                <CheckCircle2 className="h-6 w-6 text-green-500" />
+              </div>
+              <p className="mb-2 font-medium">Password Reset Successful!</p>
+              <p className="text-sm">
+                Your password has been updated. You'll be redirected to the
+                login page shortly.
+              </p>
+            </div>
+          </CardContent>
+        ) : (
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {errors.length > 0 && (
-                <div className="bg-red-50 text-red-800 p-3 rounded-md text-sm">
-                  <div className="font-medium mb-1">
-                    Please correct the following errors:
-                  </div>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
+                <Alert
+                  variant="destructive"
+                  className="bg-red-50/80 backdrop-blur-sm border border-red-200"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-5 space-y-1 mt-2">
+                      {errors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
               )}
-
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
                 <Input
@@ -240,13 +255,12 @@ const ResetPassword = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  autoComplete="new-password"
                   required
+                  className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -254,43 +268,34 @@ const ResetPassword = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
-                  autoComplete="new-password"
                   required
+                  className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
                 />
               </div>
-
-              <div className="text-sm text-gray-500">
-                <p>Password must:</p>
+              <div className="bg-blue-50/80 backdrop-blur-sm p-3 rounded-md text-blue-800 text-sm border border-blue-200">
+                <h4 className="font-medium mb-1">Password Requirements:</h4>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Be at least {PASSWORD_MIN_LENGTH} characters long</li>
-                  <li>Include at least one uppercase letter</li>
-                  <li>Include at least one lowercase letter</li>
-                  <li>Include at least one number</li>
-                  <li>Include at least one special character</li>
+                  <li>At least {PASSWORD_MIN_LENGTH} characters long</li>
+                  <li>At least one uppercase letter</li>
+                  <li>At least one lowercase letter</li>
+                  <li>At least one number</li>
+                  <li>At least one special character</li>
                 </ul>
               </div>
             </CardContent>
-
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={isLoading}
+              >
                 {isLoading ? "Resetting Password..." : "Reset Password"}
               </Button>
             </CardFooter>
           </form>
-        ) : (
-          <CardContent className="space-y-4">
-            <div className="bg-green-50 p-4 rounded-md text-green-800 text-center">
-              <CheckCircle2 className="h-6 w-6 mx-auto mb-2" />
-              <p className="mb-2 font-medium">Password Reset Successful!</p>
-              <p className="text-sm">
-                Your password has been reset successfully. You will be
-                redirected to the login page shortly.
-              </p>
-            </div>
-          </CardContent>
         )}
       </Card>
-    </div>
+    </AuthLayout>
   );
 };
 

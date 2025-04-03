@@ -141,18 +141,7 @@ const Navbar = () => {
 
           {/* Center navigation */}
           <nav className="hidden md:flex items-center">
-            <Link
-              to="/messages"
-              className="relative mx-4 py-1 text-slate-600 hover:text-blue-600 text-sm font-medium after:absolute after:w-0 after:h-0.5 after:bg-blue-600 after:bottom-0 after:left-0 hover:after:w-full after:transition-all after:duration-300"
-            >
-              Messages
-            </Link>
-            <Link
-              to="/community"
-              className="relative mx-4 py-1 text-slate-600 hover:text-blue-600 text-sm font-medium after:absolute after:w-0 after:h-0.5 after:bg-blue-600 after:bottom-0 after:left-0 hover:after:w-full after:transition-all after:duration-300"
-            >
-              Community
-            </Link>
+            {/* Messages and Community links removed */}
           </nav>
 
           {/* Right section: search, add job, notifications, avatar */}
@@ -266,18 +255,7 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-slate-200 shadow-md animate-in slide-in-from-top duration-200">
           <div className="px-6 py-4 space-y-2">
-            <Link
-              to="/messages"
-              className="block w-full text-left py-2.5 px-3 text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-md transition-colors text-sm"
-            >
-              Messages
-            </Link>
-            <Link
-              to="/community"
-              className="block w-full text-left py-2.5 px-3 text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-md transition-colors text-sm"
-            >
-              Community
-            </Link>
+            {/* Messages and Community links removed */}
             <Button
               variant="ghost"
               size="sm"

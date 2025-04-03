@@ -20,6 +20,7 @@ import {
   generateCSRFToken,
   storeCSRFToken,
 } from "@/utils/security";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 const Login = () => {
   const { toast } = useToast();
@@ -138,17 +139,9 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
-      <div className="mb-12">
-        <img
-          src="/images/jobtrakr-logo.png"
-          alt="JobTrakr Logo"
-          className="h-16 w-auto"
-          style={{ maxWidth: "320px" }}
-        />
-      </div>
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
+    <AuthLayout>
+      <Card className="w-full max-w-md bg-white/80 backdrop-blur-md shadow-xl border border-white/20 rounded-xl overflow-hidden">
+        <CardHeader className="space-y-1 text-center pb-4">
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
           <CardDescription>Sign in to your JobTrakr account</CardDescription>
         </CardHeader>
@@ -166,6 +159,7 @@ const Login = () => {
                 disabled={isLoading}
                 required
                 autoComplete="email"
+                className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
               />
             </div>
             <div className="space-y-2">
@@ -187,25 +181,33 @@ const Login = () => {
                 disabled={isLoading}
                 required
                 autoComplete="current-password"
+                className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
               />
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full bg-primary hover:bg-primary/90"
+              disabled={isLoading}
+            >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </CardFooter>
         </form>
-        <div className="px-8 py-4 text-center">
+        <div className="px-8 py-4 text-center border-t border-white/20">
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
-            <Link to="/signup" className="text-blue-600 hover:text-blue-800">
+            <Link
+              to="/signup"
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
               Sign up
             </Link>
           </p>
         </div>
       </Card>
-    </div>
+    </AuthLayout>
   );
 };
 
