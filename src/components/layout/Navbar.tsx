@@ -1,4 +1,12 @@
-import { Bell, Search, PlusCircle, Menu } from "lucide-react";
+import {
+  Bell,
+  Search,
+  PlusCircle,
+  Menu,
+  Calendar,
+  Bookmark,
+  Info,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -20,6 +28,7 @@ import { supabase } from "@/lib/supabase";
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const { lastUpdate } = useAvatar();
@@ -160,16 +169,115 @@ const Navbar = () => {
             </div>
 
             {isAuthenticated && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0 relative"
+              <DropdownMenu
+                open={notificationsOpen}
+                onOpenChange={setNotificationsOpen}
               >
-                <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
-                  3
-                </span>
-              </Button>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0 relative"
+                  >
+                    <Bell className="h-4 w-4" />
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
+                      3
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-80 p-2 mt-2 z-50 rounded-lg shadow-lg animate-in fade-in-80 data-[side=bottom]:slide-in-from-top-2"
+                >
+                  <div className="flex items-center justify-between p-2 border-b border-slate-100 pb-2 mb-1">
+                    <h3 className="font-medium text-slate-800">
+                      Notifications
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md"
+                    >
+                      Mark all as read
+                    </Button>
+                  </div>
+
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {/* Interview reminder notification */}
+                    <div className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors">
+                      <div className="flex gap-3">
+                        <div className="bg-blue-100 text-blue-600 p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
+                          <Calendar className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            Interview Reminder
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            You have an interview with Google tomorrow at 2:00
+                            PM
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1.5">
+                            1 hour ago
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Application status notification */}
+                    <div className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors">
+                      <div className="flex gap-3">
+                        <div className="bg-green-100 text-green-600 p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
+                          <Bookmark className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            Application Update
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Your application for Frontend Developer at Amazon
+                            has moved to interview stage
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1.5">
+                            Yesterday
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Job match notification */}
+                    <div className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors">
+                      <div className="flex gap-3">
+                        <div className="bg-yellow-100 text-yellow-600 p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
+                          <Info className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            New Job Match
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            We found a job at Microsoft that matches your
+                            profile
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1.5">
+                            2 days ago
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-1 pt-2 border-t border-slate-100">
+                    <Button
+                      variant="ghost"
+                      className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs justify-center"
+                      onClick={() => navigate("/notifications")}
+                    >
+                      View all notifications
+                    </Button>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             {isAuthenticated ? (
