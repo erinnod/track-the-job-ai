@@ -1,13 +1,31 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { updatePassword } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const PASSWORD_MIN_LENGTH = 8;
 
 interface SecurityFormValues {
   currentPassword: string;
@@ -18,55 +36,111 @@ interface SecurityFormValues {
 export const SecurityTab = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [errors, setErrors] = useState<string[]>([]);
+
   // Security form state
   const securityForm = useForm<SecurityFormValues>({
     defaultValues: {
       currentPassword: "",
       newPassword: "",
-      confirmPassword: ""
-    }
+      confirmPassword: "",
+    },
   });
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
+  // Validate password strength
+  const validatePassword = (
+    password: string,
+    confirmPassword: string
+  ): string[] => {
+    const validationErrors: string[] = [];
+
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      validationErrors.push(
+        `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`
+      );
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      validationErrors.push(
+        "Password must contain at least one uppercase letter"
+      );
+    }
+
+    if (!/[a-z]/.test(password)) {
+      validationErrors.push(
+        "Password must contain at least one lowercase letter"
+      );
+    }
+
+    if (!/[0-9]/.test(password)) {
+      validationErrors.push("Password must contain at least one number");
+    }
+
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      validationErrors.push(
+        "Password must contain at least one special character"
+      );
+    }
+
+    if (password !== confirmPassword) {
+      validationErrors.push("Passwords do not match");
+    }
+
+    return validationErrors;
+  };
+
   // Handle saving security settings
   const onSecuritySubmit = async (data: SecurityFormValues) => {
-    if (data.newPassword !== data.confirmPassword) {
-      toast({
-        title: "Passwords do not match",
-        description: "New password and confirmation do not match.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (data.newPassword.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+    // Clear previous errors
+    setErrors([]);
+
+    // First, verify the current password
     try {
-      setIsLoading(true);
-      console.log("Saving security settings");
-      
-      // Update password with Supabase Auth
-      const { error } = await supabase.auth.updateUser({
-        password: data.newPassword
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
+
+      if (userError || !userData.user?.email) {
+        throw new Error("Could not verify your account. Please sign in again.");
+      }
+
+      // Check if current password is correct
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userData.user.email,
+        password: data.currentPassword,
       });
-      
-      if (error) throw error;
-      
+
+      if (signInError) {
+        setErrors(["Current password is incorrect"]);
+        return;
+      }
+
+      // Validate the new password
+      const validationErrors = validatePassword(
+        data.newPassword,
+        data.confirmPassword
+      );
+      if (validationErrors.length > 0) {
+        setErrors(validationErrors);
+        return;
+      }
+
+      setIsLoading(true);
+
+      // Use our enhanced updatePassword function
+      const result = await updatePassword(data.newPassword);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
       securityForm.reset({
         currentPassword: "",
         newPassword: "",
-        confirmPassword: ""
+        confirmPassword: "",
       });
-      
+
       toast({
         title: "Password updated",
         description: "Your password has been updated successfully.",
@@ -75,8 +149,9 @@ export const SecurityTab = () => {
       console.error("Error updating password:", error);
       toast({
         title: "Error updating password",
-        description: error.message || "There was a problem updating your password.",
-        variant: "destructive"
+        description:
+          error.message || "There was a problem updating your password.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -90,21 +165,25 @@ export const SecurityTab = () => {
       // Here you would typically call Supabase or your auth provider to enable/disable 2FA
       // This is a placeholder as Supabase requires additional setup for 2FA
       console.log("Setting two-factor authentication to:", enabled);
-      
+
       // Simulate successful API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       setTwoFactorEnabled(enabled);
       toast({
-        title: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'}`,
-        description: `Two-factor authentication has been ${enabled ? 'enabled' : 'disabled'} for your account.`,
+        title: `Two-factor authentication ${enabled ? "enabled" : "disabled"}`,
+        description: `Two-factor authentication has been ${
+          enabled ? "enabled" : "disabled"
+        } for your account.`,
       });
     } catch (error: any) {
       console.error("Error toggling 2FA:", error);
       toast({
         title: "Error updating two-factor authentication",
-        description: error.message || "There was a problem updating your two-factor authentication settings.",
-        variant: "destructive"
+        description:
+          error.message ||
+          "There was a problem updating your two-factor authentication settings.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -115,13 +194,33 @@ export const SecurityTab = () => {
     <Card>
       <CardHeader>
         <CardTitle>Security Settings</CardTitle>
-        <CardDescription>Manage your password and security preferences.</CardDescription>
+        <CardDescription>
+          Manage your password and security preferences.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Form {...securityForm}>
-          <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)} className="space-y-4">
+          <form
+            onSubmit={securityForm.handleSubmit(onSecuritySubmit)}
+            className="space-y-4"
+          >
             <h3 className="font-medium">Change Password</h3>
-            
+
+            {errors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="mt-2">
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      {errors.map((error, i) => (
+                        <li key={i}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <FormField
               control={securityForm.control}
               name="currentPassword"
@@ -134,7 +233,7 @@ export const SecurityTab = () => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={securityForm.control}
               name="newPassword"
@@ -148,7 +247,7 @@ export const SecurityTab = () => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={securityForm.control}
               name="confirmPassword"
@@ -162,45 +261,23 @@ export const SecurityTab = () => {
                 </FormItem>
               )}
             />
-            
-            <Button type="submit" className="mt-2" disabled={isLoading}>
+
+            <div className="text-sm text-muted-foreground mt-2">
+              <p>Password must:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Be at least {PASSWORD_MIN_LENGTH} characters long</li>
+                <li>Include at least one uppercase letter</li>
+                <li>Include at least one lowercase letter</li>
+                <li>Include at least one number</li>
+                <li>Include at least one special character</li>
+              </ul>
+            </div>
+
+            <Button type="submit" className="mt-4" disabled={isLoading}>
               {isLoading ? "Updating..." : "Update Password"}
             </Button>
           </form>
         </Form>
-        
-        <div className="space-y-3 pt-4 border-t">
-          <h3 className="font-medium">Two-Factor Authentication</h3>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p>Enhance your account security</p>
-              <p className="text-sm text-muted-foreground">We'll ask for a verification code in addition to your password.</p>
-            </div>
-            <Switch 
-              checked={twoFactorEnabled} 
-              onCheckedChange={handleTwoFactorToggle}
-              disabled={isLoading}
-            />
-          </div>
-          
-          <Button 
-            variant="outline" 
-            className="mt-2"
-            disabled={isLoading}
-            onClick={() => {
-              if (!twoFactorEnabled) {
-                handleTwoFactorToggle(true);
-              } else {
-                toast({
-                  title: "Two-factor authentication",
-                  description: "Settings page opened.",
-                });
-              }
-            }}
-          >
-            {twoFactorEnabled ? "Manage two-factor authentication" : "Set up two-factor authentication"}
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );

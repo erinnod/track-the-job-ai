@@ -142,10 +142,37 @@ export async function resetPassword(email: string) {
 }
 
 /**
- * Update user password
+ * Update user password with validation to prevent setting the same password
  */
 export async function updatePassword(password: string) {
   try {
+    // First try to get the user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      throw userError;
+    }
+
+    if (!userData.user || !userData.user.email) {
+      throw new Error("User not found or email not available");
+    }
+
+    // Check if the new password is the same as the current password
+    // by attempting to sign in with the new password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password,
+    });
+
+    // If sign-in succeeds (no error), it means the password is the same as current
+    if (!signInError) {
+      return {
+        success: false,
+        error: "New password cannot be the same as your current password",
+      };
+    }
+
+    // If we get here, the password is different, so we can update it
     const { error } = await supabase.auth.updateUser({
       password,
     });
