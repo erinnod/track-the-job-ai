@@ -10,6 +10,11 @@ import { JobApplication, mockJobs } from "@/data/mockJobs";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  createApplicationNotification,
+  createStatusChangeNotification,
+  createInterviewNotification,
+} from "@/utils/notificationUtils";
 
 interface JobContextType {
   jobs: JobApplication[];
@@ -305,16 +310,36 @@ export const JobProvider = ({ children }: JobProviderProps) => {
       };
 
       setJobs((prevJobs) => [completeJob, ...prevJobs]);
+
+      // Create a notification for the new job application
+      if (job.status === "applied") {
+        await createApplicationNotification(user.id, job.company, job.position);
+      }
+
+      // If the job already has an interview status, create an interview notification
+      if (job.status === "interview" && job.events && job.events.length > 0) {
+        // Find the first interview event
+        const interviewEvent = job.events.find(
+          (event) =>
+            event.title && event.title.toLowerCase().includes("interview")
+        );
+
+        if (interviewEvent && interviewEvent.date) {
+          await createInterviewNotification(
+            user.id,
+            job.company,
+            job.position,
+            new Date(interviewEvent.date)
+          );
+        }
+      }
     } catch (error: any) {
       console.error("Exception adding job:", error);
       toast({
-        title: "Error saving job",
-        description: error.message || "Could not save the job application.",
+        title: "Error adding job",
+        description: error.message || "There was a problem adding this job.",
         variant: "destructive",
       });
-
-      // Still update the UI optimistically
-      setJobs((prevJobs) => [job, ...prevJobs]);
     }
   };
 
@@ -323,14 +348,18 @@ export const JobProvider = ({ children }: JobProviderProps) => {
     if (!user) return;
 
     try {
+      // Get the current job to check for status changes
+      const currentJob = jobs.find((job) => job.id === updatedJob.id);
+      const statusChanged =
+        currentJob && currentJob.status !== updatedJob.status;
+
       // Format dates properly for PostgreSQL
       const formattedAppliedDate = updatedJob.appliedDate
         ? new Date(updatedJob.appliedDate).toISOString()
         : null;
 
-      const formattedLastUpdated = updatedJob.lastUpdated
-        ? new Date(updatedJob.lastUpdated).toISOString()
-        : new Date().toISOString();
+      // Always update the lastUpdated field
+      const formattedLastUpdated = new Date().toISOString();
 
       // Map camelCase fields to snake_case for Supabase
       const jobForUpdate = {
@@ -459,6 +488,37 @@ export const JobProvider = ({ children }: JobProviderProps) => {
 
         if (eventsError) {
           console.error("Error adding updated events:", eventsError);
+        }
+      }
+
+      // Create a notification if the status has changed
+      if (statusChanged) {
+        await createStatusChangeNotification(
+          user.id,
+          updatedJob.company,
+          updatedJob.position,
+          updatedJob.status
+        );
+
+        // If changed to interview status and there's an interview event, create an interview notification
+        if (
+          updatedJob.status === "interview" &&
+          updatedJob.events &&
+          updatedJob.events.length > 0
+        ) {
+          // Find the first interview event
+          const interviewEvent = updatedJob.events.find((event) =>
+            event.title.toLowerCase().includes("interview")
+          );
+
+          if (interviewEvent && interviewEvent.date) {
+            await createInterviewNotification(
+              user.id,
+              updatedJob.company,
+              updatedJob.position,
+              new Date(interviewEvent.date)
+            );
+          }
         }
       }
 

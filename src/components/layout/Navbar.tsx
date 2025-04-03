@@ -20,6 +20,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAvatar } from "@/contexts/AvatarContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { useToast } from "@/components/ui/use-toast";
 import AddJobModal from "@/components/jobs/AddJobModal";
 import { JobApplication } from "@/data/mockJobs";
@@ -33,6 +34,32 @@ const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const { lastUpdate } = useAvatar();
   const { toast } = useToast();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } =
+    useNotifications();
+
+  // Get the 3 most recent notifications
+  const recentNotifications = notifications.slice(0, 3);
+
+  const getTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+
+    return Math.floor(seconds) + " seconds ago";
+  };
 
   // Fetch user's avatar when component mounts or when avatar is updated
   useEffect(() => {
@@ -180,9 +207,11 @@ const Navbar = () => {
                     className="text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0 relative"
                   >
                     <Bell className="h-4 w-4" />
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
-                      3
-                    </span>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -197,81 +226,83 @@ const Navbar = () => {
                       variant="ghost"
                       size="sm"
                       className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md"
+                      onClick={markAllAsRead}
                     >
                       Mark all as read
                     </Button>
                   </div>
 
                   <div className="max-h-[300px] overflow-y-auto">
-                    {/* Interview reminder notification */}
-                    <div className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors">
-                      <div className="flex gap-3">
-                        <div className="bg-blue-100 text-blue-600 p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
-                          <Calendar className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-800">
-                            Interview Reminder
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            You have an interview with Google tomorrow at 2:00
-                            PM
-                          </p>
-                          <p className="text-xs text-blue-600 mt-1.5">
-                            1 hour ago
-                          </p>
-                        </div>
+                    {recentNotifications.length === 0 ? (
+                      <div className="text-center py-6 text-slate-500">
+                        <Bell className="mx-auto h-6 w-6 opacity-20 mb-2" />
+                        <p className="text-sm">No notifications</p>
                       </div>
-                    </div>
+                    ) : (
+                      recentNotifications.map((notification) => {
+                        let icon;
+                        let colorClass;
 
-                    {/* Application status notification */}
-                    <div className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors">
-                      <div className="flex gap-3">
-                        <div className="bg-green-100 text-green-600 p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
-                          <Bookmark className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-800">
-                            Application Update
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Your application for Frontend Developer at Amazon
-                            has moved to interview stage
-                          </p>
-                          <p className="text-xs text-blue-600 mt-1.5">
-                            Yesterday
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                        switch (notification.type) {
+                          case "interview":
+                            icon = <Calendar className="h-4 w-4" />;
+                            colorClass = "bg-blue-100 text-blue-600";
+                            break;
+                          case "application":
+                            icon = <Bookmark className="h-4 w-4" />;
+                            colorClass = "bg-green-100 text-green-600";
+                            break;
+                          case "jobMatch":
+                            icon = <Info className="h-4 w-4" />;
+                            colorClass = "bg-yellow-100 text-yellow-600";
+                            break;
+                          default:
+                            icon = <Bell className="h-4 w-4" />;
+                            colorClass = "bg-gray-100 text-gray-600";
+                        }
 
-                    {/* Job match notification */}
-                    <div className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors">
-                      <div className="flex gap-3">
-                        <div className="bg-yellow-100 text-yellow-600 p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0">
-                          <Info className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-800">
-                            New Job Match
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            We found a job at Microsoft that matches your
-                            profile
-                          </p>
-                          <p className="text-xs text-blue-600 mt-1.5">
-                            2 days ago
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                        return (
+                          <div
+                            key={notification.id}
+                            className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors"
+                            onClick={() => {
+                              if (!notification.read) {
+                                markAsRead(notification.id);
+                              }
+                            }}
+                          >
+                            <div className="flex gap-3">
+                              <div
+                                className={`${colorClass} p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0`}
+                              >
+                                {icon}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  {notification.description}
+                                </p>
+                                <p className="text-xs text-blue-600 mt-1.5">
+                                  {getTimeAgo(notification.date)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
 
                   <div className="mt-1 pt-2 border-t border-slate-100">
                     <Button
                       variant="ghost"
                       className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs justify-center"
-                      onClick={() => navigate("/notifications")}
+                      onClick={() => {
+                        navigate("/notifications");
+                        setNotificationsOpen(false);
+                      }}
                     >
                       View all notifications
                     </Button>

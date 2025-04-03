@@ -177,6 +177,12 @@ const Sidebar = () => {
             to="/settings"
             active={currentPath === "/settings"}
           />
+          <SidebarLink
+            icon={Briefcase}
+            label="Integrations"
+            to="/settings/integrations"
+            active={currentPath === "/settings/integrations"}
+          />
         </nav>
       </div>
 
