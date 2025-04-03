@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,16 +14,39 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { signIn } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  sanitizeInput,
+  isValidEmail,
+  generateCSRFToken,
+  storeCSRFToken,
+} from "@/utils/security";
 
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  // Generate CSRF token on component mount
+  useEffect(() => {
+    const csrfToken = generateCSRFToken();
+    storeCSRFToken(csrfToken);
+
+    // Check if user came from signup with pending verification
+    const pendingVerification = searchParams.get("pendingVerification");
+    if (pendingVerification === "true") {
+      toast({
+        title: "Verification Email Sent",
+        description:
+          "Please check your email and click the verification link before logging in.",
+      });
+    }
+  }, [searchParams, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -32,43 +55,84 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
-    // Validate form
-    if (!formData.email || !formData.password) {
+    // Sanitize the email input
+    const sanitizedEmail = sanitizeInput(formData.email.trim());
+    const password = formData.password;
+
+    // Validate inputs
+    if (!sanitizedEmail || !password) {
       toast({
         title: "Error",
-        description: "Email and password are required",
+        description: "Please fill in all fields",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
-    try {
-      setIsLoading(true);
-
-      const result = await signIn(formData.email, formData.password);
-
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-
-      // Update auth context
-      await refreshUser();
-
+    if (!isValidEmail(sanitizedEmail)) {
       toast({
-        title: "Success",
-        description: "You have been logged in successfully.",
-      });
-
-      // Redirect to dashboard after successful login
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid email or password",
+        title: "Error",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
-    } finally {
+      setIsLoading(false);
+      return;
+    }
+
+    // Small delay to prevent brute force
+    await new Promise((r) => setTimeout(r, 300));
+
+    try {
+      const result = await signIn(sanitizedEmail, password);
+
+      if (!result.success) {
+        // Dispatch a custom login failure event for security monitoring
+        window.dispatchEvent(
+          new CustomEvent("login-failure", {
+            detail: {
+              email: sanitizedEmail,
+              timestamp: new Date().toISOString(),
+              ip: "client-side", // In a real app, you'd get this from the server
+            },
+          })
+        );
+
+        toast({
+          title: "Login Failed",
+          description: result.error,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      } else {
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+        await refreshUser();
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+
+      // Dispatch a custom login failure event for security monitoring
+      window.dispatchEvent(
+        new CustomEvent("login-failure", {
+          detail: {
+            email: sanitizedEmail,
+            timestamp: new Date().toISOString(),
+            ip: "client-side",
+          },
+        })
+      );
+
+      toast({
+        title: "An error occurred",
+        description: "Please try again later",
+        variant: "destructive",
+      });
       setIsLoading(false);
     }
   };
@@ -101,6 +165,7 @@ const Login = () => {
                 onChange={handleChange}
                 disabled={isLoading}
                 required
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -121,24 +186,24 @@ const Login = () => {
                 onChange={handleChange}
                 disabled={isLoading}
                 required
+                autoComplete="current-password"
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
-            <div className="text-center text-sm">
-              Don't have an account?{" "}
-              <Link
-                to="/signup"
-                className="text-blue-600 hover:text-blue-800 underline"
-              >
-                Sign up
-              </Link>
-            </div>
           </CardFooter>
         </form>
+        <div className="px-8 py-4 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-blue-600 hover:text-blue-800">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </Card>
     </div>
   );

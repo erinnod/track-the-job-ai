@@ -26,6 +26,10 @@ export async function signUp(data: SignUpData) {
           first_name: firstName,
           last_name: lastName,
         },
+        emailRedirectTo:
+          process.env.NODE_ENV === "production"
+            ? "https://jobtrakr.co.uk/auth/callback"
+            : `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -62,8 +66,23 @@ export async function signUp(data: SignUpData) {
 /**
  * Sign in a user with email and password
  */
-export async function signIn(email: string, password: string) {
+export async function signIn(
+  emailOrParams: string | { email: string; password: string },
+  passwordParam?: string
+) {
   try {
+    let email: string;
+    let password: string;
+
+    // Handle both parameter formats
+    if (typeof emailOrParams === "object") {
+      email = emailOrParams.email;
+      password = emailOrParams.password;
+    } else {
+      email = emailOrParams;
+      password = passwordParam!;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -125,7 +144,10 @@ export async function getCurrentUser() {
 export async function resetPassword(email: string) {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo:
+        process.env.NODE_ENV === "production"
+          ? "https://jobtrakr.co.uk/reset-password"
+          : `${window.location.origin}/reset-password`,
     });
 
     if (error) {

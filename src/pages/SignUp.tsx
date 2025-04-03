@@ -85,11 +85,11 @@ const SignUp = () => {
       toast({
         title: "Success",
         description:
-          "Your account has been created. Please check your email for confirmation.",
+          "Your account has been created. Please check your email for a verification link.",
       });
 
       // Redirect to login page after successful registration
-      navigate("/login");
+      navigate("/login?pendingVerification=true");
     } catch (error: any) {
       toast({
         title: "Error creating account",

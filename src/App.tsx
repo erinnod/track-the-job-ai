@@ -15,10 +15,13 @@ import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Calendar from "./pages/Calendar";
+import AuthCallback from "./pages/auth/Callback";
+import SecurityAdmin from "./pages/admin/SecurityAdmin";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AvatarProvider } from "./contexts/AvatarContext";
 import { JobProvider } from "./contexts/JobContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { SecurityMonitor } from "./components/security/SecurityMonitor";
 
 // This component will scroll the page to the top when navigating between routes
 const ScrollToTop = () => {
@@ -48,12 +51,14 @@ const App = () => (
           <JobProvider>
             <BrowserRouter>
               <ScrollToTop />
+              <SecurityMonitor />
               <Routes>
                 {/* Public routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
 
                 {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>
@@ -63,6 +68,7 @@ const App = () => (
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/calendar" element={<Calendar />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/admin/security" element={<SecurityAdmin />} />
                 </Route>
 
                 {/* Catch-all route */}
