@@ -3,6 +3,8 @@
 /**
  * This script adds a user to the admin_users table
  * Usage: node scripts/make_admin.js user@example.com
+ *
+ * IMPORTANT: This script requires the .env file with SUPABASE_URL and SUPABASE_SERVICE_KEY
  */
 
 const { createClient } = require("@supabase/supabase-js");
@@ -17,20 +19,22 @@ if (!email) {
   process.exit(1);
 }
 
-// Supabase client setup
-const supabaseUrl =
-  process.env.SUPABASE_URL || "https://kffbwemulhhsyaiooabh.supabase.co";
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || ""; // You need to set this up
-
-if (!supabaseKey) {
+// Check for environment variables
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  console.error("ERROR: Missing required environment variables.");
+  console.error("Please create a .env file with:");
+  console.error("SUPABASE_URL=your-project-url");
+  console.error("SUPABASE_SERVICE_KEY=your-service-role-key");
+  console.error("");
   console.error(
-    "SUPABASE_SERVICE_KEY not set. Please set it in .env file or environment variables."
-  );
-  console.error(
-    "You can get this from the Supabase dashboard under Project Settings > API > service_role key"
+    "You can get these from Supabase dashboard under Project Settings > API"
   );
   process.exit(1);
 }
+
+// Supabase client setup
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 // Create a Supabase client with the service role key
 const supabase = createClient(supabaseUrl, supabaseKey);

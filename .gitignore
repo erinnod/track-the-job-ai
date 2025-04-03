@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
@@ -22,4 +23,26 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Deployment
 .vercel
+.netlify
+
+# Secrets and keys
+*.pem
+*.key
+*_rsa
+*_dsa
+*_ed25519
+*_ecdsa
+firebase-adminsdk-*.json
+
+# Other
+.cache
+build
+coverage
