@@ -197,7 +197,18 @@ export const NotificationProvider = ({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Supabase WebSocket status:", status);
+
+        // Check for CSP errors in the status
+        if (status === "SUBSCRIBED") {
+          console.log("Successfully connected to Supabase realtime!");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error(
+            "Failed to connect to Supabase realtime. Check your Content Security Policy."
+          );
+        }
+      });
 
     // Clean up subscription when unmounting
     return () => {

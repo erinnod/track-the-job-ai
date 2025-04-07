@@ -28,5 +28,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       "X-Client-Info": "jobtrakr-web-app",
     },
+    fetch: (url, options) => {
+      // Log all API requests to help debug Content Security Policy issues
+      console.debug("Supabase fetch:", url, options?.method || "GET");
+      return fetch(url, options);
+    },
   },
 });
