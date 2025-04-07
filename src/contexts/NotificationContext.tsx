@@ -146,74 +146,110 @@ export const NotificationProvider = ({
 
     fetchNotifications();
 
-    // Set up a real-time subscription for notifications
-    const notificationsSubscription = supabase
-      .channel("public:notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user?.id}`,
-        },
-        (payload) => {
-          // Update notifications based on the change type
-          if (payload.eventType === "INSERT") {
-            const newNotification: Notification = {
-              ...payload.new,
-              id: payload.new.id,
-              type: payload.new.type as
-                | "interview"
-                | "application"
-                | "jobMatch",
-              title: payload.new.title,
-              description: payload.new.description,
-              date: new Date(payload.new.created_at),
-              read: payload.new.read,
-            };
-            setNotifications((prev) => [newNotification, ...prev]);
-          } else if (payload.eventType === "UPDATE") {
-            setNotifications((prev) =>
-              prev.map((notification) =>
-                notification.id === payload.new.id
-                  ? {
-                      ...notification,
-                      ...payload.new,
-                      type: payload.new.type as
-                        | "interview"
-                        | "application"
-                        | "jobMatch",
-                      date: new Date(payload.new.created_at),
-                      read: payload.new.read,
-                    }
-                  : notification
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            setNotifications((prev) =>
-              prev.filter((notification) => notification.id !== payload.old.id)
-            );
+    // Set up a real-time subscription for notifications with error handling
+    console.log("Setting up Supabase realtime channel...");
+
+    let channelSetupAttempts = 0;
+    const maxAttempts = 3;
+    let notificationsSubscription: any = null;
+
+    const setupChannel = () => {
+      try {
+        channelSetupAttempts++;
+        console.log(
+          `Attempt ${channelSetupAttempts} to set up realtime channel`
+        );
+
+        notificationsSubscription = supabase
+          .channel("public:notifications")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "notifications",
+              filter: `user_id=eq.${user?.id}`,
+            },
+            (payload) => {
+              // Update notifications based on the change type
+              if (payload.eventType === "INSERT") {
+                const newNotification: Notification = {
+                  ...payload.new,
+                  id: payload.new.id,
+                  type: payload.new.type as
+                    | "interview"
+                    | "application"
+                    | "jobMatch",
+                  title: payload.new.title,
+                  description: payload.new.description,
+                  date: new Date(payload.new.created_at),
+                  read: payload.new.read,
+                };
+                setNotifications((prev) => [newNotification, ...prev]);
+              } else if (payload.eventType === "UPDATE") {
+                setNotifications((prev) =>
+                  prev.map((notification) =>
+                    notification.id === payload.new.id
+                      ? {
+                          ...notification,
+                          ...payload.new,
+                          type: payload.new.type as
+                            | "interview"
+                            | "application"
+                            | "jobMatch",
+                          date: new Date(payload.new.created_at),
+                          read: payload.new.read,
+                        }
+                      : notification
+                  )
+                );
+              } else if (payload.eventType === "DELETE") {
+                setNotifications((prev) =>
+                  prev.filter(
+                    (notification) => notification.id !== payload.old.id
+                  )
+                );
+              }
+            }
+          )
+          .subscribe((status) => {
+            console.log("Supabase WebSocket status:", status);
+
+            // Check for connection status
+            if (status === "SUBSCRIBED") {
+              console.log("Successfully connected to Supabase realtime!");
+            } else if (status === "CHANNEL_ERROR") {
+              console.error(
+                "Failed to connect to Supabase realtime. Check your Content Security Policy."
+              );
+
+              // Try again if we haven't reached the max attempts
+              if (channelSetupAttempts < maxAttempts) {
+                console.log(`Retrying connection in 2 seconds...`);
+                setTimeout(setupChannel, 2000);
+              } else {
+                console.error(
+                  `Failed to connect after ${maxAttempts} attempts. Please check your network and security settings.`
+                );
+              }
+            }
+          });
+
+        // Clean up subscription when unmounting
+        return () => {
+          console.log("Cleaning up Supabase realtime subscription");
+          if (notificationsSubscription) {
+            notificationsSubscription.unsubscribe();
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Supabase WebSocket status:", status);
-
-        // Check for CSP errors in the status
-        if (status === "SUBSCRIBED") {
-          console.log("Successfully connected to Supabase realtime!");
-        } else if (status === "CHANNEL_ERROR") {
-          console.error(
-            "Failed to connect to Supabase realtime. Check your Content Security Policy."
-          );
-        }
-      });
-
-    // Clean up subscription when unmounting
-    return () => {
-      notificationsSubscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Error setting up realtime subscription:", error);
+        return () => {}; // Return empty cleanup function
+      }
     };
+
+    const cleanup = setupChannel();
+    return cleanup;
   }, [user]);
 
   // Update unread count whenever notifications change
