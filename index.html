@@ -5,6 +5,16 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Cross-Origin Isolation -->
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
+
+    <!-- Content Security Policy -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.jobtrakr.co.uk https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com https://api.openai.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.supabase.co data: blob: https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com; font-src 'self' data:; frame-src 'self' https://*.supabase.co; worker-src 'self' blob:;"
+    />
+
     <!-- SEO meta tags -->
     <title>JobTrakr - Track Your Job Applications</title>
     <meta
