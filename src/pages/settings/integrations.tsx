@@ -157,7 +157,7 @@ const IntegrationsPage = () => {
     try {
       // Call API to delete integration
       const { error } = await supabase
-        .from("integrations")
+        .from("user_integrations")
         .delete()
         .eq("id", integrationId)
         .eq("user_id", user.id);

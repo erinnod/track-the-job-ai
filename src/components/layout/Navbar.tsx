@@ -182,206 +182,187 @@ const Navbar = () => {
 
           {/* Right section: search, add job, notifications, avatar */}
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-slate-500 hidden sm:flex hover:bg-slate-100 rounded-full w-9 h-9 p-0"
-              onClick={() => {}}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-
-            <div className="hidden sm:block">
-              <AddJobModal onAddJob={handleAddJob} />
-            </div>
-
             {isAuthenticated && (
-              <DropdownMenu
-                open={notificationsOpen}
-                onOpenChange={setNotificationsOpen}
-              >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0 relative"
-                  >
-                    <Bell className="h-4 w-4" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-80 p-2 mt-2 z-50 rounded-lg shadow-lg animate-in fade-in-80 data-[side=bottom]:slide-in-from-top-2"
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-500 hidden sm:flex hover:bg-slate-100 rounded-full w-9 h-9 p-0"
+                  onClick={() => {}}
                 >
-                  <div className="flex items-center justify-between p-2 border-b border-slate-100 pb-2 mb-1">
-                    <h3 className="font-medium text-slate-800">
-                      Notifications
-                    </h3>
+                  <Search className="h-4 w-4" />
+                </Button>
+
+                <div className="hidden sm:block">
+                  <AddJobModal onAddJob={handleAddJob} />
+                </div>
+
+                <DropdownMenu
+                  open={notificationsOpen}
+                  onOpenChange={setNotificationsOpen}
+                >
+                  <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md"
-                      onClick={markAllAsRead}
+                      className="relative text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0"
                     >
-                      Mark all as read
+                      <Bell className="h-4 w-4" />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
                     </Button>
-                  </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80">
+                    <div className="flex items-center justify-between p-4 pb-2">
+                      <h3 className="font-medium">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                          onClick={() => markAllAsRead()}
+                        >
+                          Mark all as read
+                        </Button>
+                      )}
+                    </div>
 
-                  <div className="max-h-[300px] overflow-y-auto">
-                    {recentNotifications.length === 0 ? (
-                      <div className="text-center py-6 text-slate-500">
-                        <Bell className="mx-auto h-6 w-6 opacity-20 mb-2" />
-                        <p className="text-sm">No notifications</p>
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-slate-500">
+                        No notifications yet
                       </div>
                     ) : (
-                      recentNotifications.map((notification) => {
-                        let icon;
-                        let colorClass;
-
-                        switch (notification.type) {
-                          case "interview":
-                            icon = <Calendar className="h-4 w-4" />;
-                            colorClass = "bg-blue-100 text-blue-600";
-                            break;
-                          case "application":
-                            icon = <Bookmark className="h-4 w-4" />;
-                            colorClass = "bg-green-100 text-green-600";
-                            break;
-                          case "jobMatch":
-                            icon = <Info className="h-4 w-4" />;
-                            colorClass = "bg-yellow-100 text-yellow-600";
-                            break;
-                          default:
-                            icon = <Bell className="h-4 w-4" />;
-                            colorClass = "bg-gray-100 text-gray-600";
-                        }
-
-                        return (
-                          <div
+                      <>
+                        {recentNotifications.map((notification) => (
+                          <DropdownMenuItem
                             key={notification.id}
-                            className="p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors"
-                            onClick={() => {
-                              if (!notification.read) {
-                                markAsRead(notification.id);
-                              }
-                            }}
+                            className={`p-4 border-b border-slate-100 cursor-pointer ${
+                              !notification.read
+                                ? "bg-blue-50 hover:bg-blue-100"
+                                : ""
+                            }`}
+                            onClick={() => markAsRead(notification.id)}
                           >
                             <div className="flex gap-3">
                               <div
-                                className={`${colorClass} p-2 rounded-full h-9 w-9 flex items-center justify-center shrink-0`}
-                              >
-                                {icon}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-slate-800">
+                                className={`w-2 h-2 rounded-full mt-2 ${
+                                  !notification.read
+                                    ? "bg-blue-600"
+                                    : "bg-transparent"
+                                }`}
+                              ></div>
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">
                                   {notification.title}
-                                </p>
-                                <p className="text-xs text-slate-500 mt-0.5">
+                                </div>
+                                <div className="text-sm text-slate-500 line-clamp-2">
                                   {notification.description}
-                                </p>
-                                <p className="text-xs text-blue-600 mt-1.5">
-                                  {getTimeAgo(notification.date)}
-                                </p>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-1">
+                                  {notification.date
+                                    ? getTimeAgo(notification.date)
+                                    : ""}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+                          </DropdownMenuItem>
+                        ))}
 
-                  <div className="mt-1 pt-2 border-t border-slate-100">
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="p-3 text-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
+                          onClick={() => {
+                            setNotificationsOpen(false);
+                            navigate("/notifications");
+                          }}
+                        >
+                          View all notifications
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md text-xs justify-center"
-                      onClick={() => {
-                        navigate("/notifications");
-                        setNotificationsOpen(false);
-                      }}
+                      className="relative h-9 w-9 rounded-full overflow-hidden"
                     >
-                      View all notifications
+                      <Avatar className="h-8 w-8 border border-slate-200">
+                        <AvatarImage src={avatarUrl || ""} />
+                        <AvatarFallback>{getInitials()}</AvatarFallback>
+                      </Avatar>
                     </Button>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="p-2 text-center border-b border-slate-100">
+                      <Avatar className="h-16 w-16 mx-auto mb-2 border border-slate-200">
+                        <AvatarImage src={avatarUrl || ""} />
+                        <AvatarFallback>{getInitials()}</AvatarFallback>
+                      </Avatar>
+                      <div className="font-medium">{getUserDisplayName()}</div>
+                      <div className="text-xs text-slate-500 truncate">
+                        {user?.email}
+                      </div>
+                    </div>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/")}
+                      className="p-2 cursor-pointer"
+                    >
+                      Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/settings")}
+                      className="p-2 cursor-pointer"
+                    >
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/settings/integrations")}
+                      className="p-2 cursor-pointer"
+                    >
+                      Integrations
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="p-2 text-red-600 hover:text-red-800 cursor-pointer"
+                    >
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
 
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-blue-500 transition-all">
-                    {avatarUrl ? (
-                      <AvatarImage src={avatarUrl} alt="Profile picture" />
-                    ) : null}
-                    <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-medium text-sm">
-                      {getInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-56 p-2 mt-2 z-50 rounded-lg shadow-lg animate-in fade-in-80 data-[side=bottom]:slide-in-from-top-2"
-                >
-                  <div className="flex items-center gap-3 p-2 border-b border-slate-100 pb-3 mb-1">
-                    <Avatar className="h-10 w-10">
-                      {avatarUrl ? (
-                        <AvatarImage src={avatarUrl} alt="Profile" />
-                      ) : null}
-                      <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-slate-800 leading-tight">
-                        {getUserDisplayName()}
-                      </p>
-                      <p className="text-xs text-slate-500 leading-tight mt-0.5">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </div>
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 rounded-md transition-colors my-1 p-2 text-sm"
-                    onClick={() => navigate("/settings")}
-                  >
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700 rounded-md transition-colors my-1 p-2 text-sm mt-1"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/login")}
-                  className="text-slate-600 hover:text-blue-600 hover:bg-slate-50 text-sm font-medium"
-                >
-                  Sign In
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => navigate("/signup")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                >
-                  Sign Up
-                </Button>
+            {!isAuthenticated && (
+              <div className="flex items-center gap-2">
+                <Link to="/help/browser-extension">
+                  <Button variant="ghost" size="sm" className="text-slate-500">
+                    <Info className="h-4 w-4 mr-1" />
+                    Browser Extension
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">
+                    Log in
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Sign up</Button>
+                </Link>
               </div>
             )}
 
+            {/* Mobile menu button */}
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0"
+              className="text-slate-500 md:hidden hover:bg-slate-100 rounded-full w-9 h-9 p-0"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <Menu className="h-5 w-5" />

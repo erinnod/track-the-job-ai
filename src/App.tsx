@@ -84,7 +84,7 @@ const App = () => (
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/contact" element={<Contact />} />
 
-                  {/* Help pages */}
+                  {/* Help pages (moved outside of ProtectedRoute) */}
                   <Route
                     path="/help/browser-extension"
                     element={
