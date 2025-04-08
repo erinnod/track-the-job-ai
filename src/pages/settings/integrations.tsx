@@ -26,6 +26,12 @@ import {
   Trash2,
   Linkedin,
   Briefcase,
+  Hammer,
+  Globe,
+  Chrome,
+  Download,
+  ArrowRight,
+  ExternalLink,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +42,15 @@ import {
 } from "@/services/integrationService";
 import { supabase } from "@/lib/supabase";
 import { fetchFromApi } from "@/lib/apiAdapter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ManualImportGuide from "@/components/integrations/ManualImportGuide";
+
+// Type definition for API response
+interface ApiResponse {
+  success: boolean;
+  message?: string;
+  [key: string]: any;
+}
 
 const IntegrationsPage = () => {
   const location = useLocation();
@@ -46,6 +61,7 @@ const IntegrationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("extension");
 
   // Get status from query parameters (after OAuth callback)
   const searchParams = new URLSearchParams(location.search);
@@ -96,55 +112,37 @@ const IntegrationsPage = () => {
     loadIntegrations();
   }, [user, toast]);
 
-  // Handle sync button click
   const handleSync = async () => {
-    if (!user || syncing) return;
+    if (!user || integrations.length === 0) return;
 
     setSyncing(true);
     try {
-      const response = await fetchFromApi("/api/integrations/sync", {
+      // Call API to sync all integrations
+      const response = (await fetchFromApi("/api/integrations/sync", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      })) as ApiResponse;
 
-      // Type assertion for the response
-      const typedResponse = response as {
-        ok: boolean;
-        json: () => Promise<any>;
-        status: number;
-      };
-
-      if (typedResponse.ok) {
-        const result = await typedResponse.json();
+      if (response && response.success) {
         toast({
           title: "Sync successful",
-          description: result.message,
+          description: "Your job applications have been imported.",
         });
+
+        // Reload integrations to update lastSyncedAt
+        const updatedIntegrations = await getUserIntegrations(user.id);
+        setIntegrations(updatedIntegrations);
+
+        // Redirect to the jobs page to see the new jobs
+        navigate("/jobs");
       } else {
-        // Handle different error cases
-        if (typedResponse.status === 500) {
-          const errorData = await typedResponse.json();
-          toast({
-            title: "API Configuration Error",
-            description:
-              errorData.error || "Check your API credentials in the .env file",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Sync failed",
-            description: "Failed to sync job applications",
-            variant: "destructive",
-          });
-        }
+        throw new Error("Sync failed");
       }
     } catch (error) {
       console.error("Error syncing integrations:", error);
       toast({
         title: "Sync failed",
-        description: "Failed to sync job applications",
+        description:
+          "We couldn't import your job applications. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -152,37 +150,34 @@ const IntegrationsPage = () => {
     }
   };
 
-  // Handle delete integration
   const handleDelete = async (integrationId: string) => {
     if (!user) return;
 
     setDeleting(integrationId);
     try {
+      // Call API to delete integration
       const { error } = await supabase
-        .from("user_integrations")
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString(),
-        })
+        .from("integrations")
+        .delete()
         .eq("id", integrationId)
         .eq("user_id", user.id);
 
       if (error) throw error;
 
-      // Update the local state
-      setIntegrations((prev) =>
-        prev.filter((integration) => integration.id !== integrationId)
+      // Update integrations list
+      setIntegrations(
+        integrations.filter((integration) => integration.id !== integrationId)
       );
 
       toast({
         title: "Integration removed",
-        description: "The integration has been successfully removed",
+        description: "The integration has been disconnected.",
       });
     } catch (error) {
       console.error("Error deleting integration:", error);
       toast({
         title: "Error removing integration",
-        description: "Failed to remove the integration",
+        description: "Please try again later",
         variant: "destructive",
       });
     } finally {
@@ -190,27 +185,28 @@ const IntegrationsPage = () => {
     }
   };
 
-  // Format date
   const formatDate = (date: Date | string | null) => {
     if (!date) return "Never";
-    try {
-      const dateObj = typeof date === "string" ? new Date(date) : date;
-      return dateObj.toLocaleDateString() + " " + dateObj.toLocaleTimeString();
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid date";
-    }
+
+    const d = new Date(date);
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   // Get provider icon
   const getProviderIcon = (type: IntegrationType) => {
     switch (type) {
       case "linkedin":
-        return <Linkedin className="h-6 w-6 text-blue-600" />;
+        return <Linkedin className="h-5 w-5 text-blue-600" />;
       case "indeed":
-        return <Briefcase className="h-6 w-6 text-blue-700" />;
+        return <Briefcase className="h-5 w-5 text-blue-700" />;
       default:
-        return <Briefcase className="h-6 w-6" />;
+        return null;
     }
   };
 
@@ -230,384 +226,173 @@ const IntegrationsPage = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800">Integrations</h1>
-          <p className="text-slate-500 mt-1">
-            Connect your accounts to import job applications automatically
-          </p>
-        </div>
+      <div className="container mx-auto py-6">
+        <h1 className="text-2xl font-bold mb-6">Integrations</h1>
 
-        {/* Info alert */}
-        <Alert className="mb-6 bg-blue-50 border-blue-200">
-          <Info className="h-4 w-4 text-blue-500" />
-          <AlertTitle>Sync your job applications</AlertTitle>
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Browser Extension Now Available</AlertTitle>
           <AlertDescription>
-            Connect your Indeed and LinkedIn accounts to automatically import
-            job applications. This helps you keep track of all your applications
-            in one place.
+            Install our browser extension to easily save job postings from
+            LinkedIn, Indeed, and other sites with a single click.
           </AlertDescription>
         </Alert>
 
-        {/* Sync button */}
-        <div className="mb-6 flex justify-end">
-          <Button
-            onClick={handleSync}
-            disabled={integrations.length === 0 || syncing}
-            className="flex items-center gap-2"
-          >
-            {syncing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Sync Now
-          </Button>
-        </div>
+        {/* Tabs for different import methods */}
+        <Tabs
+          defaultValue="extension"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
+          <TabsList className="mb-6 grid w-full grid-cols-2">
+            <TabsTrigger value="extension">
+              <Globe className="mr-2 h-4 w-4" />
+              Browser Extension
+            </TabsTrigger>
+            <TabsTrigger value="manual">
+              <Hammer className="mr-2 h-4 w-4" />
+              Manual Import
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Integration cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* LinkedIn Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div className="flex items-center gap-2">
-                <Linkedin className="h-6 w-6 text-blue-600" />
-                <CardTitle>LinkedIn</CardTitle>
-              </div>
-              {integrations.some((i) => i.type === "linkedin") && (
-                <div className="inline-flex items-center py-1 px-2 bg-green-100 text-green-700 text-xs rounded-full">
-                  <Check className="h-3 w-3 mr-1" /> Connected
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="mb-4">
-                Import both saved and applied job applications from LinkedIn.
-                You'll need to grant permission to access your LinkedIn job
-                activity.
-              </CardDescription>
+          <TabsContent value="extension">
+            {/* Browser Extension content */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Chrome Extension Card */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div className="flex items-center gap-2">
+                    <Chrome className="h-6 w-6 text-blue-600" />
+                    <CardTitle>Chrome Extension</CardTitle>
+                  </div>
+                  <div className="inline-flex items-center py-1 px-2 bg-green-100 text-green-700 text-xs rounded-full">
+                    <Check className="h-3 w-3 mr-1" /> Available
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="mb-4">
+                    Our Chrome extension lets you save job listings from
+                    LinkedIn and Indeed with a single click. Install it to
+                    streamline your job application tracking.
+                  </CardDescription>
 
-              {integrations.some((i) => i.type === "linkedin") ? (
-                <div className="text-sm text-slate-500 space-y-2">
-                  {integrations
-                    .filter((i) => i.type === "linkedin")
-                    .map((integration) => (
-                      <div key={integration.id}>
-                        <p>
-                          <span className="font-medium">Last synced:</span>{" "}
-                          {formatDate(integration.last_synced_at)}
-                        </p>
-                        <p>
-                          <span className="font-medium">Connected on:</span>{" "}
-                          {formatDate(integration.created_at)}
+                  <div className="space-y-4">
+                    <div className="rounded-md bg-slate-50 p-4">
+                      <h3 className="text-sm font-medium mb-2">Features:</h3>
+                      <ul className="text-sm text-slate-600 space-y-1">
+                        <li className="flex items-center gap-2">
+                          <Check className="h-3 w-3 text-green-500" />
+                          Save jobs with one click from LinkedIn & Indeed
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-3 w-3 text-green-500" />
+                          Auto-extract job details (title, company, location)
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-3 w-3 text-green-500" />
+                          Quick access to your JobTrakr dashboard
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    onClick={() =>
+                      window.open(
+                        "https://chrome.google.com/webstore/detail/jobtrakr/extension-id-placeholder",
+                        "_blank"
+                      )
+                    }
+                    className="flex items-center gap-2 w-full justify-center"
+                  >
+                    <Download className="h-4 w-4" />
+                    Install Chrome Extension
+                    <ExternalLink className="h-3 w-3 ml-1" />
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              {/* How to Use Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>How to Use</CardTitle>
+                  <CardDescription>
+                    Get started with the JobTrakr browser extension in a few
+                    simple steps
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ol className="space-y-4 text-sm">
+                    <li className="flex items-start gap-3">
+                      <div className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        1
+                      </div>
+                      <div>
+                        <p className="font-medium">Install the extension</p>
+                        <p className="text-slate-600">
+                          Click the Install button and follow the prompts in the
+                          Chrome Web Store
                         </p>
                       </div>
-                    ))}
-                </div>
-              ) : (
-                <div className="text-sm text-slate-500">
-                  <p>Not connected</p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              {integrations.some((i) => i.type === "linkedin") ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const integration = integrations.find(
-                        (i) => i.type === "linkedin"
-                      );
-                      if (integration) {
-                        handleDelete(integration.id);
-                      }
-                    }}
-                    disabled={
-                      deleting ===
-                      integrations.find((i) => i.type === "linkedin")?.id
-                    }
-                    className="flex items-center gap-2 text-red-500 hover:text-red-700"
-                  >
-                    {deleting ===
-                    integrations.find((i) => i.type === "linkedin")?.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                    Disconnect
-                  </Button>
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleSync}
-                          disabled={syncing}
-                        >
-                          {syncing ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Sync now</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              ) : (
-                <Button
-                  onClick={async () => {
-                    try {
-                      // Use our API adapter to redirect to LinkedIn auth
-                      await fetchFromApi("/api/integrations/linkedin/auth");
-                    } catch (error) {
-                      toast({
-                        title: "API Configuration Error",
-                        description:
-                          "Please add your LinkedIn API credentials in the .env file",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <LogIn className="h-4 w-4" />
-                  Connect LinkedIn
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-
-          {/* Indeed Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-6 w-6 text-blue-700" />
-                <CardTitle>Indeed</CardTitle>
-              </div>
-              {integrations.some((i) => i.type === "indeed") && (
-                <div className="inline-flex items-center py-1 px-2 bg-green-100 text-green-700 text-xs rounded-full">
-                  <Check className="h-3 w-3 mr-1" /> Connected
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="mb-4">
-                Import job applications from Indeed. You'll need to grant
-                permission to access your applied jobs.
-              </CardDescription>
-
-              {integrations.some((i) => i.type === "indeed") ? (
-                <div className="text-sm text-slate-500 space-y-2">
-                  {integrations
-                    .filter((i) => i.type === "indeed")
-                    .map((integration) => (
-                      <div key={integration.id}>
-                        <p>
-                          <span className="font-medium">Last synced:</span>{" "}
-                          {formatDate(integration.last_synced_at)}
-                        </p>
-                        <p>
-                          <span className="font-medium">Connected on:</span>{" "}
-                          {formatDate(integration.created_at)}
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        2
+                      </div>
+                      <div>
+                        <p className="font-medium">Sign in to JobTrakr</p>
+                        <p className="text-slate-600">
+                          Click the extension icon and sign in with your
+                          JobTrakr account
                         </p>
                       </div>
-                    ))}
-                </div>
-              ) : (
-                <div className="text-sm text-slate-500">
-                  <p>Not connected</p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              {integrations.some((i) => i.type === "indeed") ? (
-                <div className="flex items-center gap-2">
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        3
+                      </div>
+                      <div>
+                        <p className="font-medium">Browse job listings</p>
+                        <p className="text-slate-600">
+                          Visit LinkedIn or Indeed and browse jobs as you
+                          normally would
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        4
+                      </div>
+                      <div>
+                        <p className="font-medium">Save with one click</p>
+                        <p className="text-slate-600">
+                          Click the "Save to JobTrakr" button on any job listing
+                          page
+                        </p>
+                      </div>
+                    </li>
+                  </ol>
+                </CardContent>
+                <CardFooter>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      const integration = integrations.find(
-                        (i) => i.type === "indeed"
-                      );
-                      if (integration) {
-                        handleDelete(integration.id);
-                      }
-                    }}
-                    disabled={
-                      deleting ===
-                      integrations.find((i) => i.type === "indeed")?.id
-                    }
-                    className="flex items-center gap-2 text-red-500 hover:text-red-700"
+                    className="w-full"
+                    onClick={() => navigate("/help/browser-extension")}
                   >
-                    {deleting ===
-                    integrations.find((i) => i.type === "indeed")?.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                    Disconnect
+                    View Full Documentation
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleSync}
-                          disabled={syncing}
-                        >
-                          {syncing ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Sync now</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              ) : (
-                <Button
-                  onClick={async () => {
-                    try {
-                      // Use our API adapter to redirect to Indeed auth
-                      await fetchFromApi("/api/integrations/indeed/auth");
-                    } catch (error) {
-                      toast({
-                        title: "API Configuration Error",
-                        description:
-                          "Please add your Indeed API credentials in the .env file",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <LogIn className="h-4 w-4" />
-                  Connect Indeed
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        </div>
-
-        {/* Connected Integrations */}
-        {!loading && integrations.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">
-              Connected Integrations
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="px-4 py-2 text-left font-medium text-slate-700">
-                      Provider
-                    </th>
-                    <th className="px-4 py-2 text-left font-medium text-slate-700">
-                      Connected On
-                    </th>
-                    <th className="px-4 py-2 text-left font-medium text-slate-700">
-                      Last Synced
-                    </th>
-                    <th className="px-4 py-2 text-left font-medium text-slate-700">
-                      Status
-                    </th>
-                    <th className="px-4 py-2 text-right font-medium text-slate-700">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {integrations.map((integration) => (
-                    <tr
-                      key={integration.id}
-                      className="border-b border-slate-200"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {getProviderIcon(integration.type)}
-                          <span className="font-medium">
-                            {getProviderName(integration.type)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatDate(integration.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatDate(integration.last_synced_at)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="inline-flex items-center py-1 px-2 bg-green-100 text-green-700 text-xs rounded-full">
-                          <Check className="h-3 w-3 mr-1" /> Active
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={handleSync}
-                                  disabled={syncing}
-                                >
-                                  {syncing ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Sync now</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDelete(integration.id)}
-                                  disabled={deleting === integration.id}
-                                  className="text-red-500 hover:text-red-700"
-                                >
-                                  {deleting === integration.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Disconnect</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                </CardFooter>
+              </Card>
             </div>
-          </div>
-        )}
+          </TabsContent>
+
+          <TabsContent value="manual">
+            {/* Manual Import Guide */}
+            <ManualImportGuide />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

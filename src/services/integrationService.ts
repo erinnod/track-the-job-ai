@@ -414,3 +414,116 @@ export const createMockIntegration = async (
     return null;
   }
 };
+
+/**
+ * Guide users to manually import their LinkedIn job applications
+ * This bypasses API limitations by providing step-by-step instructions
+ */
+export const importLinkedInManually = async (
+  userId: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Create a record of the manual import process
+    const { data, error } = await supabase
+      .from("manual_imports")
+      .insert({
+        user_id: userId,
+        platform: "linkedin",
+        status: "initiated",
+        created_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (error) throw error;
+
+    // Return detailed instructions for the user interface to display
+    return {
+      success: true,
+      message: `
+        To import your LinkedIn job applications, please follow these steps:
+        
+        1. Open LinkedIn in a new tab: https://www.linkedin.com/jobs/
+        2. Click on "My Jobs" at the top of the page
+        3. In the left sidebar, click on "Applied" to see jobs you've applied to
+        4. For each job:
+           - Note the company name, job title, and application date
+           - Open the job details to copy the job description
+           - Copy the job URL (right-click on the job title and select "Copy Link Address")
+        5. Return to JobTrakr and manually add each job
+        6. Use "Applied" as the status for these jobs
+        
+        To import your LinkedIn saved jobs:
+        
+        1. In the left sidebar of LinkedIn Jobs, click on "Saved"
+        2. For each saved job, follow the same process as above
+        3. Use "Bookmarked" as the status when adding these jobs
+        
+        Note: While this process is manual, it ensures you have all your job applications in one place.
+      `,
+    };
+  } catch (error) {
+    console.error("Error starting LinkedIn manual import:", error);
+    return {
+      success: false,
+      message: "Failed to start the LinkedIn import process. Please try again.",
+    };
+  }
+};
+
+/**
+ * Guide users to manually import their Indeed job applications
+ * This bypasses API limitations by providing step-by-step instructions
+ */
+export const importIndeedManually = async (
+  userId: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Create a record of the manual import process
+    const { data, error } = await supabase
+      .from("manual_imports")
+      .insert({
+        user_id: userId,
+        platform: "indeed",
+        status: "initiated",
+        created_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (error) throw error;
+
+    // Return detailed instructions for the user interface to display
+    return {
+      success: true,
+      message: `
+        To import your Indeed job applications, please follow these steps:
+        
+        1. Open Indeed in a new tab: https://www.indeed.com/
+        2. Click on your profile icon in the top right corner
+        3. Select "My Jobs" from the dropdown menu
+        4. Click on "Applied Jobs" to see all the jobs you've applied to
+        5. For each job:
+           - Note the company name, job title, and location
+           - Open the job details to copy the job description
+           - Copy the job URL (right-click on the job title and select "Copy Link Address")
+        6. Return to JobTrakr and manually add each job
+        7. Use "Applied" as the status for these jobs
+        
+        To import your Indeed saved jobs:
+        
+        1. In your Indeed "My Jobs" section, click on "Saved Jobs"
+        2. For each saved job, follow the same process as above
+        3. Use "Bookmarked" as the status when adding these jobs
+        
+        Note: This manual process gives you the opportunity to organize and categorize your job applications more effectively.
+      `,
+    };
+  } catch (error) {
+    console.error("Error starting Indeed manual import:", error);
+    return {
+      success: false,
+      message: "Failed to start the Indeed import process. Please try again.",
+    };
+  }
+};

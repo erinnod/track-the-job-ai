@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobTrakr Options</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #4a86e8;
+      }
+      .option-group {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+      }
+      .option-group h2 {
+        margin-top: 0;
+      }
+      button {
+        background-color: #4a86e8;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #3a76d8;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>JobTrakr Extension Options</h1>
+
+    <div class="option-group">
+      <h2>Account</h2>
+      <div id="account-status">
+        <p>Checking login status...</p>
+      </div>
+    </div>
+
+    <div class="option-group">
+      <h2>Job Saving Preferences</h2>
+      <label>
+        <input type="checkbox" id="auto-detect-status" />
+        Auto-detect job application status
+      </label>
+      <p>
+        When enabled, JobTrakr will try to detect if you've already applied to a
+        job when saving it.
+      </p>
+    </div>
+
+    <div class="option-group">
+      <h2>Notifications</h2>
+      <label>
+        <input type="checkbox" id="show-notifications" />
+        Show desktop notifications
+      </label>
+      <p>Receive desktop notifications when jobs are successfully saved.</p>
+    </div>
+
+    <div class="option-group">
+      <h2>About</h2>
+      <p>JobTrakr Extension Version: <span id="version">1.0.0</span></p>
+      <p>
+        <a href="https://jobtrakr.co.uk/help" target="_blank">Help Center</a> |
+        <a href="https://jobtrakr.co.uk/contact" target="_blank">Support</a>
+      </p>
+    </div>
+
+    <button id="save-button">Save Options</button>
+
+    <script src="options.js"></script>
+  </body>
+</html>

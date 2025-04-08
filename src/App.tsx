@@ -35,6 +35,11 @@ import Contact from "./pages/legal/Contact";
 const SettingsIndex = lazy(() => import("./pages/settings/index"));
 const IntegrationsPage = lazy(() => import("./pages/settings/integrations"));
 
+// Lazy load help pages
+const BrowserExtensionHelp = lazy(
+  () => import("./pages/help/BrowserExtension")
+);
+
 // This component will scroll the page to the top when navigating between routes
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -78,6 +83,16 @@ const App = () => (
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/contact" element={<Contact />} />
+
+                  {/* Help pages */}
+                  <Route
+                    path="/help/browser-extension"
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <BrowserExtensionHelp />
+                      </Suspense>
+                    }
+                  />
 
                   {/* Protected routes */}
                   <Route element={<ProtectedRoute />}>

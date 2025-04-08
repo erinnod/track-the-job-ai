@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobTrakr Extension</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      .account-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+
+      .extension-badge {
+        background-color: #e3f2fd;
+        color: #1976d2;
+      }
+
+      .website-badge {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+      }
+
+      .divider {
+        height: 1px;
+        background-color: var(--border-color);
+        margin: 12px 0;
+      }
+
+      .website-account {
+        margin-top: 12px;
+        padding: 8px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
+      .website-account h4 {
+        margin: 0 0 6px 0;
+        color: #666;
+        font-weight: 500;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .website-account .account-email {
+        color: var(--primary-color);
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="popup-container">
+      <!-- Header with logo and status -->
+      <header class="popup-header">
+        <div class="logo-container">
+          <img src="../icons/icon-48.png" alt="JobTrakr Logo" class="logo">
+          <span class="logo-text">JobTrakr</span>
+        </div>
+        <div id="userStatus" class="status-container status-error">
+          <span id="statusText">Not connected</span>
+        </div>
+      </header>
+
+      <!-- Notification area -->
+      <div id="notification" class="notification hidden"></div>
+
+      <!-- Main content -->
+      <main class="popup-content">
+        <!-- Unauthenticated view -->
+        <div id="unauthenticatedView">
+          <div class="section">
+            <h2 class="section-title">Welcome to JobTrakr</h2>
+            <p class="section-content">
+              Track your job applications effortlessly. Sign in to get started.
+            </p>
+          </div>
+          <div class="action-section">
+            <button id="loginBtn" class="btn btn-primary">Sign In</button>
+          </div>
+        </div>
+
+        <!-- Authenticated view -->
+        <div id="authenticatedView" class="hidden">
+          <!-- Account info -->
+          <div class="section">
+            <h2 class="section-title">Account</h2>
+            <div class="account-info">
+              <div class="account-item">
+                <span class="account-label">Email:</span>
+                <span id="userEmail">user@example.com</span>
+              </div>
+              <div class="account-item">
+                <span class="account-label">Jobs Tracked:</span>
+                <span id="jobsCount">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Job Detection (only shown on job pages) -->
+          <div id="jobDetectionSection" class="section hidden">
+      <!-- Content -->
+      <div class="popup-content">
+        <!-- Notification Area -->
+        <div id="notification" class="notification hidden"></div>
+
+        <!-- Account Section (visible when logged in) -->
+        <div id="account-section" class="account-section hidden">
+          <h3>Account Info</h3>
+          <div class="account-info">
+            <span class="account-label">User:</span>
+            <span id="user-email" class="account-value">user@example.com</span>
+          </div>
+          <div class="account-info">
+            <span class="account-label">Last sync:</span>
+            <span id="last-sync" class="account-value">Never</span>
+          </div>
+        </div>
+
+        <!-- Login Section (visible when logged out) -->
+        <div id="login-section" class="action-section hidden">
+          <h3>Get Started</h3>
+          <button id="login-button" class="button button-primary">
+            Log in to JobTrakr
+          </button>
+          <p
+            style="
+              font-size: 12px;
+              color: #64748b;
+              margin-top: 8px;
+              text-align: center;
+            "
+          >
+            Connect to save job applications directly from job sites.
+          </p>
+        </div>
+
+        <!-- Job Actions Section (visible when viewing a job page) -->
+        <div id="job-actions-section" class="action-section hidden">
+          <h3>Current Job</h3>
+          <button id="save-job-button" class="button button-primary">
+            Save to JobTrakr
+          </button>
+          <div
+            id="job-details-preview"
+            style="font-size: 12px; margin-top: 8px; color: #475569"
+          >
+            <!-- Job details will be inserted here by JS -->
+          </div>
+        </div>
+
+        <!-- Other Actions Section (visible when logged in) -->
+        <div id="other-actions-section" class="action-section hidden">
+          <h3>Options</h3>
+          <button id="view-dashboard-button" class="button button-secondary">
+            View Dashboard
+          </button>
+          <button id="logout-button" class="button button-danger">
+            Log Out
+          </button>
+        </div>
+
+        <!-- Not a Job Page Section -->
+        <div id="not-job-page-section" class="action-section hidden">
+          <p style="text-align: center; color: #64748b">
+            Navigate to a supported job listing to save it to JobTrakr.
+          </p>
+          <div style="text-align: center; margin-top: 12px">
+            <p style="font-size: 12px; color: #475569; margin-bottom: 4px">
+              Supported sites:
+            </p>
+            <div style="display: flex; justify-content: center; gap: 12px">
+              <img
+                src="../icons/linkedin.png"
+                alt="LinkedIn"
+                style="height: 20px"
+              />
+              <img
+                src="../icons/indeed.png"
+                alt="Indeed"
+                style="height: 20px"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="popup-footer">JobTrakr v1.0 &copy; 2023</div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
