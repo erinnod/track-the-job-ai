@@ -54,12 +54,5 @@
   "options_page": "options/options.html",
   "externally_connectable": {
     "matches": ["*://*.jobtrakr.co.uk/*"]
-  },
-  "protocol_handlers": [
-    {
-      "protocol": "jobtrakr-extension",
-      "name": "JobTrakr Extension Auth",
-      "uriTemplate": "popup/auth-handler.html?auth=%s"
-    }
-  ]
+  }
 }
