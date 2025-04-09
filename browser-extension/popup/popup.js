@@ -121,21 +121,33 @@ function fetchUserStats() {
 }
 
 function login() {
-  // Open dashboard in new tab for authentication
-  chrome.tabs.create({
-    url: "https://www.jobtrakr.co.uk/login?source=extension&redirect_after_login=dashboard?source=extension",
+  // Use background script to open our extension's login page
+  chrome.runtime.sendMessage({ action: "openLoginPage" }, (response) => {
+    console.log("Requested to open login page", response);
   });
 
-  // The main site will handle the auth flow and store the token in chrome.storage
-  // We'll detect this in the background script
+  // Close the popup
+  window.close();
 }
 
 function logout() {
-  chrome.storage.local.remove(["auth"], function () {
-    state.isAuthenticated = false;
-    state.user = null;
-    updateAuthUI();
-    showNotification("You have been signed out.", "info");
+  // Clear all auth related storage
+  chrome.storage.local.remove(["auth", "authToken", "user"], function () {
+    // Also clear any cookies that might be conflicting
+    chrome.cookies.getAll({ domain: "jobtrakr.co.uk" }, function (cookies) {
+      for (let cookie of cookies) {
+        const cookieUrl = "https://" + cookie.domain + cookie.path;
+        chrome.cookies.remove({ url: cookieUrl, name: cookie.name });
+      }
+
+      // Update UI
+      state.isAuthenticated = false;
+      state.user = null;
+      updateAuthUI();
+      showNotification("You have been signed out.", "info");
+
+      console.log("Completely logged out from extension");
+    });
   });
 }
 
