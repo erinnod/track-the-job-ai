@@ -198,38 +198,72 @@
 
         // Check URL for link status
         const urlParams = new URLSearchParams(window.location.search);
-        const linked = urlParams.get("linked") === "true";
+        const justLinked = urlParams.get("linked") === "true";
 
-        if (linked) {
-          successMessage.textContent =
-            "Your extension account has been linked to your website account!";
-        }
-
-        // Get auth data
+        // Get current auth data from storage
         chrome.storage.local.get(["auth"], function (result) {
-          if (result.auth) {
-            // Set email
-            userEmail.textContent = result.auth.email || "Unknown";
+          const auth = result.auth;
 
-            // Check if linked to website account
-            if (result.auth.websiteLinked && result.auth.websiteEmail) {
-              websiteAccountInfo.classList.remove("hidden");
-              websiteEmail.textContent = result.auth.websiteEmail;
-            } else {
-              noWebsiteAccount.classList.remove("hidden");
-              linkAccountButton.classList.remove("hidden");
-            }
+          if (!auth) {
+            // This shouldn't happen as we redirected to login page if not authenticated
+            window.location.href = "login.html";
+            return;
           }
-        });
 
-        // Add event listeners
-        dashboardButton.addEventListener("click", function () {
-          chrome.runtime.sendMessage({ action: "openPopup" });
-          window.close();
-        });
+          // Update UI with auth data
+          userEmail.textContent = auth.email || "Unknown";
 
-        linkAccountButton.addEventListener("click", function () {
-          window.location.href = "login.html?mode=link";
+          // Check if authenticated via website (websiteLinked property)
+          if (auth.websiteLinked) {
+            // Show website account info
+            websiteAccountInfo.classList.remove("hidden");
+            noWebsiteAccount.classList.add("hidden");
+            linkAccountButton.classList.add("hidden");
+
+            // Update website account details
+            websiteStatus.textContent = "Connected";
+            websiteEmail.textContent = auth.websiteEmail || auth.email;
+
+            // Update success message if just linked
+            if (justLinked) {
+              successMessage.textContent =
+                "Your JobTrakr extension is now connected to your website account!";
+            } else if (urlParams.get("source") === "website") {
+              successMessage.textContent =
+                "You've been automatically signed in using your website account.";
+            } else {
+              successMessage.textContent =
+                "You are logged in using your JobTrakr website account.";
+            }
+          } else {
+            // Show no website account info
+            websiteAccountInfo.classList.add("hidden");
+            noWebsiteAccount.classList.remove("hidden");
+            linkAccountButton.classList.remove("hidden");
+
+            // Set default success message
+            successMessage.textContent =
+              "You are now logged in to the JobTrakr extension.";
+          }
+
+          // Set up dashboard button
+          dashboardButton.addEventListener("click", function () {
+            chrome.tabs.create({ url: "https://jobtrakr.co.uk/dashboard" });
+          });
+
+          // Set up link account button
+          linkAccountButton.addEventListener("click", function () {
+            const linkAccountSection = document.getElementById(
+              "link-account-section"
+            );
+            if (linkAccountSection) {
+              linkAccountSection.classList.remove("hidden");
+              linkAccountButton.classList.add("hidden");
+            } else {
+              // If the section doesn't exist in the current page, redirect to login page with link parameter
+              window.location.href = "login.html?action=link";
+            }
+          });
         });
       });
     </script>

@@ -18,10 +18,14 @@
       "128": "icons/icon-128.png"
     }
   },
-  "permissions": ["storage", "tabs", "activeTab"],
-  "host_permissions": ["*://*.linkedin.com/*", "*://*.indeed.com/*"],
+  "permissions": ["storage", "tabs", "activeTab", "cookies", "notifications"],
+  "host_permissions": [
+    "*://*.linkedin.com/*",
+    "*://*.indeed.com/*",
+    "*://*.jobtrakr.co.uk/*"
+  ],
   "background": {
-    "service_worker": "background/background.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
@@ -37,8 +41,22 @@
   "web_accessible_resources": [
     {
       "resources": ["icons/*", "onboarding/*"],
-      "matches": ["*://*.linkedin.com/*", "*://*.indeed.com/*"]
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.jobtrakr.co.uk/*"
+      ]
     }
   ],
-  "options_page": "options/options.html"
+  "options_page": "options/options.html",
+  "externally_connectable": {
+    "matches": ["*://*.jobtrakr.co.uk/*"]
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "jobtrakr-extension",
+      "name": "JobTrakr Extension Auth",
+      "uriTemplate": "popup/auth-handler.html?auth=%s"
+    }
+  ]
 }

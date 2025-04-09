@@ -33,6 +33,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       );
       return true;
 
+    case "checkWebsiteSession":
+      checkWebsiteSession(sendResponse);
+      return true;
+
     default:
       console.warn("Unknown action:", message.action);
       sendResponse({ success: false, error: "Unknown action" });
@@ -383,4 +387,68 @@ function injectSaveButton() {
   // Button doesn't exist yet, the page might not have loaded
   // Send a message to the content script to create it
   chrome.runtime.sendMessage({ action: "createSaveButton" });
+}
+
+/**
+ * Check for existing website session and authenticate extension if found
+ * @param {Function} sendResponse - Function to send response back
+ */
+async function checkWebsiteSession(sendResponse) {
+  try {
+    console.log("Checking for existing website session...");
+
+    // Call the website API to check for existing session
+    const response = await fetch(`${API_BASE_URL}/auth/session`, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      // No valid session found
+      console.log("No valid website session found:", response.status);
+      sendResponse({ success: false, hasSession: false });
+      return;
+    }
+
+    const sessionData = await response.json();
+
+    if (!sessionData.user || !sessionData.token) {
+      console.log("Invalid session data:", sessionData);
+      sendResponse({ success: false, hasSession: false });
+      return;
+    }
+
+    // Session found, save it to extension storage
+    const authData = {
+      token: sessionData.token,
+      userId: sessionData.user.id,
+      email: sessionData.user.email,
+      expiresAt: calculateExpiryDate(sessionData.expiresIn || 86400),
+      websiteLinked: true,
+      websiteEmail: sessionData.user.email,
+    };
+
+    await saveAuthData(authData);
+
+    console.log("Website session found and saved to extension:", authData);
+    sendResponse({
+      success: true,
+      hasSession: true,
+      email: sessionData.user.email,
+    });
+
+    // Show a notification
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "icons/icon-128.png",
+      title: "JobTrakr Authenticated",
+      message: `You are now signed in to JobTrakr extension using your website account (${sessionData.user.email})`,
+    });
+  } catch (error) {
+    console.error("Error checking website session:", error);
+    sendResponse({ success: false, error: error.message });
+  }
 }

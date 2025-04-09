@@ -29,6 +29,18 @@ document.addEventListener("DOMContentLoaded", init);
  * Initialize the login page
  */
 function init() {
+  // First check if we have a valid auth token
+  getAuthToken().then((auth) => {
+    if (auth && isTokenValid(auth)) {
+      // If already logged in, redirect to success page
+      window.location.href = "login-success.html";
+      return;
+    }
+
+    // Not logged in, check if there's an existing website session
+    checkWebsiteSession();
+  });
+
   // Set up form submission
   loginForm.addEventListener("submit", handleFormSubmit);
 
@@ -452,4 +464,35 @@ function showError(element, message) {
 function isValidEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+}
+
+/**
+ * Check if there's an existing website session that can be used for authentication
+ */
+function checkWebsiteSession() {
+  // Show a loading indicator
+  const statusDiv = document.createElement("div");
+  statusDiv.id = "website-session-status";
+  statusDiv.innerHTML =
+    '<p class="text-sm text-gray-500">Checking for website login...</p>';
+  loginForm.prepend(statusDiv);
+
+  // Send message to background script to check for website session
+  chrome.runtime.sendMessage(
+    { action: "checkWebsiteSession" },
+    function (response) {
+      // Remove the loading indicator
+      const statusDiv = document.getElementById("website-session-status");
+      if (statusDiv) {
+        statusDiv.remove();
+      }
+
+      if (response && response.success && response.hasSession) {
+        // Successfully logged in with website session
+        // Redirect to success page
+        window.location.href = "login-success.html";
+      }
+      // If no session or error, do nothing - user will see the normal login form
+    }
+  );
 }

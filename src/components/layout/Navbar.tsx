@@ -523,6 +523,14 @@ const Navbar = () => {
                     >
                       Integrations
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        window.open("/api/auth/extension-redirect", "_blank")
+                      }
+                      className="p-2 cursor-pointer"
+                    >
+                      Connect Browser Extension
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleLogout}
