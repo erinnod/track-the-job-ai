@@ -52,6 +52,8 @@ const routerFutureConfig = {
 const SettingsIndex = lazy(() => import("./pages/settings/index"));
 const IntegrationsPage = lazy(() => import("./pages/settings/integrations"));
 const ProfilePage = lazy(() => import("./pages/settings/profile"));
+const SecurityPage = lazy(() => import("./pages/settings/security"));
+const NotificationsPage = lazy(() => import("./pages/settings/notifications"));
 
 // Lazy load help pages
 const BrowserExtensionHelp = lazy(
@@ -146,6 +148,22 @@ const App = () => (
                         element={
                           <Suspense fallback={<LoadingFallback />}>
                             <ProfilePage />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/settings/security"
+                        element={
+                          <Suspense fallback={<LoadingFallback />}>
+                            <SecurityPage />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/settings/notifications"
+                        element={
+                          <Suspense fallback={<LoadingFallback />}>
+                            <NotificationsPage />
                           </Suspense>
                         }
                       />

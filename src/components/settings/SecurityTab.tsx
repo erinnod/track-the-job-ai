@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/form";
 import { updatePassword } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { logger } from "@/utils/logger";
 
 const PASSWORD_MIN_LENGTH = 8;
 
@@ -146,7 +147,7 @@ export const SecurityTab = () => {
         description: "Your password has been updated successfully.",
       });
     } catch (error: any) {
-      console.error("Error updating password:", error);
+      logger.error("Error updating password:", error);
       toast({
         title: "Error updating password",
         description:
@@ -164,7 +165,7 @@ export const SecurityTab = () => {
       setIsLoading(true);
       // Here you would typically call Supabase or your auth provider to enable/disable 2FA
       // This is a placeholder as Supabase requires additional setup for 2FA
-      console.log("Setting two-factor authentication to:", enabled);
+      logger.info("Setting two-factor authentication to:", enabled);
 
       // Simulate successful API call
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -177,7 +178,7 @@ export const SecurityTab = () => {
         } for your account.`,
       });
     } catch (error: any) {
-      console.error("Error toggling 2FA:", error);
+      logger.error("Error toggling 2FA:", error);
       toast({
         title: "Error updating two-factor authentication",
         description:
@@ -278,6 +279,30 @@ export const SecurityTab = () => {
             </Button>
           </form>
         </Form>
+
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium">Two-Factor Authentication</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Add an extra layer of security to your account
+              </p>
+            </div>
+            <Switch
+              checked={twoFactorEnabled}
+              onCheckedChange={handleTwoFactorToggle}
+              disabled={isLoading}
+            />
+          </div>
+          <p className="text-sm text-muted-foreground mt-4">
+            When two-factor authentication is enabled, you'll be required to
+            provide a verification code in addition to your password during
+            sign-in.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
