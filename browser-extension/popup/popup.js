@@ -143,9 +143,20 @@ function fetchUserStats() {
 function login() {
   console.log("Login button clicked, redirecting to website login");
 
+  // Get a unique identifier for this extension instance
+  const extensionId = chrome.runtime.id;
+
+  // Construct the login URL with proper parameters
+  const loginUrl =
+    "https://jobtrakr.co.uk/login?source=extension&extension_id=" +
+    extensionId +
+    "&redirect_after_login=dashboard";
+
+  console.log("Opening login URL:", loginUrl);
+
   // Open the website login page with parameters to indicate it's from the extension
   chrome.tabs.create({
-    url: "https://jobtrakr.co.uk/login?source=extension&redirect_after_login=dashboard?source=extension",
+    url: loginUrl,
   });
 
   // Close the popup
