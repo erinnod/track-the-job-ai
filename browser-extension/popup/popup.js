@@ -18,10 +18,10 @@ const elements = {
   notJobPageView: document.getElementById("notJobPageView"),
 
   // Buttons
-  loginBtn: document.getElementById("loginBtn"),
-  saveJobBtn: document.getElementById("saveJobBtn"),
-  viewDashboardBtn: document.getElementById("viewDashboardBtn"),
-  logoutBtn: document.getElementById("logoutBtn"),
+  loginBtn: document.getElementById("login-button"),
+  saveJobBtn: document.getElementById("save-job-button"),
+  viewDashboardBtn: document.getElementById("view-dashboard-button"),
+  logoutBtn: document.getElementById("logout-button"),
 
   // Job information
   userEmail: document.getElementById("userEmail"),
@@ -278,16 +278,24 @@ function openDashboard() {
 
 function attachEventListeners() {
   // Login button
-  elements.loginBtn.addEventListener("click", login);
+  if (elements.loginBtn) {
+    elements.loginBtn.addEventListener("click", login);
+  }
 
   // Logout button
-  elements.logoutBtn.addEventListener("click", logout);
+  if (elements.logoutBtn) {
+    elements.logoutBtn.addEventListener("click", logout);
+  }
 
   // Save job button
-  elements.saveJobBtn.addEventListener("click", saveCurrentJob);
+  if (elements.saveJobBtn) {
+    elements.saveJobBtn.addEventListener("click", saveCurrentJob);
+  }
 
   // View dashboard button
-  elements.viewDashboardBtn.addEventListener("click", openDashboard);
+  if (elements.viewDashboardBtn) {
+    elements.viewDashboardBtn.addEventListener("click", openDashboard);
+  }
 }
 
 // Run initialization when popup is loaded
