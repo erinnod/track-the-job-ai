@@ -18,7 +18,7 @@ const elements = {
   notJobPageView: document.getElementById("notJobPageView"),
 
   // Buttons
-  loginBtn: document.getElementById("login-button"),
+  loginBtn: document.getElementById("loginBtn"),
   saveJobBtn: document.getElementById("save-job-button"),
   viewDashboardBtn: document.getElementById("view-dashboard-button"),
   logoutBtn: document.getElementById("logout-button"),
