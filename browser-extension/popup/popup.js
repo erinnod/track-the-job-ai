@@ -50,6 +50,9 @@ function init() {
   // Make sure the DOM elements are refreshed before attaching listeners
   refreshElements();
 
+  // Always check for website session first when popup opens
+  checkForWebsiteSession();
+
   // Check authentication status
   checkAuthStatus();
 
@@ -138,37 +141,14 @@ function fetchUserStats() {
 }
 
 function login() {
-  console.log("Login button clicked");
+  console.log("Login button clicked, redirecting to website login");
 
-  // Try to use background script to open login page
-  try {
-    chrome.runtime.sendMessage({ action: "openLoginPage" }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error(
-          "Error sending message to background:",
-          chrome.runtime.lastError
-        );
-        // Fallback: directly open login page
-        openLoginPageDirectly();
-      } else {
-        console.log("Requested to open login page", response);
-        // Close the popup
-        window.close();
-      }
-    });
-  } catch (error) {
-    console.error("Error in login function:", error);
-    // Fallback: directly open login page
-    openLoginPageDirectly();
-  }
-}
-
-// Fallback function to open login page directly
-function openLoginPageDirectly() {
-  console.log("Using direct login page open method");
+  // Open the website login page with parameters to indicate it's from the extension
   chrome.tabs.create({
-    url: chrome.runtime.getURL("popup/login.html"),
+    url: "https://jobtrakr.co.uk/login?source=extension&redirect_after_login=dashboard?source=extension",
   });
+
+  // Close the popup
   window.close();
 }
 
@@ -362,15 +342,7 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("Found login button, attaching event listener directly");
     loginButton.addEventListener("click", function (e) {
       e.preventDefault();
-      console.log("Login button clicked directly");
-
-      // Open login page in new tab
-      chrome.tabs.create({
-        url: chrome.runtime.getURL("popup/login.html"),
-      });
-
-      // Close popup
-      window.close();
+      login(); // Use the same login function for consistency
     });
   } else {
     console.error("Login button not found in DOM");
@@ -384,4 +356,19 @@ document.addEventListener("DOMContentLoaded", function () {
 function isTokenValid(auth) {
   if (!auth || !auth.expiresAt) return false;
   return new Date(auth.expiresAt) > new Date();
+}
+
+// Check if the user is logged in on the website and use that session
+function checkForWebsiteSession() {
+  chrome.runtime.sendMessage(
+    { action: "checkWebsiteSession" },
+    function (response) {
+      console.log("Website session check response:", response);
+      if (response && response.success && response.hasSession) {
+        console.log("Found website session, refreshing authentication status");
+        // We found a website session, refresh the authentication status
+        checkAuthStatus();
+      }
+    }
+  );
 }

@@ -411,7 +411,77 @@ async function checkWebsiteSession(sendResponse) {
   try {
     console.log("Checking for existing website session...");
 
-    // Call the website API to check for existing session
+    // First try cookies directly - this is the most reliable method
+    try {
+      const cookies = await chrome.cookies.getAll({
+        domain: "jobtrakr.co.uk",
+      });
+
+      console.log("Found cookies:", cookies.length);
+
+      // Look for auth cookies
+      const authCookie = cookies.find(
+        (cookie) =>
+          cookie.name === "jobtrakr-auth-token" ||
+          cookie.name === "sb-kffbwemulhhsyaiooabh-auth-token" ||
+          cookie.name.includes("auth")
+      );
+
+      if (authCookie) {
+        console.log("Found auth cookie:", authCookie.name);
+
+        // Use the cookie value as token
+        const authToken = authCookie.value;
+
+        // Verify the token by calling the API with the token
+        const verifyResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (verifyResponse.ok) {
+          const userData = await verifyResponse.json();
+
+          // Session found, save it to extension storage
+          const authData = {
+            token: authToken,
+            userId: userData.user.id,
+            email: userData.user.email,
+            expiresAt: calculateExpiryDate(86400), // 24 hours
+            websiteLinked: true,
+            websiteEmail: userData.user.email,
+          };
+
+          await saveAuthData(authData);
+
+          console.log(
+            "Website session found via cookies and saved to extension"
+          );
+          sendResponse({
+            success: true,
+            hasSession: true,
+            email: userData.user.email,
+          });
+
+          // Show a notification
+          chrome.notifications.create({
+            type: "basic",
+            iconUrl: "icons/icon-128.png",
+            title: "JobTrakr Authenticated",
+            message: `You are now signed in to JobTrakr extension using your website account (${userData.user.email})`,
+          });
+
+          return;
+        }
+      }
+    } catch (cookieError) {
+      console.error("Error checking cookies:", cookieError);
+    }
+
+    // If cookies didn't work, try the API method
     const response = await fetch(`${API_BASE_URL}/auth/session`, {
       method: "GET",
       credentials: "include",
@@ -421,75 +491,8 @@ async function checkWebsiteSession(sendResponse) {
     });
 
     if (!response.ok) {
-      // No valid session found
-      console.log("No valid website session found:", response.status);
-
-      // Try an alternative method - get cookies directly
-      try {
-        const cookies = await chrome.cookies.getAll({
-          domain: "jobtrakr.co.uk",
-        });
-
-        const authCookie = cookies.find(
-          (cookie) =>
-            cookie.name === "jobtrakr-auth-token" ||
-            cookie.name === "sb-kffbwemulhhsyaiooabh-auth-token"
-        );
-
-        if (authCookie) {
-          console.log("Found auth cookie, using it to authenticate");
-
-          // Use the cookie value as token
-          const authToken = authCookie.value;
-
-          // Verify the token by calling the API with the token
-          const verifyResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (verifyResponse.ok) {
-            const userData = await verifyResponse.json();
-
-            // Session found, save it to extension storage
-            const authData = {
-              token: authToken,
-              userId: userData.user.id,
-              email: userData.user.email,
-              expiresAt: calculateExpiryDate(86400), // 24 hours
-              websiteLinked: true,
-              websiteEmail: userData.user.email,
-            };
-
-            await saveAuthData(authData);
-
-            console.log(
-              "Website session found via cookies and saved to extension"
-            );
-            sendResponse({
-              success: true,
-              hasSession: true,
-              email: userData.user.email,
-            });
-
-            // Show a notification
-            chrome.notifications.create({
-              type: "basic",
-              iconUrl: "icons/icon-128.png",
-              title: "JobTrakr Authenticated",
-              message: `You are now signed in to JobTrakr extension using your website account (${userData.user.email})`,
-            });
-
-            return;
-          }
-        }
-      } catch (cookieError) {
-        console.error("Error checking cookies:", cookieError);
-      }
-
+      // No valid session found through API either
+      console.log("No valid website session found via API:", response.status);
       sendResponse({ success: false, hasSession: false });
       return;
     }
@@ -514,7 +517,10 @@ async function checkWebsiteSession(sendResponse) {
 
     await saveAuthData(authData);
 
-    console.log("Website session found and saved to extension:", authData);
+    console.log(
+      "Website session found via API and saved to extension:",
+      authData
+    );
     sendResponse({
       success: true,
       hasSession: true,
