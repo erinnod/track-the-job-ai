@@ -41,6 +41,15 @@ let state = {
 
 // Initialize popup
 function init() {
+  console.log("Initializing popup...");
+
+  // Debug element availability
+  console.log("Login button found:", !!document.getElementById("loginBtn"));
+  console.log("Logout button found:", !!document.getElementById("logoutBtn"));
+
+  // Make sure the DOM elements are refreshed before attaching listeners
+  refreshElements();
+
   // Check authentication status
   checkAuthStatus();
 
@@ -49,6 +58,14 @@ function init() {
 
   // Check if we're on a job page
   checkCurrentPage();
+}
+
+// Refresh element references
+function refreshElements() {
+  elements.loginBtn = document.getElementById("loginBtn");
+  elements.logoutBtn = document.getElementById("logoutBtn");
+  elements.saveJobBtn = document.getElementById("save-job-button");
+  elements.viewDashboardBtn = document.getElementById("view-dashboard-button");
 }
 
 // Authentication functions
@@ -121,12 +138,37 @@ function fetchUserStats() {
 }
 
 function login() {
-  // Use background script to open our extension's login page
-  chrome.runtime.sendMessage({ action: "openLoginPage" }, (response) => {
-    console.log("Requested to open login page", response);
-  });
+  console.log("Login button clicked");
 
-  // Close the popup
+  // Try to use background script to open login page
+  try {
+    chrome.runtime.sendMessage({ action: "openLoginPage" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error(
+          "Error sending message to background:",
+          chrome.runtime.lastError
+        );
+        // Fallback: directly open login page
+        openLoginPageDirectly();
+      } else {
+        console.log("Requested to open login page", response);
+        // Close the popup
+        window.close();
+      }
+    });
+  } catch (error) {
+    console.error("Error in login function:", error);
+    // Fallback: directly open login page
+    openLoginPageDirectly();
+  }
+}
+
+// Fallback function to open login page directly
+function openLoginPageDirectly() {
+  console.log("Using direct login page open method");
+  chrome.tabs.create({
+    url: chrome.runtime.getURL("popup/login.html"),
+  });
   window.close();
 }
 
@@ -311,7 +353,32 @@ function attachEventListeners() {
 }
 
 // Run initialization when popup is loaded
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("DOM fully loaded");
+
+  // Direct event listener for login button - highest priority
+  const loginButton = document.getElementById("loginBtn");
+  if (loginButton) {
+    console.log("Found login button, attaching event listener directly");
+    loginButton.addEventListener("click", function (e) {
+      e.preventDefault();
+      console.log("Login button clicked directly");
+
+      // Open login page in new tab
+      chrome.tabs.create({
+        url: chrome.runtime.getURL("popup/login.html"),
+      });
+
+      // Close popup
+      window.close();
+    });
+  } else {
+    console.error("Login button not found in DOM");
+  }
+
+  // Continue with regular initialization
+  init();
+});
 
 // Add token validation function that matches login.js
 function isTokenValid(auth) {

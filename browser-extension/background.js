@@ -42,6 +42,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleDirectLogin(message.email, message.password, sendResponse);
       return true;
 
+    case "openLoginPage":
+      openLoginPage();
+      sendResponse({ success: true });
+      return false;
+
     default:
       console.warn("Unknown action:", message.action);
       sendResponse({ success: false, error: "Unknown action" });
@@ -314,8 +319,12 @@ function clearAuthToken() {
  * Open login page
  */
 function openLoginPage() {
+  // Get the extension URL for the login page
+  const loginPageUrl = chrome.runtime.getURL("popup/login.html");
+  console.log("Opening login page at:", loginPageUrl);
+
   chrome.tabs.create({
-    url: "popup/login.html",
+    url: loginPageUrl,
   });
 }
 
