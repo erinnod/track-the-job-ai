@@ -118,21 +118,49 @@ async function handleFormSubmit(event) {
   loginButton.textContent = "Signing in...";
 
   try {
-    // Attempt to log in
-    const authData = await loginWithEmailPassword(email, password);
+    // Try the new direct login method first for better production compatibility
+    chrome.runtime.sendMessage(
+      { action: "directLogin", email, password },
+      async function (response) {
+        if (response && response.success) {
+          console.log("Direct login successful:", response);
+          // Redirect to success page
+          window.location.href = "login-success.html";
+          return;
+        }
 
-    if (authData) {
-      // Save auth data to storage
-      await saveAuthData(authData);
+        // If direct login fails, try the traditional method
+        console.log("Direct login failed, trying traditional method");
+        try {
+          // Attempt to log in
+          const authData = await loginWithEmailPassword(email, password);
 
-      // Check if user needs to link account
-      if (authData.needsLinking) {
-        showLinkAccountSection();
-      } else {
-        // Redirect to success page or close
-        window.location.href = "login-success.html";
+          if (authData) {
+            // Save auth data to storage
+            await saveAuthData(authData);
+
+            // Check if user needs to link account
+            if (authData.needsLinking) {
+              showLinkAccountSection();
+            } else {
+              // Redirect to success page or close
+              window.location.href = "login-success.html";
+            }
+          }
+        } catch (error) {
+          console.error("Traditional login error:", error);
+          showError(
+            passwordError,
+            error.message ||
+              "Login failed. Please check your credentials and try again."
+          );
+
+          // Reset button
+          loginButton.disabled = false;
+          loginButton.textContent = "Sign In";
+        }
       }
-    }
+    );
   } catch (error) {
     console.error("Login error:", error);
     showError(

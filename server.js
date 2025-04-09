@@ -1,10 +1,14 @@
 const express = require("express");
 const path = require("path");
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+// Middleware to parse cookies
+app.use(cookieParser());
 
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, "dist")));
@@ -31,6 +35,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
   // Handle preflight requests
   if (req.method === "OPTIONS") {
@@ -38,6 +43,66 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+// API endpoint for direct extension login
+app.post("/api/auth/signin", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    // Import Supabase client
+    const { createClient } = require("@supabase/supabase-js");
+    const supabaseUrl =
+      process.env.VITE_SUPABASE_URL ||
+      "https://kffbwemulhhsyaiooabh.supabase.co";
+    const supabaseAnonKey =
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Sign in with Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return res.status(401).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // Set auth cookie for cross-origin access
+    const token = data.session.access_token;
+    res.cookie("jobtrakr-auth-token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    });
+
+    // Return success with user data
+    return res.json({
+      success: true,
+      user: data.user,
+      message: "Login successful",
+      token: token, // Include token in response for the extension
+    });
+  } catch (error) {
+    console.error("Signin error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during authentication",
+    });
+  }
 });
 
 // API endpoint for browser extension to check for existing session

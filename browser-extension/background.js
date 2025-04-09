@@ -3,8 +3,9 @@
  * Background Script
  */
 
-// Configuration
-const API_BASE_URL = "https://jobtrakr.co.uk/api"; // Replace with your actual API endpoint
+// Configuration - make sure it matches your production environment
+const API_BASE_URL = "https://jobtrakr.co.uk/api"; // Production API endpoint
+const WEB_APP_URL = "https://jobtrakr.co.uk"; // Production web app URL
 
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -35,6 +36,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case "checkWebsiteSession":
       checkWebsiteSession(sendResponse);
+      return true;
+
+    case "directLogin":
+      handleDirectLogin(message.email, message.password, sendResponse);
       return true;
 
     default:
@@ -527,4 +532,121 @@ async function checkWebsiteSession(sendResponse) {
  */
 function calculateExpiryDate(expiresIn) {
   return Date.now() + expiresIn * 1000;
+}
+
+/**
+ * Handle direct login with email and password
+ * @param {string} email - User's email
+ * @param {string} password - User's password
+ * @param {Function} sendResponse - Function to send response back
+ */
+async function handleDirectLogin(email, password, sendResponse) {
+  try {
+    console.log("Attempting direct login for:", email);
+
+    // First try direct login to Supabase via the API
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!loginResponse.ok) {
+      // If direct API login fails, try alternate method via authenticated fetch
+      console.log("Direct API login failed, status:", loginResponse.status);
+
+      // Try website login using fetch (this will set cookies)
+      const webLoginResponse = await fetch(`${WEB_APP_URL}/api/auth/signin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!webLoginResponse.ok) {
+        const errorData = await webLoginResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Login failed: ${webLoginResponse.status}`
+        );
+      }
+
+      // Now check if we got cookies
+      const cookies = await chrome.cookies.getAll({ domain: "jobtrakr.co.uk" });
+      const authCookie = cookies.find(
+        (cookie) =>
+          cookie.name === "jobtrakr-auth-token" ||
+          cookie.name === "sb-kffbwemulhhsyaiooabh-auth-token"
+      );
+
+      if (!authCookie) {
+        throw new Error("No authentication cookie found after login");
+      }
+
+      // Use the cookie to get the user info
+      const userResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${authCookie.value}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error("Could not verify user session");
+      }
+
+      const userData = await userResponse.json();
+
+      // Save auth data
+      const authData = {
+        token: authCookie.value,
+        userId: userData.user.id,
+        email: userData.user.email,
+        expiresAt: calculateExpiryDate(86400), // 24 hours
+        websiteLinked: true,
+        websiteEmail: userData.user.email,
+      };
+
+      await saveAuthData(authData);
+
+      sendResponse({
+        success: true,
+        user: userData.user,
+        message: "Login successful via web cookies",
+      });
+
+      return;
+    }
+
+    // Direct API login successful
+    const loginData = await loginResponse.json();
+
+    // Save auth data
+    const authData = {
+      token: loginData.token,
+      userId: loginData.userId || loginData.user?.id,
+      email: loginData.email || loginData.user?.email,
+      expiresAt: calculateExpiryDate(loginData.expiresIn || 86400),
+      websiteLinked: true,
+      websiteEmail: loginData.email || loginData.user?.email,
+    };
+
+    await saveAuthData(authData);
+
+    sendResponse({
+      success: true,
+      user: {
+        id: authData.userId,
+        email: authData.email,
+      },
+      message: "Login successful via API",
+    });
+  } catch (error) {
+    console.error("Direct login error:", error);
+    sendResponse({ success: false, error: error.message });
+  }
 }
