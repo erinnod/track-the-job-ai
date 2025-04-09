@@ -18,7 +18,7 @@
       "128": "icons/icon-128.png"
     }
   },
-  "permissions": ["storage", "tabs", "activeTab", "cookies", "notifications"],
+  "permissions": ["storage", "tabs", "activeTab", "notifications", "cookies"],
   "host_permissions": [
     "*://*.linkedin.com/*",
     "*://*.indeed.com/*",

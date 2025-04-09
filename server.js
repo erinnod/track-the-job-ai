@@ -46,6 +46,7 @@ app.get("/api/auth/session", async (req, res) => {
     // Get the session cookie
     const sessionCookie =
       req.cookies?.["jobtrakr-auth-token"] ||
+      req.cookies?.["sb-kffbwemulhhsyaiooabh-auth-token"] ||
       req.headers.authorization?.split("Bearer ")[1];
 
     if (!sessionCookie) {
@@ -85,6 +86,53 @@ app.get("/api/auth/session", async (req, res) => {
     });
   } catch (error) {
     console.error("Session check error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// API endpoint for verifying tokens
+app.get("/api/auth/verify", async (req, res) => {
+  try {
+    // Get the token from authorization header
+    const token = req.headers.authorization?.split("Bearer ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    // Import Supabase client
+    const { createClient } = require("@supabase/supabase-js");
+    const supabaseUrl =
+      process.env.VITE_SUPABASE_URL ||
+      "https://kffbwemulhhsyaiooabh.supabase.co";
+    const supabaseAnonKey =
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Verify the token
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token",
+      });
+    }
+
+    // Return user info
+    return res.json({
+      success: true,
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Token verification error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 });

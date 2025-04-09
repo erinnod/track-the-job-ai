@@ -226,106 +226,139 @@
         margin-bottom: 20px;
         font-size: 14px;
       }
+
+      /* Additional styles for loading indicator */
+      .loading-container {
+        text-align: center;
+        padding: 40px 20px;
+      }
+
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid var(--secondary-color);
+        border-radius: 50%;
+        border-top-color: var(--primary-color);
+        margin: 20px auto;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="header">
+      <div id="loading-indicator" class="loading-container">
         <div class="logo-placeholder">J</div>
-        <h1>JobTrakr</h1>
-        <p>Sign in to your JobTrakr account to start saving jobs</p>
+        <div class="loading-spinner"></div>
+        <h2>Checking Authentication...</h2>
+        <p>Looking for existing website login...</p>
       </div>
 
-      <div class="tab-container">
-        <div class="tab active" id="extension-tab">Extension Login</div>
-        <div class="tab" id="website-tab">Website Account</div>
-      </div>
-
-      <div id="extension-login-section">
-        <div class="info-box">
-          Create an extension-only account or link to your existing JobTrakr
-          website account.
+      <div id="login-container" class="hidden">
+        <div class="header">
+          <div class="logo-placeholder">J</div>
+          <h1>Welcome to JobTrakr</h1>
+          <p>Sign in to track your job applications</p>
         </div>
 
         <form id="login-form">
           <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required />
+            <input type="email" id="email" placeholder="Enter your email" />
             <div id="email-error" class="error hidden"></div>
           </div>
 
           <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required />
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+            />
             <div id="password-error" class="error hidden"></div>
           </div>
 
-          <button type="submit" class="button" id="login-button">
+          <button type="submit" id="login-button" class="button">
             Sign In
           </button>
         </form>
 
-        <div class="register-link">
-          <p>
-            Don't have an account?
-            <a href="https://jobtrakr.co.uk/signup" target="_blank"
-              >Sign up for free</a
-            >
-          </p>
-        </div>
-
-        <div class="toggle-link" id="toggle-link-account">
-          Link to existing JobTrakr account
-        </div>
-      </div>
-
-      <div id="link-account-section" class="hidden">
-        <div class="info-box">
-          Link your extension to your existing JobTrakr website account to sync
-          your saved jobs.
-        </div>
-
-        <form id="link-account-form">
-          <div class="form-group">
-            <label for="website-email">Website Email</label>
-            <input
-              type="email"
-              id="website-email"
-              name="website-email"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="website-password">Website Password</label>
-            <input
-              type="password"
-              id="website-password"
-              name="website-password"
-              required
-            />
-            <div id="link-account-error" class="error hidden"></div>
-          </div>
-
-          <button type="submit" class="button" id="link-account-button">
-            Link Account
+        <div class="oauth-buttons">
+          <p>Or continue with</p>
+          <button id="google-button" class="oauth-button">
+            <img src="../icons/google.svg" alt="Google" />
+            Google
           </button>
-        </form>
+          <button id="github-button" class="oauth-button">
+            <img src="../icons/github.svg" alt="GitHub" />
+            GitHub
+          </button>
+        </div>
 
-        <div class="toggle-link" id="back-to-login">Back to login</div>
-      </div>
+        <div id="signup-section">
+          <div class="register-link">
+            Don't have an account?
+            <a href="https://jobtrakr.co.uk/signup" target="_blank">
+              Sign up on the website
+            </a>
+          </div>
+        </div>
 
-      <div class="oauth-buttons">
-        <p>Or continue with</p>
-        <button class="oauth-button" id="google-button">
-          <img src="../icons/google.svg" alt="Google" />
-          Continue with Google
-        </button>
+        <div id="link-account-section" class="toggle-link">
+          <button id="toggle-link-account" class="toggle-link">
+            Link to existing JobTrakr account
+          </button>
+        </div>
 
-        <button class="oauth-button" id="github-button">
-          <img src="../icons/github.svg" alt="GitHub" />
-          Continue with GitHub
-        </button>
+        <div id="link-account-container" class="hidden">
+          <div class="header">
+            <h2>Link Website Account</h2>
+            <p>
+              Connect to your existing JobTrakr website account to access your
+              saved jobs
+            </p>
+          </div>
+
+          <form id="link-account-form">
+            <div class="form-group">
+              <label for="website-email">Website Email</label>
+              <input
+                type="email"
+                id="website-email"
+                placeholder="Enter your website account email"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="website-password">Website Password</label>
+              <input
+                type="password"
+                id="website-password"
+                placeholder="Enter your website account password"
+              />
+              <div id="link-account-error" class="error hidden"></div>
+            </div>
+
+            <button type="submit" id="link-account-button" class="button">
+              Link Account
+            </button>
+          </form>
+
+          <div class="toggle-link">
+            <button
+              id="cancel-link"
+              class="toggle-link"
+              onclick="document.getElementById('link-account-container').classList.add('hidden'); document.getElementById('signup-section').classList.remove('hidden');"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

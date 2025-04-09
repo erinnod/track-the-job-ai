@@ -29,16 +29,33 @@ document.addEventListener("DOMContentLoaded", init);
  * Initialize the login page
  */
 function init() {
-  // First check if we have a valid auth token
-  getAuthToken().then((auth) => {
-    if (auth && isTokenValid(auth)) {
-      // If already logged in, redirect to success page
-      window.location.href = "login-success.html";
+  console.log("Initializing login page...");
+
+  // Always check first if there's an existing website session - this is highest priority
+  checkWebsiteSession((websiteSessionResult) => {
+    if (
+      websiteSessionResult &&
+      websiteSessionResult.success &&
+      websiteSessionResult.hasSession
+    ) {
+      console.log("Successfully authenticated with website session");
+      window.location.href = "login-success.html?source=website";
       return;
     }
 
-    // Not logged in, check if there's an existing website session
-    checkWebsiteSession();
+    // If no website session, check for existing extension auth
+    getAuthToken().then((auth) => {
+      if (auth && isTokenValid(auth)) {
+        // Already have valid auth, redirect to success page
+        console.log("Already authenticated with extension token");
+        window.location.href = "login-success.html";
+        return;
+      }
+
+      console.log("No valid auth found, showing login form");
+      document.getElementById("loading-indicator")?.classList.add("hidden");
+      document.getElementById("login-container")?.classList.remove("hidden");
+    });
   });
 
   // Set up form submission
@@ -468,31 +485,33 @@ function isValidEmail(email) {
 
 /**
  * Check if there's an existing website session that can be used for authentication
+ * @param {Function} callback - Function to call with session checking result
  */
-function checkWebsiteSession() {
-  // Show a loading indicator
-  const statusDiv = document.createElement("div");
-  statusDiv.id = "website-session-status";
-  statusDiv.innerHTML =
-    '<p class="text-sm text-gray-500">Checking for website login...</p>';
-  loginForm.prepend(statusDiv);
+function checkWebsiteSession(callback) {
+  console.log("Checking for website login session...");
+
+  // Try all available methods to detect a session
+
+  // First show a loading indicator if it exists
+  const loadingIndicator = document.getElementById("loading-indicator");
+  if (loadingIndicator) {
+    loadingIndicator.classList.remove("hidden");
+  }
+
+  const loginContainer = document.getElementById("login-container");
+  if (loginContainer) {
+    loginContainer.classList.add("hidden");
+  }
 
   // Send message to background script to check for website session
   chrome.runtime.sendMessage(
     { action: "checkWebsiteSession" },
     function (response) {
-      // Remove the loading indicator
-      const statusDiv = document.getElementById("website-session-status");
-      if (statusDiv) {
-        statusDiv.remove();
-      }
+      console.log("Received session check response:", response);
 
-      if (response && response.success && response.hasSession) {
-        // Successfully logged in with website session
-        // Redirect to success page
-        window.location.href = "login-success.html";
+      if (callback) {
+        callback(response);
       }
-      // If no session or error, do nothing - user will see the normal login form
     }
   );
 }
