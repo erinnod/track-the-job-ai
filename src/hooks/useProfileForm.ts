@@ -4,162 +4,85 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { PersonalFormValues } from "@/components/settings/profile/PersonalInfoForm";
 import { useAvatar } from "@/contexts/AvatarContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useProfileForm = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { triggerAvatarUpdate } = useAvatar();
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // Profile form state
+  const userMeta = user?.user_metadata || {};
+  const userEmail = user?.email || "";
+
   const form = useForm<PersonalFormValues>({
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
+      firstName: userMeta.first_name || "",
+      lastName: userMeta.last_name || "",
+      email: userEmail || "",
+      phone: userMeta.phone || "",
     },
   });
 
-  // Fetch user data on mount
   useEffect(() => {
-    const fetchUserData = async () => {
+    if (!user?.id) return;
+
+    const loadProfileData = async () => {
       try {
-        setIsInitializing(true);
-
-        // Get current user
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-
-        if (userError) {
-          console.error("Error getting user:", userError);
-          toast({
-            title: "Authentication error",
-            description: "Please sign in to view your profile.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const userId = userData.user?.id;
-
-        if (!userId) {
-          console.error("No user ID found");
-          toast({
-            title: "Authentication error",
-            description: "Please sign in to view your profile.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log("Fetching profile for user ID:", userId);
-
-        // Get profile data
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", userId)
+          .eq("id", user.id)
           .single();
 
-        if (error) {
-          console.error("Error fetching profile:", error);
-
-          // If it's just "No rows returned", we'll create a profile later and use user metadata
-          if (error.code !== "PGRST116") {
-            toast({
-              title: "Error loading profile",
-              description:
-                "Could not load your profile information. " + error.message,
-              variant: "destructive",
-            });
-          } else {
-            console.log("No profile found, will create one on first save");
-            console.log("User metadata:", userData.user.user_metadata);
-
-            // Initialize with authenticated email and info from signup
-            const userMeta = userData.user.user_metadata;
-            form.reset({
-              firstName: userMeta?.first_name || "",
-              lastName: userMeta?.last_name || "",
-              email: userData.user.email || "",
-              phone: "",
-            });
-          }
-        } else if (data) {
-          console.log("Profile data loaded:", data);
+        if (data) {
           form.reset({
-            firstName: data.first_name || "",
-            lastName: data.last_name || "",
-            email: data.email || userData.user.email || "",
-            phone: data.phone || "",
+            firstName: data.first_name || form.getValues("firstName"),
+            lastName: data.last_name || form.getValues("lastName"),
+            email: data.email || form.getValues("email"),
+            phone: data.phone || form.getValues("phone"),
           });
 
-          // If avatar is set, get the public URL
           if (data.avatar_url) {
-            await fetchAvatarUrl(data.avatar_url);
+            getAvatarUrl(data.avatar_url);
           }
         }
-      } catch (error: any) {
-        console.error("Exception fetching user data:", error);
-        toast({
-          title: "Error loading profile",
-          description:
-            error.message || "Could not load your profile information.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsInitializing(false);
+      } catch (error) {
+        console.error("Error loading profile data:", error);
       }
     };
 
-    fetchUserData();
-  }, []);
+    loadProfileData();
+  }, [user?.id]);
 
-  // Fetch avatar URL from storage
-  const fetchAvatarUrl = async (path: string) => {
-    try {
-      const { data } = await supabase.storage
-        .from("avatars")
-        .getPublicUrl(path);
-
-      if (data?.publicUrl) {
-        setAvatarUrl(data.publicUrl);
-      }
-    } catch (error) {
-      console.error("Exception getting avatar URL:", error);
+  const getAvatarUrl = (path: string) => {
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    if (data?.publicUrl) {
+      setAvatarUrl(data.publicUrl);
     }
   };
 
-  // Upload avatar
   const uploadAvatar = async (file: File) => {
+    if (isUploadingAvatar) return;
+
     try {
       setIsUploadingAvatar(true);
 
-      // Get current user
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
-
-      if (userError) {
-        throw new Error("Authentication error: " + userError.message);
-      }
-
-      const userId = userData.user?.id;
-
-      if (!userId) {
+      if (!user?.id) {
         throw new Error("User not authenticated");
       }
 
-      // Create a unique file name
+      const userId = user.id;
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${userId}-${Date.now()}.${fileExt}`;
       const filePath = `${userId}/${fileName}`;
 
-      // Try to upload directly - this assumes the bucket already exists
-      // and has been set up with proper permissions in the Supabase dashboard
-      console.log("Attempting to upload file to avatars bucket...");
+      const localPreview = URL.createObjectURL(file);
+      setAvatarUrl(localPreview);
+
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, {
@@ -168,46 +91,19 @@ export const useProfileForm = () => {
         });
 
       if (uploadError) {
-        console.error("Error uploading file:", uploadError);
-
-        // Handle specific error cases
-        if (uploadError.message.includes("bucket not found")) {
-          toast({
-            title: "Upload failed",
-            description:
-              "The avatars storage bucket has not been created. Please contact your administrator.",
-            variant: "destructive",
-          });
-          return;
-        } else if (uploadError.message.includes("security policy")) {
-          toast({
-            title: "Upload failed",
-            description:
-              "You don't have permission to upload files. Please contact your administrator.",
-            variant: "destructive",
-          });
-          return;
-        } else {
-          throw new Error("Failed to upload file: " + uploadError.message);
-        }
+        throw new Error("Failed to upload file");
       }
 
-      // Update user profile with avatar URL
-      const { error: updateError } = await supabase.from("profiles").upsert({
+      await supabase.from("profiles").upsert({
         id: userId,
         avatar_url: filePath,
         updated_at: new Date().toISOString(),
       });
 
-      if (updateError) {
-        console.error("Error updating profile:", updateError);
-        throw new Error("Failed to update profile: " + updateError.message);
-      }
+      URL.revokeObjectURL(localPreview);
 
-      // Get the public URL
-      await fetchAvatarUrl(filePath);
+      getAvatarUrl(filePath);
 
-      // Trigger avatar update in the context
       triggerAvatarUpdate();
 
       toast({
@@ -215,7 +111,6 @@ export const useProfileForm = () => {
         description: "Your profile picture has been updated successfully.",
       });
     } catch (error: any) {
-      console.error("Error uploading avatar:", error);
       toast({
         title: "Upload failed",
         description: error.message || "Could not upload your profile picture.",
@@ -226,29 +121,18 @@ export const useProfileForm = () => {
     }
   };
 
-  // Handle saving personal info
   const onSubmit = async (data: PersonalFormValues) => {
+    if (isLoading) return;
+
     try {
       setIsLoading(true);
-      console.log("Saving personal data:", data);
 
-      // Get current user
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
-
-      if (userError) {
-        throw new Error("Authentication error: " + userError.message);
-      }
-
-      const userId = userData.user?.id;
-
-      if (!userId) {
+      if (!user?.id) {
         throw new Error("User not authenticated");
       }
 
-      console.log("Saving profile for user ID:", userId);
+      const userId = user.id;
 
-      // Save to Supabase
       const { error } = await supabase.from("profiles").upsert({
         id: userId,
         first_name: data.firstName,
@@ -258,19 +142,22 @@ export const useProfileForm = () => {
         updated_at: new Date().toISOString(),
       });
 
-      if (error) {
-        console.error("Error saving profile:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("Profile saved successfully");
+      await supabase.auth.updateUser({
+        data: {
+          first_name: data.firstName,
+          last_name: data.lastName,
+        },
+      });
+
+      triggerAvatarUpdate();
 
       toast({
         title: "Personal information updated",
         description: "Your personal information has been saved successfully.",
       });
     } catch (error: any) {
-      console.error("Exception saving personal data:", error);
       toast({
         title: "Error saving information",
         description:
@@ -298,7 +185,6 @@ export const useProfileForm = () => {
   return {
     form,
     isLoading,
-    isInitializing,
     onSubmit,
     getInitials,
     avatarUrl,

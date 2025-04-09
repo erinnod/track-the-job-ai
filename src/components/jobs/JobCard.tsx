@@ -1,10 +1,8 @@
 import { JobApplication, statusLabels } from "@/data/mockJobs";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Calendar, MapPin, DollarSign, Building, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import JobDetailsModal from "./JobDetailsModal";
 import { getCurrencySymbol } from "@/utils/currencyUtils";
@@ -40,18 +38,8 @@ const getStatusColor = (status: JobApplication["status"]) => {
 
 const JobCard = ({ job, onRemove }: JobCardProps) => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
-
-  const formattedDate = (dateString: string) => {
-    if (!dateString) return "Not applied yet";
-    try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-    } catch (e) {
-      return dateString;
-    }
-  };
 
   const handleOpenRemoveConfirm = () => {
     setIsConfirmRemoveOpen(true);

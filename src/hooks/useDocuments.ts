@@ -1,7 +1,17 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  supabase,
+  fetchUserDocuments,
+  getCachedDocuments,
+  getCachedDocumentUrl,
+  cacheDocumentUrl,
+  getAllCachedDocumentUrls,
+} from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+
+// Cache for document URLs to avoid redundant fetching
+const urlCache = new Map<string, string>();
 
 export interface Document {
   id: string;
@@ -22,71 +32,244 @@ export const useDocuments = ({ fileType }: UseDocumentsProps = {}) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const previousUserId = useRef<string | null>(null);
+  const previousFileType = useRef<string | null>(null);
+  const isMounted = useRef(true);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchDocuments = async () => {
+  // Clear component state on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const fetchDocuments = useCallback(async () => {
+    // Skip if no user
     if (!user) {
-      setDocuments([]);
+      if (isMounted.current) {
+        setDocuments([]);
+        setError(null);
+      }
       return;
     }
 
-    setIsLoading(true);
+    // Skip if same user and same file type (prevents refetches on re-renders)
+    if (
+      previousUserId.current === user.id &&
+      previousFileType.current === fileType
+    ) {
+      return;
+    }
+
+    // Update refs to prevent redundant fetches
+    previousUserId.current = user.id;
+    previousFileType.current = fileType || null;
+
+    if (isMounted.current) {
+      setIsLoading(true);
+      setError(null);
+    }
+
     try {
-      // Build the query
-      let query = supabase
-        .from("user_documents")
-        .select("*")
-        .eq("user_id", user.id);
+      // First check if we have cached documents - show these immediately
+      const cachedDocs = getCachedDocuments(user.id, fileType);
 
-      // Add file type filter if specified
-      if (fileType) {
-        query = query.eq("file_type", fileType);
-      }
+      if (cachedDocs.length > 0) {
+        // Transform cached documents to our Document interface
+        const transformedDocs: Document[] = cachedDocs.map((doc) => ({
+          id: doc.id,
+          name: doc.name,
+          type: doc.mime_type,
+          size: doc.size,
+          dateUploaded: doc.created_at,
+          fileType: doc.file_type,
+          filePath: doc.file_path,
+          // Check URL cache first for immediate rendering
+          url: doc.file_path ? urlCache.get(doc.file_path) || "" : "",
+        }));
 
-      // Order by most recent first
-      query = query.order("created_at", { ascending: false });
+        // Set documents immediately from cache
+        if (isMounted.current) {
+          setDocuments(transformedDocs);
+          setIsLoading(false);
+        }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("Error fetching documents:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load documents. Please try again.",
-          variant: "destructive",
+        // Create a map to quickly locate documents by file path
+        const documentMap = new Map();
+        transformedDocs.forEach((doc) => {
+          if (doc.filePath) {
+            documentMap.set(doc.filePath, doc);
+          }
         });
+
+        // Only fetch URLs for documents that don't have cached URLs
+        const docsNeedingUrls = transformedDocs.filter(
+          (doc) => doc.filePath && !doc.url
+        );
+
+        if (docsNeedingUrls.length > 0) {
+          // Fetch URLs in the background (in batches)
+          setTimeout(() => {
+            fetchDocumentUrls(docsNeedingUrls, documentMap);
+          }, 0);
+        }
+
+        // Always fetch fresh data in the background to ensure we're up to date
+        fetchFreshDocuments();
         return;
       }
 
-      if (data) {
-        // Transform data to match our Document interface
-        const transformedDocs = await Promise.all(
-          data.map(async (doc) => {
-            // Get the public URL for each document
-            const { data: urlData } = await supabase.storage
-              .from("documents")
-              .getPublicUrl(doc.file_path);
-
-            return {
-              id: doc.id,
-              name: doc.name,
-              type: doc.mime_type,
-              size: doc.size,
-              dateUploaded: doc.created_at,
-              fileType: doc.file_type,
-              filePath: doc.file_path,
-              url: urlData?.publicUrl,
-            };
-          })
-        );
-
-        setDocuments(transformedDocs);
-      }
+      // No cached documents, fetch fresh data
+      await fetchFreshDocuments();
     } catch (error) {
       console.error("Exception fetching documents:", error);
-    } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setError("An unexpected error occurred. Please try again.");
+        setIsLoading(false);
+      }
+    }
+  }, [user, fileType, toast]);
+
+  // Helper to fetch document URLs
+  const fetchDocumentUrls = async (
+    docs: Document[],
+    documentMap: Map<string, Document>
+  ) => {
+    try {
+      const batchSize = 15; // Increased batch size for better performance
+      const filePaths = docs
+        .map((doc) => doc.filePath)
+        .filter(Boolean) as string[];
+
+      // Skip processing if no paths to fetch
+      if (filePaths.length === 0) return;
+
+      for (let i = 0; i < filePaths.length; i += batchSize) {
+        const batchPaths = filePaths.slice(i, i + batchSize);
+        const pathsToFetch = batchPaths.filter((path) => !urlCache.has(path));
+
+        if (pathsToFetch.length > 0) {
+          // Fetch URLs in parallel for the batch
+          const urlPromises = pathsToFetch.map((path) =>
+            supabase.storage.from("documents").getPublicUrl(path)
+          );
+
+          const urlResults = await Promise.all(urlPromises);
+
+          // Update document URLs and cache
+          urlResults.forEach((result, index) => {
+            const path = pathsToFetch[index];
+            const doc = documentMap.get(path);
+
+            if (doc && result.data?.publicUrl) {
+              doc.url = result.data.publicUrl;
+              // Cache the URL for future use
+              urlCache.set(path, result.data.publicUrl);
+            }
+          });
+        }
+
+        // For paths already in cache, update from cache
+        batchPaths.forEach((path) => {
+          if (urlCache.has(path)) {
+            const doc = documentMap.get(path);
+            if (doc) {
+              doc.url = urlCache.get(path) || "";
+            }
+          }
+        });
+
+        // Update state with documents including URLs
+        if (isMounted.current) {
+          setDocuments([...docs]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching document URLs:", error);
+    }
+  };
+
+  // Helper to fetch fresh documents from the server
+  const fetchFreshDocuments = async () => {
+    try {
+      // Use the new fetchUserDocuments helper
+      const { data, error: fetchError } = await fetchUserDocuments(
+        user!.id,
+        fileType
+      );
+
+      // Handle error fetching documents
+      if (fetchError) {
+        console.error("Error fetching documents:", fetchError);
+
+        if (!isMounted.current) return;
+
+        // Handle specific errors
+        if (fetchError.code === "PGRST301") {
+          setError(
+            "The documents table does not exist. Please contact support."
+          );
+        } else {
+          setError("Failed to load documents. Please try again.");
+        }
+
+        setDocuments([]);
+        return;
+      }
+
+      if (!data || !data.length) {
+        if (isMounted.current) {
+          setDocuments([]);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Transform to our Document interface
+      const transformedDocs: Document[] = data.map((doc) => ({
+        id: doc.id,
+        name: doc.name,
+        type: doc.mime_type,
+        size: doc.size,
+        dateUploaded: doc.created_at,
+        fileType: doc.file_type,
+        filePath: doc.file_path,
+        // Check URL cache first for immediate rendering
+        url: doc.file_path ? urlCache.get(doc.file_path) || "" : "",
+      }));
+
+      // Set documents with fresh data
+      if (isMounted.current) {
+        setDocuments(transformedDocs);
+        setIsLoading(false);
+      }
+
+      // Create a map to quickly locate documents by file path
+      const documentMap = new Map();
+      transformedDocs.forEach((doc) => {
+        if (doc.filePath) {
+          documentMap.set(doc.filePath, doc);
+        }
+      });
+
+      // Only fetch URLs for documents that don't have cached URLs
+      const docsNeedingUrls = transformedDocs.filter(
+        (doc) => doc.filePath && !doc.url
+      );
+
+      if (docsNeedingUrls.length > 0) {
+        // Fetch URLs
+        fetchDocumentUrls(docsNeedingUrls, documentMap);
+      }
+    } catch (error) {
+      console.error("Exception fetching fresh documents:", error);
+      if (isMounted.current) {
+        setError("An unexpected error occurred. Please try again.");
+        setIsLoading(false);
+      }
     }
   };
 
@@ -154,6 +337,10 @@ export const useDocuments = ({ fileType }: UseDocumentsProps = {}) => {
 
       if (docError) {
         console.error("Error saving document record:", docError);
+
+        // Try to clean up the uploaded file if database insert fails
+        await supabase.storage.from("documents").remove([filePath]);
+
         throw new Error("Failed to save document record: " + docError.message);
       }
 
@@ -166,26 +353,33 @@ export const useDocuments = ({ fileType }: UseDocumentsProps = {}) => {
         .from("documents")
         .getPublicUrl(filePath);
 
-      const newDocument: Document = {
+      // Create new document object
+      const newDoc: Document = {
         id: docData.id,
-        name: file.name,
-        type: file.type,
-        size: file.size,
+        name: docData.name,
+        type: docData.mime_type,
+        size: docData.size,
         dateUploaded: docData.created_at,
-        fileType: docFileType,
-        filePath: filePath,
-        url: urlData?.publicUrl,
+        fileType: docData.file_type,
+        filePath: docData.file_path,
+        url: urlData?.publicUrl || "",
       };
 
-      // Update state
-      setDocuments((prev) => [newDocument, ...prev]);
+      // Add the new document to the list and resort
+      setDocuments((prevDocs) => {
+        const updatedDocs = [newDoc, ...prevDocs];
+        return updatedDocs;
+      });
+
+      // Force refresh cached documents to include the new document
+      fetchUserDocuments(userId, docFileType);
 
       toast({
         title: "Document uploaded",
-        description: "Your document has been successfully uploaded.",
+        description: "Your document was uploaded successfully.",
       });
 
-      return newDocument;
+      return newDoc;
     } catch (error: any) {
       console.error("Error uploading document:", error);
       toast({
@@ -195,51 +389,66 @@ export const useDocuments = ({ fileType }: UseDocumentsProps = {}) => {
       });
       return null;
     } finally {
-      setIsUploading(false);
+      if (isMounted.current) {
+        setIsUploading(false);
+      }
     }
   };
 
   const deleteDocument = async (id: string) => {
-    if (!user) return false;
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to delete documents.",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     try {
-      // Find the document to delete
-      const documentToDelete = documents.find((doc) => doc.id === id);
-
-      if (!documentToDelete || !documentToDelete.filePath) {
-        throw new Error("Document not found or file path missing");
+      // Find the document in our local state
+      const docToDelete = documents.find((doc) => doc.id === id);
+      if (!docToDelete) {
+        throw new Error("Document not found");
       }
 
-      // Delete from Supabase storage
-      const { error: storageError } = await supabase.storage
-        .from("documents")
-        .remove([documentToDelete.filePath]);
+      // Get file path to delete from storage
+      const filePath = docToDelete.filePath;
 
-      if (storageError) {
-        console.error("Error deleting file from storage:", storageError);
+      // Delete document from database
+      const { error: deleteError } = await supabase
+        .from("user_documents")
+        .delete()
+        .eq("id", id);
+
+      if (deleteError) {
         throw new Error(
-          "Failed to delete file from storage: " + storageError.message
+          "Failed to delete document record: " + deleteError.message
         );
       }
 
-      // Delete the record from the database
-      const { error: dbError } = await supabase
-        .from("user_documents")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
+      // Delete file from storage if we have a file path
+      if (filePath) {
+        const { error: storageError } = await supabase.storage
+          .from("documents")
+          .remove([filePath]);
 
-      if (dbError) {
-        console.error("Error deleting document record:", dbError);
-        throw new Error("Failed to delete document record: " + dbError.message);
+        if (storageError) {
+          console.error("Error deleting file from storage:", storageError);
+          // Don't throw an error here, as we've already deleted the database record
+        }
       }
 
-      // Update the UI
+      // Update state
       setDocuments((prev) => prev.filter((doc) => doc.id !== id));
+
+      // Force refresh the cache to reflect the deletion
+      const docType = docToDelete.fileType;
+      fetchUserDocuments(user.id, docType);
 
       toast({
         title: "Document deleted",
-        description: "The document has been removed.",
+        description: "Your document was deleted successfully.",
       });
 
       return true;
@@ -291,15 +500,16 @@ export const useDocuments = ({ fileType }: UseDocumentsProps = {}) => {
     }
   };
 
-  // Load documents when the component mounts or user changes
+  // Load documents when the component mounts or user/fileType changes
   useEffect(() => {
     fetchDocuments();
-  }, [user, fileType]);
+  }, [fetchDocuments]);
 
   return {
     documents,
     isLoading,
     isUploading,
+    error,
     uploadDocument,
     deleteDocument,
     downloadDocument,
