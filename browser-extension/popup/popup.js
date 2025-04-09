@@ -53,10 +53,13 @@ function init() {
 
 // Authentication functions
 function checkAuthStatus() {
-  chrome.storage.local.get(["authToken", "user"], function (result) {
-    if (result.authToken && result.user) {
+  chrome.storage.local.get(["auth"], function (result) {
+    if (result.auth && isTokenValid(result.auth)) {
       state.isAuthenticated = true;
-      state.user = result.user;
+      state.user = {
+        email: result.auth.email || result.auth.websiteEmail,
+        userId: result.auth.userId,
+      };
       updateAuthUI();
       fetchUserStats();
     } else {
@@ -90,8 +93,8 @@ function fetchUserStats() {
   if (!state.isAuthenticated) return;
 
   // Get the auth token first, then make the API call
-  chrome.storage.local.get(["authToken"], function (result) {
-    if (!result || !result.authToken) {
+  chrome.storage.local.get(["auth"], function (result) {
+    if (!result || !result.auth || !result.auth.token) {
       console.log("No auth token found in fetchUserStats");
       return;
     }
@@ -99,7 +102,7 @@ function fetchUserStats() {
     // Example API call to get user stats
     fetch(`${API_URL}/user/stats`, {
       headers: {
-        Authorization: `Bearer ${result.authToken}`,
+        Authorization: `Bearer ${result.auth.token}`,
       },
     })
       .then((response) => {
@@ -128,7 +131,7 @@ function login() {
 }
 
 function logout() {
-  chrome.storage.local.remove(["authToken", "user"], function () {
+  chrome.storage.local.remove(["auth"], function () {
     state.isAuthenticated = false;
     state.user = null;
     updateAuthUI();
@@ -197,8 +200,8 @@ function saveCurrentJob() {
   elements.saveJobBtn.textContent = "Saving...";
 
   // Get the auth token first, then make the API call
-  chrome.storage.local.get(["authToken"], function (result) {
-    if (!result || !result.authToken) {
+  chrome.storage.local.get(["auth"], function (result) {
+    if (!result || !result.auth || !result.auth.token) {
       console.log("No auth token found in saveCurrentJob");
       elements.saveJobBtn.disabled = false;
       elements.saveJobBtn.textContent = "Save Job";
@@ -212,7 +215,7 @@ function saveCurrentJob() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${result.authToken}`,
+        Authorization: `Bearer ${result.auth.token}`,
       },
       body: JSON.stringify(state.detectedJob),
     })
@@ -258,21 +261,15 @@ function showNotification(message, type = "info") {
 }
 
 function getAuthToken() {
-  // Use a synchronous approach for simplicity in this demo
-  // In a production extension, use the async storage pattern
-  let token = "";
-  try {
-    // This is a workaround that should be replaced with proper async handling
-    chrome.storage.local.get(["authToken"], function (result) {
-      if (result && result.authToken) {
-        token = result.authToken;
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["auth"], (result) => {
+      if (result.auth && isTokenValid(result.auth)) {
+        resolve(result.auth.token);
+      } else {
+        resolve(null);
       }
     });
-    return token;
-  } catch (error) {
-    console.error("Error getting auth token:", error);
-    return "";
-  }
+  });
 }
 
 function openDashboard() {
@@ -295,3 +292,9 @@ function attachEventListeners() {
 
 // Run initialization when popup is loaded
 document.addEventListener("DOMContentLoaded", init);
+
+// Add token validation function that matches login.js
+function isTokenValid(auth) {
+  if (!auth || !auth.expiresAt) return false;
+  return new Date(auth.expiresAt) > new Date();
+}
