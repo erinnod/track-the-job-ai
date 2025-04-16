@@ -13,10 +13,10 @@ import { AvatarSection } from "./AvatarSection";
 import { PersonalInfoForm } from "./PersonalInfoForm";
 
 export const ProfileForm = () => {
+  // Use the profile form hook
   const {
     form,
     isLoading,
-    isInitializing,
     onSubmit,
     getInitials,
     avatarUrl,
@@ -42,10 +42,7 @@ export const ProfileForm = () => {
             <PersonalInfoForm form={form} />
           </CardContent>
           <CardFooter>
-            <Button
-              type="submit"
-              disabled={isLoading || isInitializing || isUploadingAvatar}
-            >
+            <Button type="submit" disabled={isLoading || isUploadingAvatar}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </CardFooter>

@@ -1,0 +1,297 @@
+/* JobTrakr Extension Popup Styles */
+
+/* Base styles */
+:root {
+  --primary-color: #4c6ef5;
+  --primary-hover: #364fc7;
+  --success-color: #37b24d;
+  --error-color: #f03e3e;
+  --warning-color: #f59f00;
+  --info-color: #1c7ed6;
+  --text-color: #343a40;
+  --text-light: #868e96;
+  --background-color: #f8f9fa;
+  --border-color: #dee2e6;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body,
+html {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  color: var(--text-color);
+  background-color: #fff;
+  width: 320px;
+  overflow-x: hidden;
+}
+
+/* Popup container */
+.popup-container {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.popup-header {
+  padding: 12px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+}
+
+.logo-text {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Status indicator */
+.status-container {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.status-success {
+  background-color: rgba(55, 178, 77, 0.1);
+  color: var(--success-color);
+}
+
+.status-error {
+  background-color: rgba(240, 62, 62, 0.1);
+  color: var(--error-color);
+}
+
+/* Notification */
+.notification {
+  padding: 8px 16px;
+  margin: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.notification-success {
+  background-color: rgba(55, 178, 77, 0.1);
+  color: var(--success-color);
+  border-left: 3px solid var(--success-color);
+}
+
+.notification-error {
+  background-color: rgba(240, 62, 62, 0.1);
+  color: var(--error-color);
+  border-left: 3px solid var(--error-color);
+}
+
+.notification-info {
+  background-color: rgba(28, 126, 214, 0.1);
+  color: var(--info-color);
+  border-left: 3px solid var(--info-color);
+}
+
+.notification-warning {
+  background-color: rgba(245, 159, 0, 0.1);
+  color: var(--warning-color);
+  border-left: 3px solid var(--warning-color);
+}
+
+/* Content section */
+.popup-content {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Sections */
+.section {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: var(--card-shadow);
+}
+
+.section-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.section-content {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+/* Account info */
+.account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.account-label {
+  font-weight: 500;
+}
+
+/* Job details */
+.job-details {
+  line-height: 1.5;
+}
+
+/* Job site icons */
+.job-sites {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.job-site-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-outline {
+  color: var(--primary-color);
+  background-color: transparent;
+  border-color: var(--primary-color);
+}
+
+.btn-outline:hover,
+.btn-outline:focus {
+  color: #fff;
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-link {
+  font-weight: 400;
+  color: var(--primary-color);
+  background-color: transparent;
+  border: none;
+  text-decoration: none;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Action section */
+.action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Footer */
+.popup-footer {
+  padding: 8px 16px;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* Helper classes */
+.hidden {
+  display: none !important;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-light {
+  color: var(--text-light);
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 8px 0;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s;
+}

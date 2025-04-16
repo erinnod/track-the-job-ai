@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+import { checkAdminAccess } from "@/utils/security";
 
 interface SecurityEvent {
   type: string;
@@ -13,6 +14,10 @@ interface SecurityEvent {
 const MAX_LOGIN_ATTEMPTS = 5;
 // Lockout duration in milliseconds (15 minutes)
 const LOCKOUT_DURATION = 15 * 60 * 1000;
+
+// Global flag to disable admin checking after repeated issues
+// This prevents unnecessary API calls if the feature is clearly not working
+let globalAdminCheckDisabled = false;
 
 /**
  * SecurityMonitor - Invisible component that monitors for security events
@@ -27,6 +32,11 @@ export const SecurityMonitor = () => {
 
   // Log security events to console in development and to secure endpoint in production
   const logSecurityEvent = (type: string, details: Record<string, any>) => {
+    // Skip excessive logging to reduce console clutter
+    if (type === "admin-check" || type === "admin-check-error") {
+      return;
+    }
+
     const event: SecurityEvent = {
       type,
       timestamp: new Date().toISOString(),
@@ -36,9 +46,12 @@ export const SecurityMonitor = () => {
     // Add to local state
     setSecurityEvents((prev) => [...prev, event]);
 
-    // Log to console in development
+    // Log to console in development - but only for important events
     if (process.env.NODE_ENV === "development") {
-      console.warn("Security Event:", event);
+      // Only log certain events to avoid spamming the console
+      if (["login-failure", "account-lockout", "xss-attempt"].includes(type)) {
+        console.warn("Security Event:", event);
+      }
     }
 
     // In production, log directly to Supabase
@@ -125,28 +138,46 @@ export const SecurityMonitor = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Check if user is admin (for potential additional security monitoring)
-    const checkAdminStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("admin_users")
-          .select("user_id")
-          .eq("user_id", user.id)
-          .single();
+    // Only continue if we have a user ID
+    const userId = user.id;
+    if (!userId) return;
 
-        if (!error && data) {
-          // If user is admin, we could enable additional monitoring
-          // or disable certain restrictions
-          console.log(
-            "Admin user detected, enabling advanced monitoring options"
-          );
-        }
-      } catch (err) {
-        console.error("Error checking admin status:", err);
+    // Skip admin checking completely if it's been globally disabled due to repeated issues
+    if (!globalAdminCheckDisabled) {
+      // Check if user is admin (for potential additional security monitoring)
+      // We only want to check admin status once per session to avoid excessive API calls
+      const adminCheckFlag = sessionStorage.getItem(`admin_check_${userId}`);
+
+      // Only check admin status if we haven't already checked in this session
+      if (!adminCheckFlag) {
+        const checkAdminStatus = async () => {
+          try {
+            // Set the flag first to prevent parallel checks
+            sessionStorage.setItem(`admin_check_${userId}`, "true");
+
+            const { isAdmin, error } = await checkAdminAccess(userId);
+
+            if (isAdmin) {
+              // If user is admin, we could enable additional monitoring
+              // or disable certain restrictions
+              console.log(
+                "Admin user detected, enabling advanced monitoring options"
+              );
+            } else if (error) {
+              // If we're getting the same error too often, disable admin checking globally
+              if (error.code === "406") {
+                globalAdminCheckDisabled = true;
+              }
+            }
+          } catch (err) {
+            // Disable admin checking globally on errors
+            globalAdminCheckDisabled = true;
+          }
+        };
+
+        checkAdminStatus();
       }
-    };
-
-    checkAdminStatus();
+    }
 
     // Example: detect rapid navigation, which could indicate bot activity
     let navigationCount = 0;
@@ -163,7 +194,7 @@ export const SecurityMonitor = () => {
         // If too many rapid navigations, log as suspicious
         if (navigationCount > 5) {
           logSecurityEvent("rapid-navigation", {
-            userId: user.id,
+            userId: userId,
             count: navigationCount,
             timeWindow: "500ms",
           });
@@ -184,7 +215,7 @@ export const SecurityMonitor = () => {
     return () => {
       window.removeEventListener("popstate", handleNavigation);
     };
-  }, [user]);
+  }, [user?.id]); // Only depend on user ID, not the full user object
 
   // Monitor for XSS attempts in URL
   useEffect(() => {

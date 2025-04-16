@@ -1,22 +1,20 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-  Settings,
-  User,
-  Bell,
-  Shield,
-  Briefcase,
-  ArrowRight,
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { User, Bell, Shield, Briefcase, ArrowRight } from "lucide-react";
 
 const SettingsIndex = () => {
   return (
     <Layout>
-      <div className="container mx-auto max-w-4xl">
-        <div className="mb-8">
+      <div className="container mx-auto max-w-4xl py-6">
+        <div className="border-b border-gray-200 pb-4 mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
           <p className="text-slate-500 mt-1">
             Manage your account and application preferences
@@ -24,24 +22,24 @@ const SettingsIndex = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Profile Settings */}
-          <Link to="/settings/profile">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+          {/* Profile Settings - use direct Link for faster navigation */}
+          <Link to="/settings/profile" className="block h-full">
+            <Card className="cursor-pointer hover:bg-slate-50 transition-colors h-full">
               <CardHeader className="flex flex-row items-center gap-3">
                 <User className="h-6 w-6 text-blue-500" />
-                <CardTitle className="text-lg">Profile Settings</CardTitle>
+                <CardTitle className="text-lg">Profile</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-500">
-                  Update your profile information, resume, and contact details
+                  Manage your personal and professional information
                 </p>
               </CardContent>
             </Card>
           </Link>
 
           {/* Notification Settings */}
-          <Link to="/settings/notifications">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+          <Link to="/settings/notifications" className="block h-full">
+            <Card className="hover:bg-slate-50 transition-colors cursor-pointer h-full">
               <CardHeader className="flex flex-row items-center gap-3">
                 <Bell className="h-6 w-6 text-blue-500" />
                 <CardTitle className="text-lg">Notification Settings</CardTitle>
@@ -55,8 +53,8 @@ const SettingsIndex = () => {
           </Link>
 
           {/* Security Settings */}
-          <Link to="/settings/security">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+          <Link to="/settings/security" className="block h-full">
+            <Card className="hover:bg-slate-50 transition-colors cursor-pointer h-full">
               <CardHeader className="flex flex-row items-center gap-3">
                 <Shield className="h-6 w-6 text-blue-500" />
                 <CardTitle className="text-lg">Security</CardTitle>
@@ -71,8 +69,8 @@ const SettingsIndex = () => {
           </Link>
 
           {/* Integrations */}
-          <Link to="/settings/integrations">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full border-blue-100 bg-blue-50">
+          <Link to="/settings/integrations" className="block h-full">
+            <Card className="hover:bg-slate-50 transition-colors cursor-pointer h-full border-blue-100 bg-blue-50">
               <CardHeader className="flex flex-row items-center gap-3">
                 <Briefcase className="h-6 w-6 text-blue-500" />
                 <CardTitle className="text-lg">Integrations</CardTitle>

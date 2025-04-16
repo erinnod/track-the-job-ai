@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { checkAdminAccess } from "@/utils/security";
 import {
   Card,
   CardContent,
@@ -64,21 +65,36 @@ const SecurityAdmin = () => {
     const checkAdminStatus = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from("admin_users")
-          .select("user_id")
-          .eq("user_id", user.id)
-          .single();
 
-        if (error) {
-          console.error("Error checking admin status:", error);
-          setIsAdmin(false);
-          navigate("/"); // Redirect non-admins
-          toast({
-            title: "Access Denied",
-            description: "You don't have permission to access the admin area.",
-            variant: "destructive",
-          });
+        // Use the new utility function
+        const { isAdmin: hasAccess, error } = await checkAdminAccess(user.id);
+
+        if (!hasAccess) {
+          console.error("Admin access check failed:", error);
+
+          // Specific messaging for access errors
+          if (
+            error &&
+            (error.code === "406" ||
+              error.code === "404" ||
+              error.code === "42P01")
+          ) {
+            toast({
+              title: "Admin Area Setup Required",
+              description:
+                "The admin area may not be properly configured. Please contact support.",
+              variant: "destructive",
+            });
+          } else {
+            setIsAdmin(false);
+            navigate("/"); // Redirect non-admins
+            toast({
+              title: "Access Denied",
+              description:
+                "You don't have permission to access the admin area.",
+              variant: "destructive",
+            });
+          }
         } else {
           setIsAdmin(true);
           fetchSecurityData();

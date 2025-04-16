@@ -43,10 +43,15 @@ const handlers: Record<string, ApiHandler> = {
 
     // Validate that credentials are set
     const clientId = import.meta.env.VITE_INDEED_CLIENT_ID;
-    if (!clientId || clientId === "your_indeed_client_id") {
+    if (
+      !clientId ||
+      clientId.includes("REPLACE_WITH_YOUR") ||
+      clientId === "" ||
+      clientId === "your_indeed_client_id"
+    ) {
       return res.status(500).json({
         error:
-          "Invalid Indeed client ID. Please set up your API credentials in .env file.",
+          "Indeed API credentials not configured. Set up your API credentials in the .env file or use the manual import option.",
       });
     }
 
@@ -143,10 +148,15 @@ const handlers: Record<string, ApiHandler> = {
 
     // Validate that credentials are set
     const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID;
-    if (!clientId || clientId === "your_linkedin_client_id") {
+    if (
+      !clientId ||
+      clientId === "your_linkedin_client_id" ||
+      clientId.includes("REPLACE_WITH_YOUR") ||
+      clientId === ""
+    ) {
       return res.status(500).json({
         error:
-          "Invalid LinkedIn client ID. Please set up your API credentials in .env file.",
+          "LinkedIn API credentials not configured. Set up your API credentials in the .env file or use the manual import option.",
       });
     }
 

@@ -1,0 +1,69 @@
+/* Local Fonts Declaration */
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Roboto"), local("Roboto-Regular"),
+    url(chrome-extension://__MSG_@@extension_id__/fonts/Roboto-Regular.woff2)
+      format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Roboto Medium"), local("Roboto-Medium"),
+    url(chrome-extension://__MSG_@@extension_id__/fonts/Roboto-Medium.woff2)
+      format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 700;
+  src: local("Roboto Bold"), local("Roboto-Bold"),
+    url(chrome-extension://__MSG_@@extension_id__/fonts/Roboto-Bold.woff2)
+      format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 300;
+  src: local("Inter Light"), local("Inter-Light"),
+    url(chrome-extension://__MSG_@@extension_id__/fonts/Inter-Light.woff2)
+      format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Inter Regular"), local("Inter-Regular"),
+    url(chrome-extension://__MSG_@@extension_id__/fonts/Inter-Regular.woff2)
+      format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Inter Medium"), local("Inter-Medium"),
+    url(chrome-extension://__MSG_@@extension_id__/fonts/Inter-Medium.woff2)
+      format("woff2");
+}
+
+@font-face {
+  font-family: "Roboto Mono";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Roboto Mono"), local("RobotoMono-Regular"),
+    url(chrome-extension://__MSG_@@extension_id__/fonts/RobotoMono-Regular.woff2)
+      format("woff2");
+}
+
+/* Fallback system fonts */
+body {
+  font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}

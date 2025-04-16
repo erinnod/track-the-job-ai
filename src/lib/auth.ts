@@ -126,6 +126,33 @@ export async function getCurrentUser() {
     const { data, error } = await supabase.auth.getUser();
 
     if (error) {
+      console.warn("Error getting user:", error.message);
+
+      // Check if it's a 403 Forbidden error (session expired/invalid)
+      if (error.status === 403) {
+        console.log(
+          "Session expired or invalid, attempting to refresh session"
+        );
+
+        // Try to refresh the session
+        try {
+          const { data: refreshData, error: refreshError } =
+            await supabase.auth.refreshSession();
+
+          if (refreshError) {
+            console.error("Failed to refresh session:", refreshError.message);
+            return { success: false, user: null };
+          }
+
+          if (refreshData?.user) {
+            console.log("Session successfully refreshed");
+            return { success: true, user: refreshData.user };
+          }
+        } catch (refreshErr) {
+          console.error("Error during session refresh:", refreshErr);
+        }
+      }
+
       throw error;
     }
 

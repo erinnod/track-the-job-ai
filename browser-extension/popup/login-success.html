@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobTrakr - Login Success</title>
+    <style>
+      :root {
+        --primary-color: #4a86e8;
+        --primary-hover: #3a76d8;
+        --secondary-color: #f8f9fa;
+        --text-color: #333;
+        --border-color: #e0e0e0;
+        --success-color: #4caf50;
+        --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--font-family);
+        color: var(--text-color);
+        background-color: var(--secondary-color);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 400px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .logo-placeholder {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        background-color: #4a86e8;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 32px;
+        font-weight: bold;
+      }
+
+      h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 8px;
+      }
+
+      p {
+        color: #666;
+        margin-bottom: 24px;
+      }
+
+      .success-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        background-color: var(--success-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 40px;
+      }
+
+      .account-info {
+        background-color: var(--secondary-color);
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 24px;
+        text-align: left;
+      }
+
+      .account-info h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+        color: var(--primary-color);
+      }
+
+      .info-row {
+        display: flex;
+        margin-bottom: 8px;
+      }
+
+      .info-label {
+        font-weight: 500;
+        width: 120px;
+      }
+
+      .info-value {
+        flex: 1;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 12px 24px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background-color 0.2s;
+      }
+
+      .button:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .link-button {
+        background-color: white;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        margin-top: 12px;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo-placeholder">J</div>
+      <div class="success-icon">✓</div>
+
+      <h1>Successfully Signed In!</h1>
+      <p id="success-message">You are now logged in to JobTrakr.</p>
+
+      <div class="account-info">
+        <h2>Account Details</h2>
+        <div class="info-row">
+          <div class="info-label">Email:</div>
+          <div class="info-value" id="user-email">user@example.com</div>
+        </div>
+
+        <div id="website-account-info" class="hidden">
+          <div class="info-row">
+            <div class="info-label">Website Account:</div>
+            <div class="info-value" id="website-status">Linked</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Website Email:</div>
+            <div class="info-value" id="website-email">website@example.com</div>
+          </div>
+        </div>
+
+        <div id="no-website-account" class="hidden">
+          <div class="info-row">
+            <div class="info-label">Website Account:</div>
+            <div class="info-value">Not linked</div>
+          </div>
+          <p style="font-size: 14px; margin-top: 8px">
+            Your jobs are currently saved only in the extension. To access your
+            saved jobs on the website, link your account.
+          </p>
+        </div>
+      </div>
+
+      <button id="dashboard-button" class="button">Start Saving Jobs</button>
+      <button id="link-account-button" class="button link-button hidden">
+        Link Website Account
+      </button>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Get DOM elements
+        const successMessage = document.getElementById("success-message");
+        const userEmail = document.getElementById("user-email");
+        const websiteAccountInfo = document.getElementById(
+          "website-account-info"
+        );
+        const noWebsiteAccount = document.getElementById("no-website-account");
+        const websiteStatus = document.getElementById("website-status");
+        const websiteEmail = document.getElementById("website-email");
+        const dashboardButton = document.getElementById("dashboard-button");
+        const linkAccountButton = document.getElementById(
+          "link-account-button"
+        );
+
+        // Check URL for link status
+        const urlParams = new URLSearchParams(window.location.search);
+        const justLinked = urlParams.get("linked") === "true";
+
+        // Get current auth data from storage
+        chrome.storage.local.get(["auth"], function (result) {
+          const auth = result.auth;
+
+          if (!auth) {
+            // This shouldn't happen as we redirected to login page if not authenticated
+            window.location.href = "login.html";
+            return;
+          }
+
+          // Update UI with auth data
+          userEmail.textContent = auth.email || "Unknown";
+
+          // Check if authenticated via website (websiteLinked property)
+          if (auth.websiteLinked) {
+            // Show website account info
+            websiteAccountInfo.classList.remove("hidden");
+            noWebsiteAccount.classList.add("hidden");
+            linkAccountButton.classList.add("hidden");
+
+            // Update website account details
+            websiteStatus.textContent = "Connected";
+            websiteEmail.textContent = auth.websiteEmail || auth.email;
+
+            // Update success message if just linked
+            if (justLinked) {
+              successMessage.textContent =
+                "Your JobTrakr extension is now connected to your website account!";
+            } else if (urlParams.get("source") === "website") {
+              successMessage.textContent =
+                "You've been automatically signed in using your website account.";
+            } else {
+              successMessage.textContent =
+                "You are logged in using your JobTrakr website account.";
+            }
+          } else {
+            // Show no website account info
+            websiteAccountInfo.classList.add("hidden");
+            noWebsiteAccount.classList.remove("hidden");
+            linkAccountButton.classList.remove("hidden");
+
+            // Set default success message
+            successMessage.textContent =
+              "You are now logged in to the JobTrakr extension.";
+          }
+
+          // Set up dashboard button
+          dashboardButton.addEventListener("click", function () {
+            chrome.tabs.create({ url: "https://jobtrakr.co.uk/dashboard" });
+          });
+
+          // Set up link account button
+          linkAccountButton.addEventListener("click", function () {
+            const linkAccountSection = document.getElementById(
+              "link-account-section"
+            );
+            if (linkAccountSection) {
+              linkAccountSection.classList.remove("hidden");
+              linkAccountButton.classList.add("hidden");
+            } else {
+              // If the section doesn't exist in the current page, redirect to login page with link parameter
+              window.location.href = "login.html?action=link";
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

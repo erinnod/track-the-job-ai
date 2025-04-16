@@ -1,11 +1,34 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import DocumentUploadSection from "@/components/documents/DocumentUploadSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchUserDocuments } from "@/lib/supabase";
 
 const Documents = () => {
+  const { user } = useAuth();
+
+  // Preload documents data for all tabs when page loads
+  useEffect(() => {
+    if (user?.id) {
+      // Fetch all document types in parallel
+      const preloadDocuments = async () => {
+        try {
+          await Promise.all([
+            fetchUserDocuments(user.id, "resume"),
+            fetchUserDocuments(user.id, "coverletter"),
+            fetchUserDocuments(user.id, "other"),
+          ]);
+        } catch (error) {
+          console.error("Error preloading documents:", error);
+        }
+      };
+
+      preloadDocuments();
+    }
+  }, [user?.id]);
+
   return (
     <Layout>
       <div className="w-full max-w-5xl mx-auto">
@@ -26,8 +49,8 @@ const Documents = () => {
           </TabsList>
 
           <TabsContent value="resumes" className="space-y-4">
-            <DocumentUploadSection 
-              title="Resume/CV" 
+            <DocumentUploadSection
+              title="Resume/CV"
               description="Upload your professional resume or CV. We support PDF, DOCX, and TXT formats."
               fileType="resume"
               acceptedFileTypes=".pdf,.docx,.txt"
@@ -35,8 +58,8 @@ const Documents = () => {
           </TabsContent>
 
           <TabsContent value="coverletters" className="space-y-4">
-            <DocumentUploadSection 
-              title="Cover Letters" 
+            <DocumentUploadSection
+              title="Cover Letters"
               description="Upload your cover letters. These can be tailored for different job applications."
               fileType="coverletter"
               acceptedFileTypes=".pdf,.docx,.txt"
@@ -44,8 +67,8 @@ const Documents = () => {
           </TabsContent>
 
           <TabsContent value="other" className="space-y-4">
-            <DocumentUploadSection 
-              title="Other Documents" 
+            <DocumentUploadSection
+              title="Other Documents"
               description="Upload certificates, recommendation letters, portfolios or other important documents."
               fileType="other"
               acceptedFileTypes=".pdf,.docx,.jpg,.png,.zip"

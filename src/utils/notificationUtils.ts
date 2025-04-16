@@ -1,7 +1,15 @@
 import { supabase } from "@/lib/supabase";
 
+interface NotificationResult {
+  success: boolean;
+  data?: any;
+  error?: any;
+  silentError?: boolean;
+  message?: string;
+}
+
 /**
- * Creates a notification in the database
+ * Creates a notification in the database, with a safe table existence check
  */
 export const createNotification = async ({
   userId,
@@ -13,26 +21,54 @@ export const createNotification = async ({
   type: "interview" | "application" | "jobMatch";
   title: string;
   description: string;
-}) => {
+}): Promise<NotificationResult> => {
   try {
-    const { data, error } = await supabase.from("notifications").insert({
-      user_id: userId,
-      type,
-      title,
-      description,
-      read: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+    // Using a safer approach to check if table exists - try to access it and handle the error
+    // This is safer than querying information_schema which may have permission issues
+    try {
+      // Try to insert the notification directly
+      const { data, error } = await supabase.from("notifications").insert({
+        user_id: userId,
+        type,
+        title,
+        description,
+        read: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
 
-    if (error) {
-      throw error;
+      // If successful, return success
+      if (!error) {
+        return { success: true, data };
+      }
+
+      // If error includes "does not exist", the table doesn't exist yet
+      if (
+        error.message?.includes("does not exist") ||
+        error.code === "42P01" || // PostgreSQL code for undefined_table
+        error.code === "404"
+      ) {
+        // HTTP not found
+        console.log(
+          "Notifications table doesn't exist yet. Skipping notification."
+        );
+        return {
+          success: false,
+          silentError: true,
+          message: "Notifications table not available",
+        };
+      }
+
+      // Other error - log it but don't break the application
+      console.warn("Error inserting notification:", error);
+      return { success: false, error, silentError: true };
+    } catch (innerError) {
+      console.warn("Error accessing notifications table:", innerError);
+      return { success: false, error: innerError, silentError: true };
     }
-
-    return { success: true, data };
   } catch (error) {
-    console.error("Error creating notification:", error);
-    return { success: false, error };
+    console.error("Error in createNotification:", error);
+    return { success: false, error, silentError: true };
   }
 };
 
@@ -43,13 +79,18 @@ export const createApplicationNotification = async (
   userId: string,
   company: string,
   position: string
-) => {
-  return createNotification({
-    userId,
-    type: "application",
-    title: "Application Submitted",
-    description: `You have successfully applied for ${position} at ${company}.`,
-  });
+): Promise<NotificationResult> => {
+  try {
+    return await createNotification({
+      userId,
+      type: "application",
+      title: "Application Submitted",
+      description: `You have successfully applied for ${position} at ${company}.`,
+    });
+  } catch (error) {
+    console.error("Error creating application notification:", error);
+    return { success: false, error, silentError: true };
+  }
 };
 
 /**
@@ -60,19 +101,24 @@ export const createInterviewNotification = async (
   company: string,
   position: string,
   date: Date
-) => {
-  const dateString = date.toLocaleDateString();
-  const timeString = date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+): Promise<NotificationResult> => {
+  try {
+    const dateString = date.toLocaleDateString();
+    const timeString = date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-  return createNotification({
-    userId,
-    type: "interview",
-    title: "Interview Scheduled",
-    description: `You have an interview for ${position} at ${company} on ${dateString} at ${timeString}.`,
-  });
+    return await createNotification({
+      userId,
+      type: "interview",
+      title: "Interview Scheduled",
+      description: `You have an interview for ${position} at ${company} on ${dateString} at ${timeString}.`,
+    });
+  } catch (error) {
+    console.error("Error creating interview notification:", error);
+    return { success: false, error, silentError: true };
+  }
 };
 
 /**
@@ -83,35 +129,40 @@ export const createStatusChangeNotification = async (
   company: string,
   position: string,
   status: string
-) => {
-  let title = "Application Update";
-  let description = "";
-  let type: "interview" | "application" | "jobMatch" = "application";
+): Promise<NotificationResult> => {
+  try {
+    let title = "Application Update";
+    let description = "";
+    let type: "interview" | "application" | "jobMatch" = "application";
 
-  switch (status.toLowerCase()) {
-    case "interview":
-      title = "Interview Stage";
-      description = `Your application for ${position} at ${company} has moved to the interview stage.`;
-      type = "interview";
-      break;
-    case "offer":
-      title = "Job Offer Received";
-      description = `Congratulations! You've received an offer for ${position} at ${company}.`;
-      break;
-    case "rejected":
-      title = "Application Not Selected";
-      description = `Your application for ${position} at ${company} was not selected at this time.`;
-      break;
-    default:
-      description = `Your application for ${position} at ${company} has been updated to ${status}.`;
+    switch (status.toLowerCase()) {
+      case "interview":
+        title = "Interview Stage";
+        description = `Your application for ${position} at ${company} has moved to the interview stage.`;
+        type = "interview";
+        break;
+      case "offer":
+        title = "Job Offer Received";
+        description = `Congratulations! You've received an offer for ${position} at ${company}.`;
+        break;
+      case "rejected":
+        title = "Application Not Selected";
+        description = `Your application for ${position} at ${company} was not selected at this time.`;
+        break;
+      default:
+        description = `Your application for ${position} at ${company} has been updated to ${status}.`;
+    }
+
+    return await createNotification({
+      userId,
+      type,
+      title,
+      description,
+    });
+  } catch (error) {
+    console.error("Error creating status change notification:", error);
+    return { success: false, error, silentError: true };
   }
-
-  return createNotification({
-    userId,
-    type,
-    title,
-    description,
-  });
 };
 
 /**
