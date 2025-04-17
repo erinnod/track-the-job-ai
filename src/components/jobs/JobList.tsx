@@ -10,9 +10,14 @@ import { useJobs } from '@/contexts/JobContext'
 interface JobListProps {
 	jobs: JobApplication[]
 	isLoading?: boolean
+	onRetry?: () => void
 }
 
-const JobList = ({ jobs: initialJobs, isLoading = false }: JobListProps) => {
+const JobList = ({
+	jobs: initialJobs,
+	isLoading = false,
+	onRetry,
+}: JobListProps) => {
 	const [sortBy, setSortBy] = useState('newest')
 	const [searchTerm, setSearchTerm] = useState('')
 	const [jobs, setJobs] = useState<JobApplication[]>(initialJobs)
@@ -117,6 +122,7 @@ const JobList = ({ jobs: initialJobs, isLoading = false }: JobListProps) => {
 				jobs={sortedJobs}
 				onRemoveJob={handleRemoveJob}
 				isLoading={isLoading}
+				onRetry={onRetry}
 			/>
 		</div>
 	)

@@ -13,7 +13,7 @@ import {
 	navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Plus, Trash } from 'lucide-react'
+import { AlertCircle, Plus, Trash, RefreshCw } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/use-toast'
 import { useNavigate } from 'react-router-dom'
@@ -45,9 +45,10 @@ const Applications = () => {
 		rejected: false,
 	})
 	const [isDeleting, setIsDeleting] = useState(false)
+	const [isRefreshing, setIsRefreshing] = useState(false)
 	const { toast } = useToast()
 	const navigate = useNavigate()
-	const { jobs, isLoading, deleteJob } = useJobs()
+	const { jobs, isLoading, deleteJob, refreshJobs } = useJobs()
 
 	// Toggle a status selection
 	const toggleStatus = (status: string) => {
@@ -118,6 +119,26 @@ const Applications = () => {
 		}
 	}
 
+	// Function to manually refresh jobs
+	const handleRefresh = async () => {
+		setIsRefreshing(true)
+		try {
+			await refreshJobs()
+			toast({
+				title: 'Refreshed',
+				description: 'Job applications have been refreshed.',
+			})
+		} catch (error) {
+			toast({
+				title: 'Error',
+				description: 'There was a problem refreshing your applications.',
+				variant: 'destructive',
+			})
+		} finally {
+			setIsRefreshing(false)
+		}
+	}
+
 	// This effect runs when the component mounts to ensure data freshness
 	useEffect(() => {
 		// Force a rerender when the page is visited
@@ -125,7 +146,8 @@ const Applications = () => {
 
 		// If we have data already, we're good, if not, the JobContext will fetch it
 		if (jobs.length === 0 && !isLoading) {
-			console.log('No jobs found, waiting for data to load...')
+			console.log('No jobs found, attempting to refresh...')
+			refreshJobs()
 		}
 	}, [])
 
@@ -151,6 +173,18 @@ const Applications = () => {
 							Track and manage your job applications
 						</p>
 					</div>
+
+					<Button
+						onClick={handleRefresh}
+						variant='outline'
+						disabled={isRefreshing}
+						className='gap-2'
+					>
+						<RefreshCw
+							className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+						/>
+						{isRefreshing ? 'Refreshing...' : 'Refresh'}
+					</Button>
 				</div>
 
 				<Tabs
@@ -332,6 +366,7 @@ const Applications = () => {
 							<JobList
 								jobs={jobs}
 								isLoading={isLoading}
+								onRetry={handleRefresh}
 							/>
 						</div>
 					</TabsContent>
@@ -344,6 +379,7 @@ const Applications = () => {
 										job.status === 'applied' || job.status === 'interview'
 								)}
 								isLoading={isLoading}
+								onRetry={handleRefresh}
 							/>
 						</div>
 					</TabsContent>
@@ -353,6 +389,7 @@ const Applications = () => {
 							<JobList
 								jobs={jobs.filter((job) => job.status === 'saved')}
 								isLoading={isLoading}
+								onRetry={handleRefresh}
 							/>
 						</div>
 					</TabsContent>
@@ -362,6 +399,7 @@ const Applications = () => {
 							<JobList
 								jobs={jobs.filter((job) => job.status === 'rejected')}
 								isLoading={isLoading}
+								onRetry={handleRefresh}
 							/>
 						</div>
 					</TabsContent>
@@ -371,6 +409,7 @@ const Applications = () => {
 							<JobList
 								jobs={jobs.filter((job) => job.status === 'offer')}
 								isLoading={isLoading}
+								onRetry={handleRefresh}
 							/>
 						</div>
 					</TabsContent>

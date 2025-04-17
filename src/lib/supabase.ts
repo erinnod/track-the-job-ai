@@ -150,27 +150,78 @@ const updateLocalStorage = () => {
 export const preloadUserProfileData = async (userId: string) => {
 	if (!userId) return
 
-	// Check if data was recently cached
+	// Check if data was recently cached - use a shorter timeout for faster startup
 	const cacheTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY)
 	if (cacheTimestamp) {
 		const cachedTime = parseInt(cacheTimestamp, 10)
 		if (!isNaN(cachedTime) && Date.now() - cachedTime < CACHE_TIMEOUT) {
 			debugLog('Using existing cache, still valid')
+			// Return immediately, we'll refresh in the background if needed
+
+			// Schedule a background refresh if cache is older than 2 minutes
+			if (Date.now() - cachedTime > 2 * 60 * 1000) {
+				setTimeout(() => {
+					backgroundRefreshProfileData(userId)
+				}, 5000) // Delay by 5 seconds to prioritize UI loading
+			}
 			return
 		}
 	}
 
+	// Set a flag to avoid multiple concurrent loads
+	const loadingFlag = sessionStorage.getItem('profile_loading')
+	if (loadingFlag === 'true') {
+		debugLog('Profile already loading in another tab/request')
+		return
+	}
+	sessionStorage.setItem('profile_loading', 'true')
+
 	try {
-		// Fetch profile data in parallel
-		await Promise.all([fetchProfileData(userId), fetchProfessionalData(userId)])
+		// Only fetch profile data synchronously (most important)
+		// This makes the initial page load faster
+		const profileResponse = await fetchProfileData(userId)
+
+		// Update cache timestamp immediately after profile data
+		localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString())
+
+		// Professional data is less critical, load in background
+		setTimeout(() => {
+			fetchProfessionalData(userId)
+				.then(() => {
+					updateLocalStorage()
+				})
+				.catch((error) => {
+					console.error('Background professional data fetch error:', error)
+				})
+				.finally(() => {
+					// Clear loading flag when complete
+					sessionStorage.removeItem('profile_loading')
+				})
+		}, 1000)
+
+		return profileResponse
+	} catch (error) {
+		console.error('Error preloading user profile data:', error)
+		sessionStorage.removeItem('profile_loading')
+	}
+}
+
+// Separate function for background refresh to avoid duplicating code
+const backgroundRefreshProfileData = async (userId: string) => {
+	debugLog('Starting background refresh of profile data')
+	try {
+		// Fetch data in parallel but don't block UI
+		const promises = [fetchProfileData(userId), fetchProfessionalData(userId)]
+		await Promise.all(promises)
 
 		// Update cache timestamp
 		localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString())
 
 		// Update localStorage
 		updateLocalStorage()
+		debugLog('Background profile refresh complete')
 	} catch (error) {
-		console.error('Error preloading user profile data:', error)
+		console.error('Error in background profile refresh:', error)
 	}
 }
 
@@ -287,6 +338,28 @@ export const fetchUserDocuments = async (userId: string, fileType?: string) => {
 	// Generate cache key based on user ID and optional file type
 	const cacheKey = fileType ? `${userId}-${fileType}` : userId
 
+	// Check if we have cached data that's still recent
+	const cacheTimestamp = localStorage.getItem(DOCUMENTS_TIMESTAMP_KEY)
+	const DOCS_CACHE_TIMEOUT = 10 * 60 * 1000 // 10 minutes
+
+	if (
+		documentsCache[cacheKey] &&
+		documentsCache[cacheKey].length > 0 &&
+		cacheTimestamp
+	) {
+		const cachedTime = parseInt(cacheTimestamp, 10)
+		if (!isNaN(cachedTime) && Date.now() - cachedTime < DOCS_CACHE_TIMEOUT) {
+			debugLog('Using cached documents for', cacheKey)
+
+			// Refresh in background if cache is older than 3 minutes
+			if (Date.now() - cachedTime > 3 * 60 * 1000) {
+				setTimeout(() => refreshDocumentsInBackground(userId, fileType), 3000)
+			}
+
+			return { data: documentsCache[cacheKey], error: null }
+		}
+	}
+
 	// If a fetch is already in progress for this key, return the existing promise
 	if (documentsFetchPromise[cacheKey]) {
 		debugLog('Using existing documents fetch promise for', cacheKey)
@@ -296,12 +369,15 @@ export const fetchUserDocuments = async (userId: string, fileType?: string) => {
 	try {
 		// Create a new fetch promise
 		const fetchPromise = Promise.resolve(
-			// Build the query
+			// Build the query with pagination - fetch at most 50 documents at a time
+			// This makes initial load faster
 			supabase
 				.from('user_documents')
 				.select('*')
 				.eq('user_id', userId)
-				.then((response) => {
+				.order('created_at', { ascending: false })
+				.limit(50)
+				.then(async (response) => {
 					if (response.error) {
 						console.error('Error fetching documents:', response.error)
 						return { data: [], error: response.error }
@@ -313,19 +389,20 @@ export const fetchUserDocuments = async (userId: string, fileType?: string) => {
 						documents = documents.filter((doc) => doc.file_type === fileType)
 					}
 
-					// Sort by most recent first
-					documents.sort(
-						(a, b) =>
-							new Date(b.created_at).getTime() -
-							new Date(a.created_at).getTime()
-					)
-
 					// Cache the results
 					documentsCache[cacheKey] = documents
 
 					// Update localStorage
 					updateLocalStorage()
 					localStorage.setItem(DOCUMENTS_TIMESTAMP_KEY, Date.now().toString())
+
+					// If the user has more than 50 documents, fetch the rest in background
+					// This ensures initial page load is fast while still getting all documents
+					if (response.data && response.data.length === 50) {
+						setTimeout(() => {
+							fetchRemainingDocuments(userId, fileType, 50)
+						}, 2000)
+					}
 
 					return { data: documents, error: null }
 				})
@@ -343,7 +420,87 @@ export const fetchUserDocuments = async (userId: string, fileType?: string) => {
 		// Clear the promise reference when done
 		setTimeout(() => {
 			delete documentsFetchPromise[cacheKey]
-		}, 0)
+		}, 5000)
+	}
+}
+
+// Fetch documents beyond the initial 50
+const fetchRemainingDocuments = async (
+	userId: string,
+	fileType?: string,
+	offset: number = 50
+) => {
+	debugLog(`Fetching additional documents starting at offset ${offset}`)
+	const cacheKey = fileType ? `${userId}-${fileType}` : userId
+
+	try {
+		const { data, error } = await supabase
+			.from('user_documents')
+			.select('*')
+			.eq('user_id', userId)
+			.order('created_at', { ascending: false })
+			.range(offset, offset + 49)
+
+		if (error) {
+			console.error('Error fetching additional documents:', error)
+			return
+		}
+
+		if (!data || data.length === 0) return
+
+		// Filter by file type if needed
+		let additionalDocs = data
+		if (fileType) {
+			additionalDocs = data.filter((doc) => doc.file_type === fileType)
+		}
+
+		// Update the cache with the new documents
+		documentsCache[cacheKey] = [
+			...(documentsCache[cacheKey] || []),
+			...additionalDocs,
+		]
+		updateLocalStorage()
+
+		// If we got 50 documents, there might be more
+		if (data.length === 50) {
+			setTimeout(() => {
+				fetchRemainingDocuments(userId, fileType, offset + 50)
+			}, 1000)
+		}
+	} catch (e) {
+		console.error('Error fetching remaining documents:', e)
+	}
+}
+
+// Background refresh for documents
+const refreshDocumentsInBackground = async (
+	userId: string,
+	fileType?: string
+) => {
+	debugLog('Starting background refresh of documents')
+	const cacheKey = fileType ? `${userId}-${fileType}` : userId
+
+	try {
+		const { data, error } = await supabase
+			.from('user_documents')
+			.select('*')
+			.eq('user_id', userId)
+			.order('created_at', { ascending: false })
+
+		if (error) throw error
+
+		let filteredDocs = data || []
+		if (fileType && filteredDocs.length > 0) {
+			filteredDocs = filteredDocs.filter((doc) => doc.file_type === fileType)
+		}
+
+		// Update the cache
+		documentsCache[cacheKey] = filteredDocs
+		updateLocalStorage()
+		localStorage.setItem(DOCUMENTS_TIMESTAMP_KEY, Date.now().toString())
+		debugLog('Documents refreshed in background')
+	} catch (error) {
+		console.error('Error refreshing documents in background:', error)
 	}
 }
 

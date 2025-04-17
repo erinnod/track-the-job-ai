@@ -174,7 +174,10 @@ const App = () => (
 												<Route
 													path='/settings/integrations'
 													element={
-														<Suspense fallback={<LoadingFallback />}>
+														<Suspense
+															fallback={<LoadingFallback />}
+															key='integrations-page'
+														>
 															<IntegrationsPage />
 														</Suspense>
 													}

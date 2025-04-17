@@ -12,22 +12,35 @@ interface JobDescriptionFieldProps {
 	) => void
 }
 
+/**
+ * JobDescriptionField - A form component for editing job descriptions with real-time character counting
+ *
+ * Uses controlled input pattern to ensure proper state management
+ */
 const JobDescriptionField = ({
 	jobData,
 	handleChange,
 }: JobDescriptionFieldProps) => {
-	const [description, setDescription] = useState(jobData.jobDescription || '')
+	// Local state to handle the textarea value
+	const [description, setDescription] = useState<string>(
+		jobData.jobDescription || ''
+	)
 
 	// Update local state when props change
 	useEffect(() => {
-		setDescription(jobData.jobDescription || '')
-	}, [jobData.jobDescription])
+		// Only update if different to avoid unnecessary re-renders
+		if (jobData.jobDescription !== description) {
+			setDescription(jobData.jobDescription || '')
+		}
+	}, [jobData.jobDescription, description])
 
-	// Handle direct textarea changes
+	// Handle direct textarea changes with proper event handling
 	const handleDescriptionChange = (
 		e: React.ChangeEvent<HTMLTextAreaElement>
 	) => {
 		const newValue = e.target.value
+
+		// Update local state
 		setDescription(newValue)
 
 		// Create a synthetic event to pass to the parent's handleChange
@@ -39,11 +52,6 @@ const JobDescriptionField = ({
 				value: newValue,
 			},
 		} as React.ChangeEvent<HTMLTextAreaElement>
-
-		console.log('JobDescriptionField: handleDescriptionChange', {
-			length: newValue.length,
-			preview: newValue.substring(0, 50) + (newValue.length > 50 ? '...' : ''),
-		})
 
 		// Call the parent handler
 		handleChange(syntheticEvent)
@@ -59,10 +67,19 @@ const JobDescriptionField = ({
 				onChange={handleDescriptionChange}
 				placeholder='Paste job description or add notes...'
 				rows={6}
-				className='min-h-[150px]'
+				className='min-h-[150px] resize-y'
+				aria-describedby='job-description-counter'
 			/>
-			<div className='text-xs text-muted-foreground'>
-				{description ? `${description.length} characters` : 'No description'}
+			<div
+				id='job-description-counter'
+				className='text-xs text-muted-foreground flex justify-between'
+			>
+				<span>
+					{description ? `${description.length} characters` : 'No description'}
+				</span>
+				{description.length > 5000 && (
+					<span className='text-red-500'>Very long - consider shortening</span>
+				)}
 			</div>
 		</div>
 	)
