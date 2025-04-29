@@ -114,11 +114,12 @@ const Navbar = () => {
 					? Date.now() - parseInt(cachedTimestamp, 10)
 					: null
 
-				// If we have a cached URL, use it unless it's stale (older than 5 minutes) or an update was triggered
+				// If we have a cached URL, use it unless it's stale (older than 15 minutes) or an update was triggered
+				// Increased cache time from 5 minutes to 15 minutes
 				if (
 					cachedAvatarUrl &&
 					cacheAge &&
-					cacheAge < 5 * 60 * 1000 && // 5 minutes
+					cacheAge < 15 * 60 * 1000 && // 15 minutes
 					!isAvatarUpdateTrigger
 				) {
 					debugLog(`[${fetchId}] Using cached avatar URL from sessionStorage`)
@@ -140,9 +141,28 @@ const Navbar = () => {
 
 				if (!isActive) return // Check again before setting loading state
 
+				// Store user ID to avoid unnecessary fetches
+				previousUserId.current = user.id
+
+				// If the avatar is explicitly being updated, do the full fetch
+				// Otherwise, if we already have a cached avatar URL but it's stale, use it for now
+				// and schedule a background refresh
+				if (!isAvatarUpdateTrigger && cachedAvatarUrl) {
+					// Use existing cached avatar but queue background refresh
+					setAvatarUrl(cachedAvatarUrl)
+					setAvatarLoading(false)
+
+					// Schedule background refresh
+					setTimeout(() => {
+						if (isActive) {
+							refreshAvatarInBackground(user.id)
+						}
+					}, 5000) // Delay the background refresh by 5 seconds
+					return
+				}
+
 				setAvatarLoading(true)
 				setAvatarFadeIn(false)
-				previousUserId.current = user.id
 
 				// Get the user's profile - only fetch the avatar_url field
 				const { data, error } = await supabase
@@ -196,12 +216,47 @@ const Navbar = () => {
 
 				// Set the URL and let the image handle loading
 				setAvatarUrl(cacheBustUrl)
+				setAvatarLoading(false)
+				setAvatarFadeIn(true)
 			} catch (error) {
 				console.error('Exception fetching avatar:', error)
 				if (isActive) {
 					setAvatarLoading(false)
 					setAvatarFadeIn(false)
 				}
+			}
+		}
+
+		// Function to refresh avatar in background without blocking UI
+		const refreshAvatarInBackground = async (userId: string) => {
+			try {
+				const { data, error } = await supabase
+					.from('profiles')
+					.select('avatar_url')
+					.eq('id', userId)
+					.single()
+
+				if (error || !data?.avatar_url || !isActive) return
+
+				const { data: urlData } = await supabase.storage
+					.from('avatars')
+					.getPublicUrl(data.avatar_url)
+
+				if (!urlData?.publicUrl || !isActive) return
+
+				const cacheBustUrl = `${urlData.publicUrl}?t=${Date.now()}`
+
+				// Silently update cache
+				sessionStorage.setItem(`avatar_${userId}`, cacheBustUrl)
+				sessionStorage.setItem(
+					`avatar_timestamp_${userId}`,
+					Date.now().toString()
+				)
+
+				// Don't update UI if this was a background refresh
+				debugLog(`Background refresh of avatar completed for ${userId}`)
+			} catch (error) {
+				console.error('Background avatar refresh error:', error)
 			}
 		}
 

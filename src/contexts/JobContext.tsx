@@ -182,7 +182,7 @@ function JobProvider({ children }: JobProviderProps) {
 			// Check for cached jobs first to display immediately
 			const cachedJobs = localStorage.getItem('cached_jobs')
 			const cachedTimestamp = localStorage.getItem('cached_jobs_timestamp')
-			const CACHE_VALID_DURATION = 10 * 60 * 1000 // 10 minutes (increased from 5)
+			const CACHE_VALID_DURATION = 5 * 60 * 1000 // 5 minutes (reduced for fresher data)
 
 			// Generate cache key based on user ID for multi-user support
 			const userCacheKey = `user_${user.id}_jobs`
@@ -231,6 +231,8 @@ function JobProvider({ children }: JobProviderProps) {
 						console.error('Error parsing cached jobs:', e)
 						// Cache is invalid, continue with normal loading
 					}
+				} else {
+					console.log('Cache expired, loading fresh data')
 				}
 			}
 
@@ -286,7 +288,8 @@ function JobProvider({ children }: JobProviderProps) {
 					last_updated,
 					work_type,
 					remote,
-					employment_type
+					employment_type,
+					salary
 				`
 				)
 				.eq('user_id', user.id)
@@ -371,7 +374,7 @@ function JobProvider({ children }: JobProviderProps) {
 				appliedDate: job.applied_date || '',
 				lastUpdated: job.last_updated,
 				companyWebsite: '', // Omit for faster initial load
-				salary: '', // Omit for faster initial load
+				salary: job.salary || '', // Include salary in initial load
 				jobDescription: '', // Omit for faster initial load
 				workType: (job.work_type || 'On-site') as JobApplication['workType'],
 				employmentType: (job.employment_type ||
@@ -440,7 +443,8 @@ function JobProvider({ children }: JobProviderProps) {
 					last_updated,
 					work_type,
 					remote,
-					employment_type
+					employment_type,
+					salary
 				`
 				)
 				.eq('user_id', user.id)
@@ -491,7 +495,7 @@ function JobProvider({ children }: JobProviderProps) {
 				appliedDate: job.applied_date || '',
 				lastUpdated: job.last_updated,
 				companyWebsite: '',
-				salary: '',
+				salary: job.salary || '',
 				jobDescription: '',
 				workType: (job.work_type || 'On-site') as JobApplication['workType'],
 				employmentType: (job.employment_type ||
@@ -556,6 +560,21 @@ function JobProvider({ children }: JobProviderProps) {
 				// Store in sessionStorage for quick access
 				detailedJobs.forEach((job) => {
 					sessionStorage.setItem(`job_details_${job.id}`, JSON.stringify(job))
+
+					// Also update our in-memory jobs with the detailed data for recently edited jobs
+					safeSetJobs((prevJobs) =>
+						prevJobs.map((prevJob) => {
+							if (prevJob.id === job.id) {
+								return {
+									...prevJob,
+									jobDescription: job.job_description || '',
+									companyWebsite: job.company_website || '',
+									salary: job.salary || '',
+								}
+							}
+							return prevJob
+						})
+					)
 				})
 				console.log('Prefetched detailed data for', detailedJobs.length, 'jobs')
 			}
@@ -780,20 +799,9 @@ function JobProvider({ children }: JobProviderProps) {
 				job_description: jobDescription, // Override with our validated version
 			}
 
-			// First update job_description separately to ensure it saves properly
-			const { error: descUpdateError } = await supabase
-				.from('job_applications')
-				.update({ job_description: jobDescription })
-				.eq('id', updatedJob.id)
+			console.log('Updating job with description:', jobDescription)
 
-			if (descUpdateError) {
-				console.error(
-					'Error updating job description:',
-					descUpdateError.message
-				)
-			}
-
-			// Then update all fields
+			// Update all fields in a single operation instead of two separate calls
 			const { error: jobError } = await supabase
 				.from('job_applications')
 				.update(dbUpdateData)
@@ -835,6 +843,38 @@ function JobProvider({ children }: JobProviderProps) {
 						'Error adding updated events:',
 						insertEventsError.message
 					)
+				}
+			}
+
+			// Update sessionStorage cache if it exists
+			const sessionKey = `job_details_${updatedJob.id}`
+			const cachedDetails = sessionStorage.getItem(sessionKey)
+			if (cachedDetails) {
+				try {
+					const parsedDetails = JSON.parse(cachedDetails)
+					const updatedDetails = {
+						...parsedDetails,
+						job_description: jobDescription,
+						last_updated: new Date().toISOString(),
+					}
+					sessionStorage.setItem(sessionKey, JSON.stringify(updatedDetails))
+				} catch (e) {
+					console.error('Error updating session storage cache:', e)
+				}
+			} else {
+				// If no cached details exist yet, fetch and cache the full job details
+				try {
+					const { data } = await supabase
+						.from('job_applications')
+						.select('*')
+						.eq('id', updatedJob.id)
+						.single()
+
+					if (data) {
+						sessionStorage.setItem(sessionKey, JSON.stringify(data))
+					}
+				} catch (e) {
+					console.error('Error fetching job details for cache:', e)
 				}
 			}
 

@@ -61,7 +61,7 @@ const JobDetailsModal = ({ isOpen, onClose, jobId }: JobDetailsModalProps) => {
 
 	// Effect to load full job details if needed
 	useEffect(() => {
-		if (!jobId || !isOpen || fullJobDetails) return
+		if (!jobId || !isOpen) return
 
 		const loadFullDetails = async () => {
 			// First check if we have cached details
@@ -117,12 +117,20 @@ const JobDetailsModal = ({ isOpen, onClose, jobId }: JobDetailsModalProps) => {
 		loadFullDetails()
 	}, [jobId, isOpen, basicJob])
 
-	// Reset state when modal closes
+	// Reset state when modal closes or when the edit modal closes to ensure fresh data
 	useEffect(() => {
 		if (!isOpen) {
 			setFullJobDetails(null)
 		}
 	}, [isOpen])
+
+	// Refetch job details when the edit modal closes to get fresh data
+	useEffect(() => {
+		if (!isEditModalOpen && jobId && fullJobDetails) {
+			// Force refresh job details when edit modal closes
+			setFullJobDetails(null)
+		}
+	}, [isEditModalOpen, jobId])
 
 	if (!job) return null
 
@@ -302,7 +310,18 @@ const JobDetailsModal = ({ isOpen, onClose, jobId }: JobDetailsModalProps) => {
 									<div className='h-4 bg-gray-200 rounded w-2/3'></div>
 								</div>
 							</div>
-						) : null}
+						) : (
+							<div className='space-y-3'>
+								<h3 className='text-lg font-semibold border-b pb-1'>
+									Job Description
+								</h3>
+								<div className='bg-gray-50 p-4 rounded-md text-sm'>
+									<p className='text-gray-500 italic'>
+										No job description available
+									</p>
+								</div>
+							</div>
+						)}
 
 						{/* Contacts */}
 						{job.contacts && job.contacts.length > 0 && (

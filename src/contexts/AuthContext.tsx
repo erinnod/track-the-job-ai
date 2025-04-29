@@ -5,6 +5,7 @@ import {
 	useEffect,
 	ReactNode,
 	useCallback,
+	useRef,
 } from 'react'
 import { getCurrentUser, signOut } from '@/lib/auth'
 import { User } from '@supabase/supabase-js'
@@ -26,12 +27,15 @@ const debugLog = (...args: any[]) => {
 	}
 }
 
+// Minimum time between user refresh calls (30 seconds instead of 10)
+const MIN_REFRESH_INTERVAL = 30 * 1000
+
 interface AuthContextType {
 	user: User | null
 	isLoading: boolean
 	isAuthenticated: boolean
 	logout: () => Promise<void>
-	refreshUser: () => Promise<void>
+	refreshUser: () => Promise<{ success: boolean; user: User | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -54,16 +58,34 @@ function AuthProvider({ children }: AuthProviderProps) {
 	const [user, setUser] = useState<User | null>(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [sessionTimeoutId, setSessionTimeoutId] = useState<number | null>(null)
+	const [lastRefreshTime, setLastRefreshTime] = useState<number>(0)
+	const isRefreshingRef = useRef(false)
 
 	const refreshUser = async () => {
-		// Don't set loading state if we already have a user
-		// This prevents unnecessary loading flashes
-		if (!user) {
-			setIsLoading(true)
+		// Prevent concurrent refreshes with a ref
+		if (isRefreshingRef.current) {
+			debugLog('Skipping refresh - already in progress')
+			return { success: !!user, user: user }
+		}
+
+		// Implement rate limiting for refreshUser calls
+		const now = Date.now()
+		if (now - lastRefreshTime < MIN_REFRESH_INTERVAL && user) {
+			debugLog('Skipping refresh - too soon since last refresh')
+			return { success: true, user: user }
 		}
 
 		try {
-			const { success, user } = await getCurrentUser()
+			isRefreshingRef.current = true
+			setLastRefreshTime(now)
+
+			// Don't set loading state if we already have a user
+			// This prevents unnecessary loading flashes
+			if (!user) {
+				setIsLoading(true)
+			}
+
+			const { success, user: currentUser } = await getCurrentUser()
 
 			if (!success) {
 				debugLog('User session invalid or expired')
@@ -78,19 +100,21 @@ function AuthProvider({ children }: AuthProviderProps) {
 							preloadUserProfileData(data.user.id)
 						}
 						setIsLoading(false)
-						return
+						return { success: true, user: data.user }
 					}
 				} catch (refreshError) {
 					console.error('Session refresh failed:', refreshError)
 				}
 			}
 
-			setUser(success ? user : null)
+			setUser(success ? currentUser : null)
 
 			// Preload profile data when user is set
-			if (success && user) {
-				preloadUserProfileData(user.id)
+			if (success && currentUser) {
+				preloadUserProfileData(currentUser.id)
 			}
+
+			return { success, user: currentUser }
 		} catch (error) {
 			console.error('Error fetching user:', error)
 			// Check if we need to force logout due to authentication failure
@@ -110,7 +134,10 @@ function AuthProvider({ children }: AuthProviderProps) {
 			} else {
 				setUser(null)
 			}
+
+			return { success: false, user: null }
 		} finally {
+			isRefreshingRef.current = false
 			// Add a short timeout before setting isLoading false to prevent flashing
 			setTimeout(() => {
 				setIsLoading(false)

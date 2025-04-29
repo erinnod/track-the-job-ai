@@ -26,12 +26,38 @@ const EditJobModal = ({ isOpen, onClose, jobId }: EditJobModalProps) => {
 	// Find the job when jobId changes
 	useEffect(() => {
 		if (jobId) {
+			// Check sessionStorage first for full job details
+			const cachedDetails = sessionStorage.getItem(`job_details_${jobId}`)
+
+			if (cachedDetails) {
+				try {
+					const parsedDetails = JSON.parse(cachedDetails)
+					// Find the basic job data
+					const basicJob = jobs.find((j) => j.id === jobId)
+
+					if (basicJob) {
+						// Combine basic job with detailed data from cache
+						const fullJob = {
+							...basicJob,
+							companyWebsite: parsedDetails.company_website || '',
+							salary: parsedDetails.salary || '',
+							jobDescription: parsedDetails.job_description || '',
+						}
+						setInitialJob(fullJob)
+						return
+					}
+				} catch (e) {
+					console.error('Error parsing cached job details:', e)
+				}
+			}
+
+			// Fall back to basic job data if no cache is available
 			const job = jobs.find((j) => j.id === jobId)
 			if (job) {
 				setInitialJob(job)
 			}
 		}
-	}, [jobId, jobs])
+	}, [jobId, jobs, isOpen])
 
 	const handleSubmit = (updatedJob: JobApplication) => {
 		if (!initialJob) return
@@ -44,6 +70,9 @@ const EditJobModal = ({ isOpen, onClose, jobId }: EditJobModalProps) => {
 			...updatedJob,
 			id: initialJob.id,
 			lastUpdated: new Date().toISOString(),
+			// Ensure job description is properly carried over
+			jobDescription:
+				updatedJob.jobDescription || initialJob.jobDescription || '',
 		}
 
 		console.log('EditJobModal - job to update:', jobToUpdate)
@@ -54,9 +83,17 @@ const EditJobModal = ({ isOpen, onClose, jobId }: EditJobModalProps) => {
 
 		// Update the job
 		updateJob(jobToUpdate)
+			.then(() => {
+				// Clear the session storage cache to force a refresh on next view
+				sessionStorage.removeItem(`job_details_${jobToUpdate.id}`)
 
-		toast.success('Job updated successfully!')
-		onClose()
+				toast.success('Job updated successfully!')
+				onClose()
+			})
+			.catch((error) => {
+				console.error('Error updating job:', error)
+				toast.error('Failed to update job. Please try again.')
+			})
 	}
 
 	const handleCancel = () => {

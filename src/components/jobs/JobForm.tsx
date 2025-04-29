@@ -185,6 +185,12 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 				}
 			}
 
+			// Ensure job description is a string
+			const sanitizedJobDescription =
+				typeof jobData.jobDescription === 'string'
+					? jobData.jobDescription
+					: String(jobData.jobDescription || '')
+
 			// Create a new job with the form data
 			const formJob: JobApplication = {
 				id: jobId,
@@ -198,7 +204,7 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 				lastUpdated: new Date().toISOString(),
 				companyWebsite: jobData.companyWebsite,
 				salary: jobData.salary,
-				jobDescription: jobData.jobDescription,
+				jobDescription: sanitizedJobDescription,
 				workType: jobData.workType,
 				employmentType: jobData.employmentType,
 				remote: jobData.workType === 'Remote' || jobData.workType === 'Hybrid',

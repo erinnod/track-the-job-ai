@@ -32,7 +32,7 @@ const JobDescriptionField = ({
 		if (jobData.jobDescription !== description) {
 			setDescription(jobData.jobDescription || '')
 		}
-	}, [jobData.jobDescription, description])
+	}, [jobData.jobDescription])
 
 	// Handle direct textarea changes with proper event handling
 	const handleDescriptionChange = (
@@ -55,6 +55,12 @@ const JobDescriptionField = ({
 
 		// Call the parent handler
 		handleChange(syntheticEvent)
+
+		// Log to debug
+		console.log(
+			'JobDescriptionField - description updated:',
+			newValue.substring(0, 50) + (newValue.length > 50 ? '...' : '')
+		)
 	}
 
 	return (
