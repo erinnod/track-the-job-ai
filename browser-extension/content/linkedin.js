@@ -19,6 +19,9 @@ let state = {
 function init() {
 	console.log('JobTrakr Extension: LinkedIn content script initialized')
 
+	// Initialize login state sync
+	initContentScript()
+
 	// Check if we're on a job page
 	if (isJobDetailPage()) {
 		// Add button after job details have fully loaded

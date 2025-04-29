@@ -47,12 +47,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			sendResponse({ success: true })
 			return false
 
+		case 'getAuthCookies':
+			getAuthCookies(sendResponse)
+			return true
+
 		default:
 			console.warn('Unknown action:', message.action)
 			sendResponse({ success: false, error: 'Unknown action' })
 			return false
 	}
 })
+
+// Listen for messages from external sources (the website)
+chrome.runtime.onMessageExternal.addListener(
+	(message, sender, sendResponse) => {
+		console.log('External message received:', message, 'from:', sender.url)
+
+		// Validate the sender is our website
+		if (!sender.url.includes('jobtrakr.co.uk')) {
+			console.warn('Rejecting message from non-jobtrakr origin:', sender.url)
+			sendResponse({ success: false, error: 'Invalid origin' })
+			return false
+		}
+
+		// Handle different message types
+		switch (message.action) {
+			case 'syncAuthState':
+				// Website is asking for auth state sync
+				syncAuthStateWithWebsite(message.token, message.user, sendResponse)
+				return true // Keep the message channel open for async response
+
+			case 'checkExtensionAuth':
+				// Website is asking if extension is authenticated
+				checkExtensionAuth(sendResponse)
+				return true
+
+			default:
+				console.warn('Unknown external action:', message.action)
+				sendResponse({ success: false, error: 'Unknown action' })
+				return false
+		}
+	}
+)
 
 /**
  * Handle saving a job to JobTrakr
@@ -270,6 +306,7 @@ async function handleGetStatus(sendResponse) {
 function getAuthToken() {
 	return new Promise((resolve) => {
 		chrome.storage.local.get(['auth'], (result) => {
+			console.log('Getting auth token from storage:', result.auth)
 			if (result.auth && isTokenValid(result.auth)) {
 				resolve(result.auth)
 			} else {
@@ -426,12 +463,14 @@ async function checkWebsiteSession(sendResponse) {
 
 			console.log('Found cookies:', cookies.length)
 
-			// Look for auth cookies
+			// Look for auth cookies - expanded list of possible cookie names
 			const authCookie = cookies.find(
 				(cookie) =>
 					cookie.name === 'jobtrakr-auth-token' ||
 					cookie.name === 'sb-kffbwemulhhsyaiooabh-auth-token' ||
-					cookie.name.includes('auth')
+					cookie.name.includes('auth') ||
+					cookie.name.includes('session') ||
+					cookie.name.includes('supabase')
 			)
 
 			if (authCookie) {
@@ -447,6 +486,7 @@ async function checkWebsiteSession(sendResponse) {
 						Authorization: `Bearer ${authToken}`,
 						'Content-Type': 'application/json',
 					},
+					credentials: 'include', // Important: Include credentials with the request
 				})
 
 				if (verifyResponse.ok) {
@@ -473,6 +513,7 @@ async function checkWebsiteSession(sendResponse) {
 							hasSession: true,
 							email: userData.user.email,
 							userId: userData.user.id,
+							token: authToken,
 						})
 
 						// Show a notification
@@ -488,6 +529,8 @@ async function checkWebsiteSession(sendResponse) {
 						console.error('Error parsing verify response as JSON:', jsonError)
 						// Continue to other methods
 					}
+				} else {
+					console.error('Failed to verify token:', verifyResponse.status)
 				}
 			}
 		} catch (cookieError) {
@@ -498,7 +541,7 @@ async function checkWebsiteSession(sendResponse) {
 		try {
 			const response = await fetch(`${API_BASE_URL}/auth/session`, {
 				method: 'GET',
-				credentials: 'include',
+				credentials: 'include', // Important: Include credentials with the request
 				headers: {
 					'Content-Type': 'application/json',
 					Accept: 'application/json',
@@ -508,7 +551,11 @@ async function checkWebsiteSession(sendResponse) {
 			if (!response.ok) {
 				// No valid session found through API either
 				console.log('No valid website session found via API:', response.status)
-				sendResponse({ success: false, hasSession: false })
+				sendResponse({
+					success: false,
+					hasSession: false,
+					error: 'No valid session found',
+				})
 				return
 			}
 
@@ -516,7 +563,11 @@ async function checkWebsiteSession(sendResponse) {
 			const contentType = response.headers.get('content-type')
 			if (!contentType || !contentType.includes('application/json')) {
 				console.error('Unexpected content type:', contentType)
-				sendResponse({ success: false, hasSession: false })
+				sendResponse({
+					success: false,
+					hasSession: false,
+					error: 'Unexpected content type',
+				})
 				return
 			}
 
@@ -524,7 +575,11 @@ async function checkWebsiteSession(sendResponse) {
 
 			if (!sessionData.user || !sessionData.token) {
 				console.log('Invalid session data:', sessionData)
-				sendResponse({ success: false, hasSession: false })
+				sendResponse({
+					success: false,
+					hasSession: false,
+					error: 'Invalid session data',
+				})
 				return
 			}
 
@@ -549,6 +604,7 @@ async function checkWebsiteSession(sendResponse) {
 				hasSession: true,
 				email: sessionData.user.email,
 				userId: sessionData.user.id,
+				token: sessionData.token,
 			})
 
 			// Show a notification
@@ -560,7 +616,11 @@ async function checkWebsiteSession(sendResponse) {
 			})
 		} catch (apiError) {
 			console.error('Error with API session check:', apiError)
-			sendResponse({ success: false, hasSession: false })
+			sendResponse({
+				success: false,
+				hasSession: false,
+				error: apiError.message,
+			})
 		}
 	} catch (error) {
 		console.error('Error checking website session:', error)
@@ -690,6 +750,106 @@ async function handleDirectLogin(email, password, sendResponse) {
 		})
 	} catch (error) {
 		console.error('Direct login error:', error)
+		sendResponse({ success: false, error: error.message })
+	}
+}
+
+/**
+ * Get auth cookies to share with the website
+ * @param {Function} sendResponse - Function to send response back
+ */
+async function getAuthCookies(sendResponse) {
+	try {
+		const cookies = await chrome.cookies.getAll({
+			domain: 'jobtrakr.co.uk',
+		})
+
+		console.log('Found cookies for sharing:', cookies.length)
+
+		// Only share auth-related cookies
+		const authCookies = cookies.filter(
+			(cookie) =>
+				cookie.name === 'jobtrakr-auth-token' ||
+				cookie.name === 'sb-kffbwemulhhsyaiooabh-auth-token' ||
+				cookie.name.includes('auth') ||
+				cookie.name.includes('session') ||
+				cookie.name.includes('supabase')
+		)
+
+		sendResponse({
+			success: true,
+			cookies: authCookies,
+		})
+	} catch (error) {
+		console.error('Error getting auth cookies:', error)
+		sendResponse({ success: false, error: error.message })
+	}
+}
+
+/**
+ * Sync auth state with the website
+ * @param {string} token - Auth token from website
+ * @param {Object} user - User object from website
+ * @param {Function} sendResponse - Function to send response back
+ */
+async function syncAuthStateWithWebsite(token, user, sendResponse) {
+	try {
+		if (!token || !user) {
+			throw new Error('Missing token or user data')
+		}
+
+		console.log('Syncing auth state with website for user:', user.email)
+
+		// Create auth data object
+		const authData = {
+			token: token,
+			userId: user.id,
+			email: user.email,
+			expiresAt: calculateExpiryDate(86400), // 24 hours
+			websiteLinked: true,
+			websiteEmail: user.email,
+		}
+
+		// Save to storage
+		await saveAuthData(authData)
+
+		console.log('Auth state synced with website')
+		sendResponse({
+			success: true,
+			message: 'Auth state synced successfully',
+		})
+	} catch (error) {
+		console.error('Error syncing auth state:', error)
+		sendResponse({ success: false, error: error.message })
+	}
+}
+
+/**
+ * Check if the extension is authenticated
+ * @param {Function} sendResponse - Function to send response back
+ */
+async function checkExtensionAuth(sendResponse) {
+	try {
+		const auth = await getAuthToken()
+
+		if (!auth) {
+			sendResponse({
+				success: true,
+				isAuthenticated: false,
+			})
+			return
+		}
+
+		sendResponse({
+			success: true,
+			isAuthenticated: true,
+			user: {
+				id: auth.userId,
+				email: auth.email || auth.websiteEmail,
+			},
+		})
+	} catch (error) {
+		console.error('Error checking extension auth:', error)
 		sendResponse({ success: false, error: error.message })
 	}
 }

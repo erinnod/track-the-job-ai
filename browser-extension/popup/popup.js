@@ -87,15 +87,29 @@ function setupEventListeners() {
 	elements.closeNotification.addEventListener('click', () => {
 		hideNotification()
 	})
+
+	// Add a manual refresh button event listener
+	document.addEventListener('click', function (e) {
+		if (e.target && e.target.id === 'refresh-status') {
+			checkAuthStatus()
+			showNotification('Refreshing login status...', 'info')
+		}
+	})
 }
 
 /**
  * Check if the user is authenticated
  */
 function checkAuthStatus() {
+	console.log('Checking authentication status...')
 	chrome.storage.local.get(['auth'], (result) => {
+		console.log('Auth storage result:', result)
 		if (result.auth && isTokenValid(result.auth)) {
 			// User is authenticated
+			console.log(
+				'Valid auth token found:',
+				result.auth.email || result.auth.websiteEmail
+			)
 			state.isAuthenticated = true
 			state.user = {
 				email: result.auth.email || result.auth.websiteEmail,
@@ -106,6 +120,7 @@ function checkAuthStatus() {
 			fetchUserStats()
 		} else {
 			// User is not authenticated or token expired
+			console.log('No valid auth token found, checking website session')
 			state.isAuthenticated = false
 			state.user = null
 
@@ -121,27 +136,163 @@ function checkAuthStatus() {
  * Check if the user is logged into the main website
  */
 function checkWebsiteSession() {
-	chrome.runtime.sendMessage({ action: 'checkWebsiteSession' }, (response) => {
-		if (chrome.runtime.lastError) {
-			console.error('Error checking website session:', chrome.runtime.lastError)
-			return
-		}
+	console.log('Checking website session...')
 
-		if (response && response.success && response.hasSession) {
-			// User is logged into the website, update UI
-			state.isAuthenticated = true
-			state.user = {
-				email: response.email,
-				id: response.userId,
+	// First check if we have a cookie directly accessible
+	checkCookiesDirectly((cookieFound) => {
+		if (cookieFound) return
+
+		// If no cookie found, try the background service
+		chrome.runtime.sendMessage(
+			{ action: 'checkWebsiteSession' },
+			(response) => {
+				console.log('Website session response:', response)
+
+				if (chrome.runtime.lastError) {
+					console.error(
+						'Error checking website session:',
+						chrome.runtime.lastError
+					)
+					showNotification(
+						'Error checking login status: ' + chrome.runtime.lastError.message,
+						'error'
+					)
+					return
+				}
+
+				if (!response) {
+					console.log('No response from background script')
+					showNotification(
+						'No response from background script. Try restarting the extension.',
+						'error'
+					)
+					return
+				}
+
+				if (response.success && response.hasSession) {
+					// User is logged into the website, update UI
+					console.log('Website session found:', response.email)
+					state.isAuthenticated = true
+					state.user = {
+						email: response.email,
+						id: response.userId,
+					}
+
+					// Save auth data to prevent future checks
+					const authData = {
+						token: response.token || 'temporary-token',
+						userId: response.userId,
+						email: response.email,
+						expiresAt: Date.now() + 86400 * 1000, // 24 hours from now
+						websiteLinked: true,
+						websiteEmail: response.email,
+					}
+
+					// Save to storage
+					chrome.storage.local.set({ auth: authData }, () => {
+						console.log('Auth data saved to storage:', authData)
+						updateAuthUI()
+						fetchUserStats()
+						showNotification('Connected with your JobTrakr account', 'success')
+					})
+				} else {
+					console.log('No website session found, showing login button')
+					// Add a refresh button to the notification
+					showNotification(
+						'Not logged in. <a href="#" id="refresh-status">Refresh</a> or sign in below.',
+						'info'
+					)
+				}
+			}
+		)
+	})
+}
+
+/**
+ * Check for cookies directly from popup
+ */
+function checkCookiesDirectly(callback) {
+	console.log('Checking cookies directly...')
+
+	// Only try if we have the cookies permission
+	if (chrome.cookies) {
+		chrome.cookies.getAll({ domain: 'jobtrakr.co.uk' }, (cookies) => {
+			if (chrome.runtime.lastError) {
+				console.error('Error getting cookies:', chrome.runtime.lastError)
+				callback(false)
+				return
 			}
 
-			updateAuthUI()
-			fetchUserStats()
+			console.log('Found cookies directly:', cookies.length)
 
-			// Show notification
-			showNotification('Connected with your JobTrakr account', 'success')
-		}
-	})
+			// Look for auth cookies
+			const authCookie = cookies.find(
+				(cookie) =>
+					cookie.name === 'jobtrakr-auth-token' ||
+					cookie.name === 'sb-kffbwemulhhsyaiooabh-auth-token' ||
+					cookie.name.includes('auth') ||
+					cookie.name.includes('session') ||
+					cookie.name.includes('supabase')
+			)
+
+			if (authCookie) {
+				console.log('Found auth cookie directly:', authCookie.name)
+
+				// Verify token through the API
+				fetch(`${API_URL}/auth/verify`, {
+					method: 'GET',
+					headers: {
+						Authorization: `Bearer ${authCookie.value}`,
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+				})
+					.then((response) => {
+						if (!response.ok) throw new Error('Failed to verify token')
+						return response.json()
+					})
+					.then((data) => {
+						// Update state and storage
+						state.isAuthenticated = true
+						state.user = {
+							email: data.user.email,
+							id: data.user.id,
+						}
+
+						const authData = {
+							token: authCookie.value,
+							userId: data.user.id,
+							email: data.user.email,
+							expiresAt: Date.now() + 86400 * 1000, // 24 hours
+							websiteLinked: true,
+							websiteEmail: data.user.email,
+						}
+
+						chrome.storage.local.set({ auth: authData }, () => {
+							console.log('Auth data saved from direct cookie:', authData)
+							updateAuthUI()
+							fetchUserStats()
+							showNotification(
+								'Connected with your JobTrakr account',
+								'success'
+							)
+						})
+
+						callback(true)
+					})
+					.catch((error) => {
+						console.error('Error verifying cookie:', error)
+						callback(false)
+					})
+			} else {
+				console.log('No auth cookies found directly')
+				callback(false)
+			}
+		})
+	} else {
+		console.log('Cookies API not available')
+		callback(false)
+	}
 }
 
 /**
@@ -161,6 +312,8 @@ function updateAuthUI() {
 		if (state.user && state.user.email) {
 			elements.userEmail.textContent = state.user.email
 		}
+
+		console.log('UI updated to authenticated state')
 	} else {
 		// Show unauthenticated view
 		elements.unauthenticatedView.classList.remove('hidden')
@@ -169,6 +322,8 @@ function updateAuthUI() {
 		// Update status indicator
 		elements.statusIndicator.textContent = 'Disconnected'
 		elements.statusIndicator.classList.remove('online')
+
+		console.log('UI updated to unauthenticated state')
 	}
 }
 
@@ -210,6 +365,11 @@ function signIn() {
 
 	// Construct login URL with return parameters
 	const loginUrl = `${WEB_APP_URL}/login?source=extension&extension_id=${extensionId}`
+
+	console.log('Opening login URL:', loginUrl)
+
+	// Show notification
+	showNotification('Opening login page in new tab...', 'info')
 
 	// Open the login page in a new tab
 	chrome.tabs.create({ url: loginUrl })
@@ -356,14 +516,16 @@ function openDashboard() {
  * @param {string} type - The type of notification ('success', 'error', 'info')
  */
 function showNotification(message, type = 'info') {
-	elements.notificationMessage.textContent = message
+	elements.notificationMessage.innerHTML = message
 	elements.notification.className = `notification ${type}`
 	elements.notification.classList.remove('hidden')
 
-	// Auto-hide after 5 seconds
-	setTimeout(() => {
-		hideNotification()
-	}, 5000)
+	// Auto-hide after 5 seconds for success and info messages
+	if (type !== 'error') {
+		setTimeout(() => {
+			hideNotification()
+		}, 5000)
+	}
 }
 
 /**
