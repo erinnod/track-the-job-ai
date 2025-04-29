@@ -3,383 +3,392 @@
  */
 
 // Constants
-const API_URL = "https://www.jobtrakr.co.uk/api"; // Replace with your actual API URL
+const API_URL = 'https://jobtrakr.co.uk/api'
+const WEB_APP_URL = 'https://jobtrakr.co.uk'
 
 // DOM Elements
 const elements = {
-  userStatus: document.getElementById("userStatus"),
-  statusText: document.getElementById("statusText"),
-  notification: document.getElementById("notification"),
+	statusIndicator: document.getElementById('status-indicator'),
+	notification: document.getElementById('notification'),
+	notificationMessage: document.getElementById('notification-message'),
+	closeNotification: document.getElementById('close-notification'),
 
-  // Views
-  unauthenticatedView: document.getElementById("unauthenticatedView"),
-  authenticatedView: document.getElementById("authenticatedView"),
-  jobDetectionSection: document.getElementById("jobDetectionSection"),
-  notJobPageView: document.getElementById("notJobPageView"),
+	// Views
+	unauthenticatedView: document.getElementById('unauthenticated-view'),
+	authenticatedView: document.getElementById('authenticated-view'),
+	jobDetectionSection: document.getElementById('job-detection-section'),
+	notJobPageSection: document.getElementById('not-job-page-section'),
 
-  // Buttons
-  loginBtn: document.getElementById("loginBtn"),
-  saveJobBtn: document.getElementById("save-job-button"),
-  viewDashboardBtn: document.getElementById("view-dashboard-button"),
-  logoutBtn: document.getElementById("logout-button"),
+	// Account info
+	userEmail: document.getElementById('user-email'),
+	jobsCount: document.getElementById('jobs-count'),
 
-  // Job information
-  userEmail: document.getElementById("userEmail"),
-  jobsCount: document.getElementById("jobsCount"),
-  jobTitle: document.getElementById("jobTitle"),
-  companyName: document.getElementById("companyName"),
-  jobLocation: document.getElementById("jobLocation"),
-};
+	// Job details
+	jobTitle: document.getElementById('job-title'),
+	jobCompany: document.getElementById('job-company'),
+	jobLocation: document.getElementById('job-location'),
 
-// State
+	// Buttons
+	signInButton: document.getElementById('sign-in-button'),
+	signOutButton: document.getElementById('sign-out-button'),
+	saveJobButton: document.getElementById('save-job-button'),
+	viewDashboardButton: document.getElementById('view-dashboard-button'),
+}
+
+// App state
 let state = {
-  isAuthenticated: false,
-  user: null,
-  detectedJob: null,
-  isOnJobPage: false,
-};
+	isAuthenticated: false,
+	user: null,
+	currentJob: null,
+	isOnJobPage: false,
+}
 
-// Initialize popup
+/**
+ * Initialize the popup
+ */
 function init() {
-  console.log("Initializing popup...");
+	console.log('Initializing JobTrakr extension popup...')
 
-  // Debug element availability
-  console.log("Login button found:", !!document.getElementById("loginBtn"));
-  console.log("Logout button found:", !!document.getElementById("logoutBtn"));
+	// Check if user is authenticated
+	checkAuthStatus()
 
-  // Make sure the DOM elements are refreshed before attaching listeners
-  refreshElements();
+	// Setup event listeners
+	setupEventListeners()
 
-  // Always check for website session first when popup opens
-  checkForWebsiteSession();
-
-  // Check authentication status
-  checkAuthStatus();
-
-  // Attach event listeners
-  attachEventListeners();
-
-  // Check if we're on a job page
-  checkCurrentPage();
+	// Check if we're on a job page
+	checkCurrentPage()
 }
 
-// Refresh element references
-function refreshElements() {
-  elements.loginBtn = document.getElementById("loginBtn");
-  elements.logoutBtn = document.getElementById("logoutBtn");
-  elements.saveJobBtn = document.getElementById("save-job-button");
-  elements.viewDashboardBtn = document.getElementById("view-dashboard-button");
+/**
+ * Setup event listeners for all interactive elements
+ */
+function setupEventListeners() {
+	// Sign in button
+	elements.signInButton.addEventListener('click', () => {
+		signIn()
+	})
+
+	// Sign out button
+	elements.signOutButton.addEventListener('click', () => {
+		signOut()
+	})
+
+	// Save job button
+	elements.saveJobButton.addEventListener('click', () => {
+		saveCurrentJob()
+	})
+
+	// View dashboard button
+	elements.viewDashboardButton.addEventListener('click', () => {
+		openDashboard()
+	})
+
+	// Close notification button
+	elements.closeNotification.addEventListener('click', () => {
+		hideNotification()
+	})
 }
 
-// Authentication functions
+/**
+ * Check if the user is authenticated
+ */
 function checkAuthStatus() {
-  chrome.storage.local.get(["auth"], function (result) {
-    if (result.auth && isTokenValid(result.auth)) {
-      state.isAuthenticated = true;
-      state.user = {
-        email: result.auth.email || result.auth.websiteEmail,
-        userId: result.auth.userId,
-      };
-      updateAuthUI();
-      fetchUserStats();
-    } else {
-      state.isAuthenticated = false;
-      updateAuthUI();
-    }
-  });
+	chrome.storage.local.get(['auth'], (result) => {
+		if (result.auth && isTokenValid(result.auth)) {
+			// User is authenticated
+			state.isAuthenticated = true
+			state.user = {
+				email: result.auth.email || result.auth.websiteEmail,
+				id: result.auth.userId,
+			}
+
+			updateAuthUI()
+			fetchUserStats()
+		} else {
+			// User is not authenticated or token expired
+			state.isAuthenticated = false
+			state.user = null
+
+			updateAuthUI()
+
+			// Check if user is logged into the main website
+			checkWebsiteSession()
+		}
+	})
 }
 
+/**
+ * Check if the user is logged into the main website
+ */
+function checkWebsiteSession() {
+	chrome.runtime.sendMessage({ action: 'checkWebsiteSession' }, (response) => {
+		if (chrome.runtime.lastError) {
+			console.error('Error checking website session:', chrome.runtime.lastError)
+			return
+		}
+
+		if (response && response.success && response.hasSession) {
+			// User is logged into the website, update UI
+			state.isAuthenticated = true
+			state.user = {
+				email: response.email,
+				id: response.userId,
+			}
+
+			updateAuthUI()
+			fetchUserStats()
+
+			// Show notification
+			showNotification('Connected with your JobTrakr account', 'success')
+		}
+	})
+}
+
+/**
+ * Update the UI based on authentication status
+ */
 function updateAuthUI() {
-  if (state.isAuthenticated) {
-    elements.unauthenticatedView.classList.add("hidden");
-    elements.authenticatedView.classList.remove("hidden");
+	if (state.isAuthenticated) {
+		// Show authenticated view
+		elements.unauthenticatedView.classList.add('hidden')
+		elements.authenticatedView.classList.remove('hidden')
 
-    elements.userStatus.className = "status-container status-success";
-    elements.statusText.textContent = "Connected";
+		// Update status indicator
+		elements.statusIndicator.textContent = 'Connected'
+		elements.statusIndicator.classList.add('online')
 
-    if (state.user) {
-      elements.userEmail.textContent = state.user.email || "User";
-    }
-  } else {
-    elements.unauthenticatedView.classList.remove("hidden");
-    elements.authenticatedView.classList.add("hidden");
+		// Update user email
+		if (state.user && state.user.email) {
+			elements.userEmail.textContent = state.user.email
+		}
+	} else {
+		// Show unauthenticated view
+		elements.unauthenticatedView.classList.remove('hidden')
+		elements.authenticatedView.classList.add('hidden')
 
-    elements.userStatus.className = "status-container status-error";
-    elements.statusText.textContent = "Not connected";
-  }
+		// Update status indicator
+		elements.statusIndicator.textContent = 'Disconnected'
+		elements.statusIndicator.classList.remove('online')
+	}
 }
 
+/**
+ * Fetch user statistics from the API
+ */
 function fetchUserStats() {
-  if (!state.isAuthenticated) return;
+	if (!state.isAuthenticated) return
 
-  // Get the auth token first, then make the API call
-  chrome.storage.local.get(["auth"], function (result) {
-    if (!result || !result.auth || !result.auth.token) {
-      console.log("No auth token found in fetchUserStats");
-      return;
-    }
+	chrome.storage.local.get(['auth'], (result) => {
+		if (!result.auth || !result.auth.token) return
 
-    // Example API call to get user stats
-    fetch(`${API_URL}/user/stats`, {
-      headers: {
-        Authorization: `Bearer ${result.auth.token}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to fetch user stats");
-        return response.json();
-      })
-      .then((data) => {
-        if (data.jobsCount) {
-          elements.jobsCount.textContent = data.jobsCount;
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching user stats:", error);
-      });
-  });
+		fetch(`${API_URL}/user/stats`, {
+			headers: {
+				Authorization: `Bearer ${result.auth.token}`,
+			},
+		})
+			.then((response) => {
+				if (!response.ok) throw new Error('Failed to fetch user stats')
+				return response.json()
+			})
+			.then((data) => {
+				if (data.jobsCount !== undefined) {
+					elements.jobsCount.textContent = data.jobsCount
+				}
+			})
+			.catch((error) => {
+				console.error('Error fetching user stats:', error)
+			})
+	})
 }
 
-function login() {
-  console.log("Login button clicked, redirecting to website login");
+/**
+ * Sign in to JobTrakr
+ */
+function signIn() {
+	// Get the extension ID for the callback
+	const extensionId = chrome.runtime.id
 
-  // Get a unique identifier for this extension instance
-  const extensionId = chrome.runtime.id;
+	// Construct login URL with return parameters
+	const loginUrl = `${WEB_APP_URL}/login?source=extension&extension_id=${extensionId}`
 
-  // Construct the login URL with proper parameters
-  const loginUrl =
-    "https://jobtrakr.co.uk/login?source=extension&extension_id=" +
-    extensionId +
-    "&redirect_after_login=dashboard";
+	// Open the login page in a new tab
+	chrome.tabs.create({ url: loginUrl })
 
-  console.log("Opening login URL:", loginUrl);
-
-  // Open the website login page with parameters to indicate it's from the extension
-  chrome.tabs.create({
-    url: loginUrl,
-  });
-
-  // Close the popup
-  window.close();
+	// Close the popup
+	window.close()
 }
 
-function logout() {
-  // Clear all auth related storage
-  chrome.storage.local.remove(["auth", "authToken", "user"], function () {
-    // Also clear any cookies that might be conflicting
-    chrome.cookies.getAll({ domain: "jobtrakr.co.uk" }, function (cookies) {
-      for (let cookie of cookies) {
-        const cookieUrl = "https://" + cookie.domain + cookie.path;
-        chrome.cookies.remove({ url: cookieUrl, name: cookie.name });
-      }
+/**
+ * Sign out from JobTrakr
+ */
+function signOut() {
+	chrome.storage.local.remove(['auth'], () => {
+		state.isAuthenticated = false
+		state.user = null
 
-      // Update UI
-      state.isAuthenticated = false;
-      state.user = null;
-      updateAuthUI();
-      showNotification("You have been signed out.", "info");
-
-      console.log("Completely logged out from extension");
-    });
-  });
+		updateAuthUI()
+		showNotification('Signed out successfully', 'info')
+	})
 }
 
-// Job related functions
+/**
+ * Check if the current page is a job listing page
+ */
 function checkCurrentPage() {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs.length === 0) return;
+	chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+		if (!tabs || tabs.length === 0) return
 
-    const currentTab = tabs[0];
+		const currentTab = tabs[0]
 
-    // Ask content script if we're on a job page
-    chrome.tabs.sendMessage(
-      currentTab.id,
-      { action: "checkJobPage" },
-      function (response) {
-        if (chrome.runtime.lastError) {
-          // Content script not available or didn't respond
-          state.isOnJobPage = false;
-          updateJobPageUI();
-          return;
-        }
+		// Send message to content script to check if we're on a job page
+		chrome.tabs.sendMessage(
+			currentTab.id,
+			{ action: 'checkJobPage' },
+			(response) => {
+				// Handle error if content script is not available
+				if (chrome.runtime.lastError) {
+					console.log('Content script not available or not a job page')
+					state.isOnJobPage = false
+					updateJobPageUI()
+					return
+				}
 
-        if (response && response.isJobPage) {
-          state.isOnJobPage = true;
-          state.detectedJob = response.jobData;
-          updateJobPageUI();
-        } else {
-          state.isOnJobPage = false;
-          updateJobPageUI();
-        }
-      }
-    );
-  });
+				if (response && response.isJobPage) {
+					state.isOnJobPage = true
+					state.currentJob = response.jobData
+					updateJobPageUI()
+				} else {
+					state.isOnJobPage = false
+					updateJobPageUI()
+				}
+			}
+		)
+	})
 }
 
+/**
+ * Update the UI based on whether we're on a job page
+ */
 function updateJobPageUI() {
-  if (state.isAuthenticated) {
-    if (state.isOnJobPage && state.detectedJob) {
-      elements.notJobPageView.classList.add("hidden");
-      elements.jobDetectionSection.classList.remove("hidden");
+	if (state.isAuthenticated) {
+		if (state.isOnJobPage && state.currentJob) {
+			// Show job detection section
+			elements.jobDetectionSection.classList.remove('hidden')
+			elements.notJobPageSection.classList.add('hidden')
 
-      // Update job preview
-      elements.jobTitle.textContent =
-        state.detectedJob.title || "Unknown Position";
-      elements.companyName.textContent =
-        state.detectedJob.company || "Unknown Company";
-      elements.jobLocation.textContent =
-        state.detectedJob.location || "Unknown Location";
-    } else {
-      elements.jobDetectionSection.classList.add("hidden");
-      elements.notJobPageView.classList.remove("hidden");
-    }
-  }
+			// Update job details
+			elements.jobTitle.textContent =
+				state.currentJob.title || 'Unknown position'
+			elements.jobCompany.textContent =
+				state.currentJob.company || 'Unknown company'
+			elements.jobLocation.textContent =
+				state.currentJob.location || 'Unknown location'
+		} else {
+			// Show not on job page message
+			elements.jobDetectionSection.classList.add('hidden')
+			elements.notJobPageSection.classList.remove('hidden')
+		}
+	}
 }
 
+/**
+ * Save the current job to JobTrakr
+ */
 function saveCurrentJob() {
-  if (!state.isAuthenticated || !state.detectedJob) {
-    return showNotification("You must be signed in to save jobs.", "error");
-  }
+	if (!state.isAuthenticated) {
+		showNotification('Please sign in to save jobs', 'error')
+		return
+	}
 
-  elements.saveJobBtn.disabled = true;
-  elements.saveJobBtn.textContent = "Saving...";
+	if (!state.isOnJobPage || !state.currentJob) {
+		showNotification('No job detected on this page', 'error')
+		return
+	}
 
-  // Get the auth token first, then make the API call
-  chrome.storage.local.get(["auth"], function (result) {
-    if (!result || !result.auth || !result.auth.token) {
-      console.log("No auth token found in saveCurrentJob");
-      elements.saveJobBtn.disabled = false;
-      elements.saveJobBtn.textContent = "Save Job";
-      return showNotification(
-        "Authentication error. Please sign in again.",
-        "error"
-      );
-    }
+	// Disable save button and show loading state
+	elements.saveJobButton.disabled = true
+	elements.saveJobButton.textContent = 'Saving...'
 
-    fetch(`${API_URL}/jobs`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${result.auth.token}`,
-      },
-      body: JSON.stringify(state.detectedJob),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to save job");
-        return response.json();
-      })
-      .then((data) => {
-        showNotification("Job saved successfully!", "success");
-        elements.saveJobBtn.textContent = "Saved!";
+	// Send message to background script to save the job
+	chrome.runtime.sendMessage(
+		{
+			action: 'saveJob',
+			jobData: state.currentJob,
+		},
+		(response) => {
+			// Re-enable save button
+			elements.saveJobButton.disabled = false
+			elements.saveJobButton.textContent = 'Save to JobTrakr'
 
-        // Update job count
-        if (elements.jobsCount) {
-          const currentCount = parseInt(elements.jobsCount.textContent) || 0;
-          elements.jobsCount.textContent = currentCount + 1;
-        }
+			if (response && response.success) {
+				// Job saved successfully
+				showNotification('Job saved successfully!', 'success')
+				fetchUserStats() // Refresh job count
+			} else {
+				// Error saving job
+				const errorMessage =
+					response && response.error ? response.error : 'Failed to save job'
 
-        // After 2 seconds, enable button again
-        setTimeout(() => {
-          elements.saveJobBtn.disabled = false;
-          elements.saveJobBtn.textContent = "Save Job";
-        }, 2000);
-      })
-      .catch((error) => {
-        console.error("Error saving job:", error);
-        showNotification("Error saving job. Please try again.", "error");
-        elements.saveJobBtn.disabled = false;
-        elements.saveJobBtn.textContent = "Save Job";
-      });
-  });
+				showNotification(errorMessage, 'error')
+
+				// If auth required, prompt user to sign in
+				if (response && response.requiresAuth) {
+					setTimeout(() => {
+						signIn()
+					}, 1500)
+				}
+			}
+		}
+	)
 }
 
-// Helper functions
-function showNotification(message, type = "info") {
-  elements.notification.textContent = message;
-  elements.notification.className = `notification notification-${type}`;
-  elements.notification.classList.remove("hidden");
-
-  // Auto-hide notification after 3 seconds
-  setTimeout(() => {
-    elements.notification.classList.add("hidden");
-  }, 3000);
-}
-
-function getAuthToken() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["auth"], (result) => {
-      if (result.auth && isTokenValid(result.auth)) {
-        resolve(result.auth.token);
-      } else {
-        resolve(null);
-      }
-    });
-  });
-}
-
+/**
+ * Open the JobTrakr dashboard
+ */
 function openDashboard() {
-  chrome.tabs.create({ url: "https://www.jobtrakr.co.uk/dashboard" });
+	chrome.tabs.create({ url: `${WEB_APP_URL}/dashboard` })
+	window.close()
 }
 
-function attachEventListeners() {
-  // Login button
-  if (elements.loginBtn) {
-    elements.loginBtn.addEventListener("click", login);
-  }
+/**
+ * Show a notification to the user
+ * @param {string} message - The message to show
+ * @param {string} type - The type of notification ('success', 'error', 'info')
+ */
+function showNotification(message, type = 'info') {
+	elements.notificationMessage.textContent = message
+	elements.notification.className = `notification ${type}`
+	elements.notification.classList.remove('hidden')
 
-  // Logout button
-  if (elements.logoutBtn) {
-    elements.logoutBtn.addEventListener("click", logout);
-  }
-
-  // Save job button
-  if (elements.saveJobBtn) {
-    elements.saveJobBtn.addEventListener("click", saveCurrentJob);
-  }
-
-  // View dashboard button
-  if (elements.viewDashboardBtn) {
-    elements.viewDashboardBtn.addEventListener("click", openDashboard);
-  }
+	// Auto-hide after 5 seconds
+	setTimeout(() => {
+		hideNotification()
+	}, 5000)
 }
 
-// Run initialization when popup is loaded
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("DOM fully loaded");
+/**
+ * Hide the notification
+ */
+function hideNotification() {
+	elements.notification.classList.add('hidden')
+}
 
-  // Direct event listener for login button - highest priority
-  const loginButton = document.getElementById("loginBtn");
-  if (loginButton) {
-    console.log("Found login button, attaching event listener directly");
-    loginButton.addEventListener("click", function (e) {
-      e.preventDefault();
-      login(); // Use the same login function for consistency
-    });
-  } else {
-    console.error("Login button not found in DOM");
-  }
-
-  // Continue with regular initialization
-  init();
-});
-
-// Add token validation function that matches login.js
+/**
+ * Check if the authentication token is valid
+ * @param {Object} auth - The auth object from storage
+ * @returns {boolean} - Whether the token is valid
+ */
 function isTokenValid(auth) {
-  if (!auth || !auth.expiresAt) return false;
-  return new Date(auth.expiresAt) > new Date();
+	if (!auth || !auth.token || !auth.expiresAt) {
+		return false
+	}
+
+	const now = new Date().getTime()
+	const expiresAt = new Date(auth.expiresAt).getTime()
+
+	// Token is valid if it expires in the future
+	return expiresAt > now
 }
 
-// Check if the user is logged in on the website and use that session
-function checkForWebsiteSession() {
-  chrome.runtime.sendMessage(
-    { action: "checkWebsiteSession" },
-    function (response) {
-      console.log("Website session check response:", response);
-      if (response && response.success && response.hasSession) {
-        console.log("Found website session, refreshing authentication status");
-        // We found a website session, refresh the authentication status
-        checkAuthStatus();
-      }
-    }
-  );
-}
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', init)

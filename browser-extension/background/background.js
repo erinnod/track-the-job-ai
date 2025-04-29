@@ -7,219 +7,344 @@
  * - API communication with JobTrakr backend
  */
 
-// Configuration
-const API_URL = "https://www.jobtrakr.co.uk/api"; // Replace with your actual API URL
+// Constants
+const API_URL = 'https://jobtrakr.co.uk/api'
+const WEBAPP_URL = 'https://jobtrakr.co.uk'
 
-// Listen for extension installation or update
-chrome.runtime.onInstalled.addListener((details) => {
-  console.log("JobTrakr extension installed or updated", details);
+// Extension state
+let state = {
+	isAuthenticated: false,
+	userData: null,
+	lastSavedJob: null,
+	authToken: null,
+}
 
-  // Check if user is already authenticated
-  checkAuthStatus();
+// Initialize when extension is loaded
+initializeExtension()
 
-  // Open the welcome page when the extension is installed (not for updates)
-  if (details.reason === "install") {
-    console.log("Opening welcome page for new installation");
-    chrome.tabs.create({
-      url: chrome.runtime.getURL("onboarding/welcome.html"),
-    });
-  }
-});
+/**
+ * Initialize the extension background process
+ */
+function initializeExtension() {
+	console.log('JobTrakr Extension: Background script initialized')
 
-// Listen for messages from content scripts and popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("Background received message:", message);
+	// Check if user is already authenticated
+	checkAuthentication()
 
-  // Handle different message types
-  switch (message.action) {
-    case "saveJob":
-      handleSaveJob(message.jobData, sendResponse);
-      return true; // Indicates async response
+	// Setup message listeners
+	setupMessageListeners()
+}
 
-    case "checkAuth":
-      checkAuthStatus(sendResponse);
-      return true; // Indicates async response
+/**
+ * Check if the user is authenticated with JobTrakr
+ */
+async function checkAuthentication() {
+	try {
+		// Check if we have an auth token in storage
+		const data = await chrome.storage.local.get(['authToken', 'userData'])
 
-    case "logout":
-      handleLogout(sendResponse);
-      return true; // Indicates async response
-  }
-});
+		if (data.authToken) {
+			// Validate token with the API
+			const response = await fetch(`${API_URL}/auth/validate`, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${data.authToken}`,
+					'Content-Type': 'application/json',
+				},
+			})
 
-// Handle saving a job
+			if (response.ok) {
+				// Token is valid
+				state.isAuthenticated = true
+				state.authToken = data.authToken
+				state.userData = data.userData || (await response.json()).user
+
+				// Save user data to storage if it wasn't there
+				if (!data.userData) {
+					chrome.storage.local.set({ userData: state.userData })
+				}
+
+				console.log('JobTrakr: User is authenticated')
+			} else {
+				// Token is invalid, clear storage
+				clearAuthData()
+			}
+		} else {
+			// No token found
+			clearAuthData()
+		}
+	} catch (error) {
+		console.error('JobTrakr: Error checking authentication', error)
+		clearAuthData()
+	}
+}
+
+/**
+ * Clear authentication data from state and storage
+ */
+function clearAuthData() {
+	state.isAuthenticated = false
+	state.userData = null
+	state.authToken = null
+
+	chrome.storage.local.remove(['authToken', 'userData'])
+	console.log('JobTrakr: User is not authenticated')
+}
+
+/**
+ * Setup message listeners for communication with content scripts and popup
+ */
+function setupMessageListeners() {
+	chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+		console.log('JobTrakr: Received message', message.action)
+
+		switch (message.action) {
+			case 'getAuthStatus':
+				handleGetAuthStatus(sendResponse)
+				break
+
+			case 'signIn':
+				handleSignIn(message.token, message.userData, sendResponse)
+				break
+
+			case 'signOut':
+				handleSignOut(sendResponse)
+				break
+
+			case 'saveJob':
+				handleSaveJob(message.jobData, sendResponse)
+				break
+
+			case 'getUserStats':
+				handleGetUserStats(sendResponse)
+				break
+
+			case 'checkCurrentPage':
+				handleCheckCurrentPage(sender.tab.id, sendResponse)
+				break
+		}
+
+		// Return true to indicate we'll send a response asynchronously
+		return true
+	})
+}
+
+/**
+ * Handle get authentication status message
+ */
+function handleGetAuthStatus(sendResponse) {
+	sendResponse({
+		isAuthenticated: state.isAuthenticated,
+		userData: state.userData,
+	})
+}
+
+/**
+ * Handle sign in message
+ */
+function handleSignIn(token, userData, sendResponse) {
+	if (!token) {
+		sendResponse({ success: false, error: 'No token provided' })
+		return
+	}
+
+	// Update state
+	state.isAuthenticated = true
+	state.authToken = token
+	state.userData = userData
+
+	// Save to storage
+	chrome.storage.local.set({
+		authToken: token,
+		userData: userData,
+	})
+
+	sendResponse({
+		success: true,
+		isAuthenticated: true,
+		userData: userData,
+	})
+
+	console.log('JobTrakr: User signed in', userData.email)
+}
+
+/**
+ * Handle sign out message
+ */
+function handleSignOut(sendResponse) {
+	// Clear auth data
+	clearAuthData()
+
+	sendResponse({
+		success: true,
+		isAuthenticated: false,
+	})
+
+	console.log('JobTrakr: User signed out')
+}
+
+/**
+ * Handle save job message
+ */
 async function handleSaveJob(jobData, sendResponse) {
-  try {
-    // Check if user is authenticated
-    const authData = await getAuthData();
+	try {
+		if (!state.isAuthenticated || !state.authToken) {
+			sendResponse({
+				success: false,
+				error: 'User not authenticated',
+			})
+			return
+		}
 
-    if (!authData || !authData.authToken) {
-      console.log("User not authenticated");
-      sendResponse({ success: false, error: "Not authenticated" });
-      return;
-    }
+		if (!jobData) {
+			sendResponse({
+				success: false,
+				error: 'No job data provided',
+			})
+			return
+		}
 
-    console.log("Saving job:", jobData);
+		console.log('JobTrakr: Saving job', jobData.title)
 
-    // Send job data to API
-    const response = await fetch(`${API_URL}/jobs`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authData.authToken}`,
-      },
-      body: JSON.stringify(jobData),
-    });
+		// Send job data to API
+		const response = await fetch(`${API_URL}/jobs`, {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${state.authToken}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(jobData),
+		})
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error saving job:", errorData);
-      sendResponse({
-        success: false,
-        error: errorData.message || "Failed to save job",
-      });
-      return;
-    }
+		if (!response.ok) {
+			const errorData = await response.json()
+			throw new Error(errorData.message || 'Failed to save job')
+		}
 
-    const data = await response.json();
-    console.log("Job saved successfully:", data);
+		const savedJob = await response.json()
 
-    // Respond with success
-    sendResponse({ success: true, data });
+		// Update last saved job
+		state.lastSavedJob = savedJob
 
-    // Show notification
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: "../icons/icon-128.png",
-      title: "JobTrakr",
-      message: "Job saved successfully!",
-      priority: 2,
-    });
-  } catch (error) {
-    console.error("Error in handleSaveJob:", error);
-    sendResponse({ success: false, error: error.message });
-  }
+		// Send success response
+		sendResponse({
+			success: true,
+			job: savedJob,
+		})
+
+		console.log('JobTrakr: Job saved successfully', savedJob.id)
+
+		// Show notification
+		chrome.notifications.create({
+			type: 'basic',
+			iconUrl: '/icons/icon-128.png',
+			title: 'Job Saved to JobTrakr',
+			message: `${jobData.title} at ${jobData.company} has been saved to your JobTrakr account.`,
+		})
+	} catch (error) {
+		console.error('JobTrakr: Error saving job', error)
+
+		sendResponse({
+			success: false,
+			error: error.message || 'Error saving job',
+		})
+	}
 }
 
-// Check authentication status
-async function checkAuthStatus(sendResponse) {
-  try {
-    const authData = await getAuthData();
+/**
+ * Handle get user stats message
+ */
+async function handleGetUserStats(sendResponse) {
+	try {
+		if (!state.isAuthenticated || !state.authToken) {
+			sendResponse({
+				success: false,
+				error: 'User not authenticated',
+			})
+			return
+		}
 
-    if (!authData || !authData.authToken) {
-      console.log("No auth token found");
-      if (sendResponse) sendResponse({ isAuthenticated: false });
-      return false;
-    }
+		// Get user stats from API
+		const response = await fetch(`${API_URL}/users/stats`, {
+			method: 'GET',
+			headers: {
+				Authorization: `Bearer ${state.authToken}`,
+				'Content-Type': 'application/json',
+			},
+		})
 
-    // Validate token with API (optional)
-    const response = await fetch(`${API_URL}/auth/validate`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${authData.authToken}`,
-      },
-    });
+		if (!response.ok) {
+			const errorData = await response.json()
+			throw new Error(errorData.message || 'Failed to get user stats')
+		}
 
-    if (!response.ok) {
-      console.log("Token validation failed");
-      // Clear invalid auth data
-      await chrome.storage.local.remove(["authToken", "user"]);
-      if (sendResponse) sendResponse({ isAuthenticated: false });
-      return false;
-    }
+		const stats = await response.json()
 
-    const userData = await response.json();
-    console.log("User is authenticated:", userData);
+		// Send success response
+		sendResponse({
+			success: true,
+			stats: stats,
+		})
+	} catch (error) {
+		console.error('JobTrakr: Error getting user stats', error)
 
-    // Update user data in storage
-    await chrome.storage.local.set({ user: userData });
-
-    if (sendResponse) sendResponse({ isAuthenticated: true, user: userData });
-    return true;
-  } catch (error) {
-    console.error("Error checking auth status:", error);
-    if (sendResponse)
-      sendResponse({ isAuthenticated: false, error: error.message });
-    return false;
-  }
+		sendResponse({
+			success: false,
+			error: error.message || 'Error getting user stats',
+		})
+	}
 }
 
-// Handle user logout
-async function handleLogout(sendResponse) {
-  try {
-    await chrome.storage.local.remove(["authToken", "user"]);
-    console.log("User logged out");
+/**
+ * Handle check current page message
+ * Communicates with the content script to check if current page is a job page
+ */
+function handleCheckCurrentPage(tabId, sendResponse) {
+	chrome.tabs.sendMessage(tabId, { action: 'checkJobPage' }, (response) => {
+		if (chrome.runtime.lastError) {
+			// Content script may not be loaded
+			sendResponse({ isJobPage: false })
+			return
+		}
 
-    if (sendResponse) sendResponse({ success: true });
-  } catch (error) {
-    console.error("Error during logout:", error);
-    if (sendResponse) sendResponse({ success: false, error: error.message });
-  }
+		if (response && response.isJobPage) {
+			sendResponse({
+				isJobPage: true,
+				jobData: response.jobData,
+			})
+		} else {
+			sendResponse({ isJobPage: false })
+		}
+	})
 }
 
-// Get authentication data from storage
-async function getAuthData() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["authToken", "user"], (result) => {
-      resolve({
-        authToken: result.authToken,
-        user: result.user,
-      });
-    });
-  });
-}
+/**
+ * Handle browser action click - open popup
+ */
+chrome.action.onClicked.addListener((tab) => {
+	console.log('JobTrakr: Browser action clicked')
+})
 
-// Listen for auth redirect from main site
+/**
+ * Listen for tab updates to inject content scripts for supported job sites
+ */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (
-    changeInfo.status === "complete" &&
-    tab.url &&
-    (tab.url.includes("auth-callback") ||
-      tab.url.includes("login-success") ||
-      tab.url.includes("dashboard?source=extension"))
-  ) {
-    try {
-      console.log("Detected potential auth completion page:", tab.url);
+	if (changeInfo.status === 'complete' && tab.url) {
+		const url = tab.url.toLowerCase()
 
-      // Extract token from URL
-      const url = new URL(tab.url);
-      const token =
-        url.searchParams.get("token") || url.searchParams.get("auth_token");
+		// Check if the URL matches known job sites
+		if (
+			url.includes('linkedin.com/jobs') ||
+			url.includes('indeed.com') ||
+			url.includes('glassdoor.com/job') ||
+			url.includes('remoteworker.co.uk/job') ||
+			url.includes('monster.com/job') ||
+			url.includes('ziprecruiter.com')
+		) {
+			console.log('JobTrakr: Detected job site:', url)
 
-      let userData = {};
-      try {
-        userData = JSON.parse(
-          decodeURIComponent(url.searchParams.get("user") || "{}")
-        );
-      } catch (e) {
-        console.warn("Could not parse user data from URL");
-      }
-
-      if (token) {
-        // Store token and user data
-        chrome.storage.local.set(
-          {
-            authToken: token,
-            user: userData,
-          },
-          () => {
-            console.log("Authentication data stored");
-
-            // Close the auth tab
-            chrome.tabs.remove(tabId);
-
-            // Show success notification
-            chrome.notifications.create({
-              type: "basic",
-              iconUrl: "../icons/icon-128.png",
-              title: "JobTrakr",
-              message: "Successfully signed in!",
-              priority: 2,
-            });
-          }
-        );
-      }
-    } catch (error) {
-      console.error("Error processing auth callback:", error);
-    }
-  }
-});
+			// Inject content script if needed (handled by manifest.json)
+			// This is here for potential future dynamic script injection
+		}
+	}
+})
