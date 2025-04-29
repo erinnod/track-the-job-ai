@@ -153,20 +153,33 @@ function setupWebsiteToExtensionCommunication() {
 				console.log('Syncing login to extension:', extensionId)
 
 				// Send message to extension background script
-				chrome.runtime.sendMessage(
-					extensionId,
-					{
-						action: 'syncAuthState',
-						token: event.detail.token,
-						user: event.detail.user,
-					},
-					(response) => {
-						console.log('Extension sync response:', response)
-						if (response && response.success) {
-							console.log('Successfully synced auth state with extension')
+				try {
+					chrome.runtime.sendMessage(
+						extensionId,
+						{
+							action: 'syncAuthState',
+							token: event.detail.token,
+							user: event.detail.user,
+						},
+						(response) => {
+							// Check for runtime error
+							if (chrome.runtime.lastError) {
+								console.error(
+									'Error syncing with extension:',
+									chrome.runtime.lastError
+								)
+								return
+							}
+
+							console.log('Extension sync response:', response)
+							if (response && response.success) {
+								console.log('Successfully synced auth state with extension')
+							}
 						}
-					}
-				)
+					)
+				} catch (error) {
+					console.error('Error sending message to extension:', error)
+				}
 			}
 		} else if (event.detail && event.detail.action === 'logout') {
 			// User logged out on website, could sync logout to extension

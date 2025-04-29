@@ -485,6 +485,7 @@ async function checkWebsiteSession(sendResponse) {
 					headers: {
 						Authorization: `Bearer ${authToken}`,
 						'Content-Type': 'application/json',
+						Accept: 'application/json',
 					},
 					credentials: 'include', // Important: Include credentials with the request
 				})
@@ -563,10 +564,76 @@ async function checkWebsiteSession(sendResponse) {
 			const contentType = response.headers.get('content-type')
 			if (!contentType || !contentType.includes('application/json')) {
 				console.error('Unexpected content type:', contentType)
+
+				// If it's HTML content, try a different endpoint or approach
+				if (contentType && contentType.includes('text/html')) {
+					// Try a different approach - use cookies directly instead
+					try {
+						const cookies = await chrome.cookies.getAll({
+							domain: 'jobtrakr.co.uk',
+						})
+
+						// Look for auth cookies
+						const authCookie = cookies.find(
+							(cookie) =>
+								cookie.name === 'jobtrakr-auth-token' ||
+								cookie.name === 'sb-kffbwemulhhsyaiooabh-auth-token' ||
+								cookie.name.includes('auth') ||
+								cookie.name.includes('session') ||
+								cookie.name.includes('supabase')
+						)
+
+						if (authCookie) {
+							// Try to verify this cookie
+							const verifyResponse = await fetch(
+								`${API_BASE_URL}/auth/verify`,
+								{
+									method: 'GET',
+									headers: {
+										Authorization: `Bearer ${authCookie.value}`,
+										'Content-Type': 'application/json',
+										Accept: 'application/json',
+									},
+									credentials: 'include',
+								}
+							)
+
+							if (verifyResponse.ok) {
+								const userData = await verifyResponse.json()
+
+								// Use the cookie to create an auth session
+								const authData = {
+									token: authCookie.value,
+									userId: userData.user.id,
+									email: userData.user.email,
+									expiresAt: calculateExpiryDate(86400), // 24 hours
+									websiteLinked: true,
+									websiteEmail: userData.user.email,
+								}
+
+								await saveAuthData(authData)
+
+								sendResponse({
+									success: true,
+									hasSession: true,
+									email: userData.user.email,
+									userId: userData.user.id,
+									token: authCookie.value,
+								})
+
+								return
+							}
+						}
+					} catch (cookieError) {
+						console.error('Error with cookie fallback:', cookieError)
+					}
+				}
+
+				// If we get here, all approaches failed
 				sendResponse({
 					success: false,
 					hasSession: false,
-					error: 'Unexpected content type',
+					error: `Unexpected content type: ${contentType || 'unknown'}`,
 				})
 				return
 			}
@@ -652,6 +719,7 @@ async function handleDirectLogin(email, password, sendResponse) {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				Accept: 'application/json',
 			},
 			body: JSON.stringify({ email, password }),
 		})
@@ -665,16 +733,32 @@ async function handleDirectLogin(email, password, sendResponse) {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
+					Accept: 'application/json',
 				},
 				credentials: 'include',
 				body: JSON.stringify({ email, password }),
 			})
 
-			if (!webLoginResponse.ok) {
-				const errorData = await webLoginResponse.json().catch(() => ({}))
-				throw new Error(
-					errorData.message || `Login failed: ${webLoginResponse.status}`
+			// Check content type of response
+			const contentType = webLoginResponse.headers.get('content-type')
+			if (contentType && contentType.includes('text/html')) {
+				console.log(
+					'Received HTML response instead of JSON, trying cookie approach'
 				)
+			}
+
+			if (!webLoginResponse.ok) {
+				// Try to parse response data, but handle case where it's not JSON
+				let errorMessage = `Login failed: ${webLoginResponse.status}`
+				try {
+					const errorData = await webLoginResponse.json()
+					if (errorData.message) {
+						errorMessage = errorData.message
+					}
+				} catch (err) {
+					console.error('Error parsing login response:', err)
+				}
+				throw new Error(errorMessage)
 			}
 
 			// Now check if we got cookies
@@ -682,7 +766,10 @@ async function handleDirectLogin(email, password, sendResponse) {
 			const authCookie = cookies.find(
 				(cookie) =>
 					cookie.name === 'jobtrakr-auth-token' ||
-					cookie.name === 'sb-kffbwemulhhsyaiooabh-auth-token'
+					cookie.name === 'sb-kffbwemulhhsyaiooabh-auth-token' ||
+					cookie.name.includes('auth') ||
+					cookie.name.includes('session') ||
+					cookie.name.includes('supabase')
 			)
 
 			if (!authCookie) {
@@ -695,6 +782,7 @@ async function handleDirectLogin(email, password, sendResponse) {
 				headers: {
 					Authorization: `Bearer ${authCookie.value}`,
 					'Content-Type': 'application/json',
+					Accept: 'application/json',
 				},
 			})
 

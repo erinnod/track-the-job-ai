@@ -244,11 +244,21 @@ function checkCookiesDirectly(callback) {
 					headers: {
 						Authorization: `Bearer ${authCookie.value}`,
 						'Content-Type': 'application/json',
+						Accept: 'application/json',
 					},
 					credentials: 'include',
 				})
 					.then((response) => {
 						if (!response.ok) throw new Error('Failed to verify token')
+
+						// Check content type to avoid parsing HTML as JSON
+						const contentType = response.headers.get('content-type')
+						if (!contentType || !contentType.includes('application/json')) {
+							throw new Error(
+								`Unexpected content type: ${contentType || 'unknown'}`
+							)
+						}
+
 						return response.json()
 					})
 					.then((data) => {
@@ -339,10 +349,21 @@ function fetchUserStats() {
 		fetch(`${API_URL}/user/stats`, {
 			headers: {
 				Authorization: `Bearer ${result.auth.token}`,
+				'Content-Type': 'application/json',
+				Accept: 'application/json',
 			},
 		})
 			.then((response) => {
 				if (!response.ok) throw new Error('Failed to fetch user stats')
+
+				// Check content type to avoid parsing HTML as JSON
+				const contentType = response.headers.get('content-type')
+				if (!contentType || !contentType.includes('application/json')) {
+					throw new Error(
+						`Unexpected content type: ${contentType || 'unknown'}`
+					)
+				}
+
 				return response.json()
 			})
 			.then((data) => {
