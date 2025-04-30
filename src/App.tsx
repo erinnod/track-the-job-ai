@@ -37,6 +37,7 @@ import { SecurityMonitor } from './components/security/SecurityMonitor'
 import FaviconNotifier from './components/notifications/FaviconNotifier'
 import LoadingFallback from './components/ui/loading-fallback'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import LandingPage from './pages/Landing'
 
 // Set React Router future flags to fix warning messages
 // See: https://reactrouter.com/v6/upgrading/future
@@ -95,6 +96,10 @@ const App = () => (
 										<Routes>
 											{/* Public routes */}
 											<Route
+												path='/'
+												element={<LandingPage />}
+											/>
+											<Route
 												path='/login'
 												element={<Login />}
 											/>
@@ -142,7 +147,7 @@ const App = () => (
 											{/* Protected routes */}
 											<Route element={<ProtectedRoute />}>
 												<Route
-													path='/'
+													path='/dashboard'
 													element={<Index />}
 												/>
 												<Route

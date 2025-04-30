@@ -128,8 +128,8 @@ const Sidebar = () => {
 					<SidebarLink
 						icon={LayoutDashboard}
 						label='Dashboard'
-						to='/'
-						active={currentPath === '/'}
+						to='/dashboard'
+						active={currentPath === '/dashboard'}
 					/>
 					<SidebarLink
 						icon={Briefcase}

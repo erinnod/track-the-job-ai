@@ -374,7 +374,7 @@ const Navbar = () => {
 					{/* Logo */}
 					<div className='flex items-center'>
 						<Link
-							to='/'
+							to={isAuthenticated ? '/dashboard' : '/'}
 							className='flex items-center'
 						>
 							<img
@@ -567,7 +567,7 @@ const Navbar = () => {
 											</div>
 										</div>
 										<DropdownMenuItem
-											onClick={() => navigate('/')}
+											onClick={() => navigate('/dashboard')}
 											className='p-2 cursor-pointer'
 										>
 											Dashboard
