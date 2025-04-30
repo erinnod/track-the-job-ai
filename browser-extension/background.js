@@ -7,6 +7,87 @@
 const API_BASE_URL = 'https://jobtrakr.co.uk/api' // Production API endpoint
 const WEB_APP_URL = 'https://jobtrakr.co.uk' // Production web app URL
 
+// Set up web request listener to fix content type issues
+chrome.webRequest.onHeadersReceived.addListener(
+	(details) => {
+		// Only process responses from our API domain
+		if (details.url.includes('jobtrakr.co.uk/api')) {
+			// Check if it's a JSON response with wrong content type
+			const contentTypeHeader = details.responseHeaders.find(
+				(header) => header.name.toLowerCase() === 'content-type'
+			)
+
+			// If content type is HTML but likely contains JSON
+			if (contentTypeHeader && contentTypeHeader.value.includes('text/html')) {
+				// Replace with proper JSON content type
+				contentTypeHeader.value = 'application/json; charset=utf-8'
+				console.log('Fixed content type for:', details.url)
+				return { responseHeaders: details.responseHeaders }
+			}
+		}
+		return { responseHeaders: details.responseHeaders }
+	},
+	{ urls: ['*://*.jobtrakr.co.uk/*'] },
+	['responseHeaders', 'extraHeaders', 'blocking']
+)
+
+// Listen for tab updates to detect successful login on website
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+	// Check if this is the redirect after login
+	if (
+		changeInfo.status === 'complete' &&
+		tab.url &&
+		tab.url.includes('jobtrakr.co.uk/dashboard') &&
+		tab.url.includes('source=extension')
+	) {
+		console.log(
+			'Detected successful login redirect. Syncing session to extension...'
+		)
+
+		// Execute script in the tab to extract auth data
+		chrome.scripting.executeScript(
+			{
+				target: { tabId: tabId },
+				function: () => {
+					// Try to find auth token in localStorage
+					const authData =
+						localStorage.getItem('supabase.auth.token') ||
+						localStorage.getItem('jobtrakr-auth-data')
+
+					// Return any auth data found on the page
+					return {
+						authData: authData,
+						cookies: document.cookie,
+					}
+				},
+			},
+			(results) => {
+				if (chrome.runtime.lastError) {
+					console.error('Error executing script:', chrome.runtime.lastError)
+					return
+				}
+
+				if (results && results[0] && results[0].result) {
+					console.log('Found auth data on webpage, syncing to extension')
+
+					// Try to sync session
+					checkWebsiteSession((success) => {
+						if (success) {
+							// Show a notification
+							chrome.notifications.create({
+								type: 'basic',
+								iconUrl: 'icons/icon-128.png',
+								title: 'JobTrakr Authenticated',
+								message: 'Successfully signed in to JobTrakr extension',
+							})
+						}
+					})
+				}
+			}
+		)
+	}
+})
+
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	console.log('Message received in background:', message)
@@ -449,9 +530,10 @@ function injectSaveButton() {
 
 /**
  * Check for existing website session and authenticate extension if found
- * @param {Function} sendResponse - Function to send response back
+ * @param {Function} sendResponse - Function to send response back (optional)
  */
 async function checkWebsiteSession(sendResponse) {
+	let success = false
 	try {
 		console.log('Checking for existing website session...')
 
@@ -479,36 +561,76 @@ async function checkWebsiteSession(sendResponse) {
 				// Use the cookie value as token
 				const authToken = authCookie.value
 
-				// Verify the token by calling the API with the token
-				const verifyResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
-					method: 'GET',
-					headers: {
-						Authorization: `Bearer ${authToken}`,
-						'Content-Type': 'application/json',
-						Accept: 'application/json',
-					},
-					credentials: 'include', // Important: Include credentials with the request
-				})
+				// Verify the token by calling the API
+				try {
+					// First try with fetch to get error details if any
+					const verifyResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
+						method: 'GET',
+						headers: {
+							Authorization: `Bearer ${authToken}`,
+							'Content-Type': 'application/json',
+							Accept: 'application/json',
+						},
+						credentials: 'include', // Important: Include credentials with the request
+					})
 
-				if (verifyResponse.ok) {
-					try {
-						const userData = await verifyResponse.json()
+					let userData
 
-						// Session found, save it to extension storage
-						const authData = {
-							token: authToken,
-							userId: userData.user.id,
-							email: userData.user.email,
-							expiresAt: calculateExpiryDate(86400), // 24 hours
-							websiteLinked: true,
-							websiteEmail: userData.user.email,
+					// Handle various response types
+					if (!verifyResponse.ok) {
+						console.error('Failed to verify token:', verifyResponse.status)
+						throw new Error(`Failed to verify token: ${verifyResponse.status}`)
+					}
+
+					// Check content type to avoid parsing errors
+					const contentType = verifyResponse.headers.get('content-type')
+
+					if (contentType && contentType.includes('application/json')) {
+						// Parse JSON response
+						userData = await verifyResponse.json()
+					} else if (contentType && contentType.includes('text/html')) {
+						// For HTML responses, we'll try to extract any JSON data embedded in it
+						const text = await verifyResponse.text()
+						try {
+							// Try to find JSON data in HTML response
+							const jsonMatch = text.match(/\{.*\}/)
+							if (jsonMatch) {
+								userData = JSON.parse(jsonMatch[0])
+							} else {
+								throw new Error('Could not parse JSON from HTML response')
+							}
+						} catch (parseError) {
+							console.error('Error parsing HTML response:', parseError)
+							throw new Error('Invalid response format from verify endpoint')
 						}
-
-						await saveAuthData(authData)
-
-						console.log(
-							'Website session found via cookies and saved to extension'
+					} else {
+						throw new Error(
+							`Unexpected content type: ${contentType || 'unknown'}`
 						)
+					}
+
+					if (!userData || !userData.user) {
+						throw new Error('Invalid user data in response')
+					}
+
+					// Session found, save it to extension storage
+					const authData = {
+						token: authToken,
+						userId: userData.user.id,
+						email: userData.user.email,
+						expiresAt: calculateExpiryDate(86400), // 24 hours
+						websiteLinked: true,
+						websiteEmail: userData.user.email,
+					}
+
+					await saveAuthData(authData)
+					success = true
+
+					console.log(
+						'Website session found via cookies and saved to extension'
+					)
+
+					if (typeof sendResponse === 'function') {
 						sendResponse({
 							success: true,
 							hasSession: true,
@@ -516,141 +638,62 @@ async function checkWebsiteSession(sendResponse) {
 							userId: userData.user.id,
 							token: authToken,
 						})
-
-						// Show a notification
-						chrome.notifications.create({
-							type: 'basic',
-							iconUrl: 'icons/icon-128.png',
-							title: 'JobTrakr Authenticated',
-							message: `You are now signed in to JobTrakr extension using your website account (${userData.user.email})`,
-						})
-
-						return
-					} catch (jsonError) {
-						console.error('Error parsing verify response as JSON:', jsonError)
-						// Continue to other methods
 					}
-				} else {
-					console.error('Failed to verify token:', verifyResponse.status)
+
+					// Show a notification
+					chrome.notifications.create({
+						type: 'basic',
+						iconUrl: 'icons/icon-128.png',
+						title: 'JobTrakr Authenticated',
+						message: `You are now signed in to JobTrakr extension using your website account (${userData.user.email})`,
+					})
+
+					return success
+				} catch (verifyError) {
+					console.error('Error verifying token:', verifyError)
+					// Continue to next method if token verification fails
 				}
 			}
 		} catch (cookieError) {
 			console.error('Error checking cookies:', cookieError)
 		}
 
-		// If cookies didn't work, try the API method
+		// If cookies didn't work, try alternate approach with XHR
+		// This can sometimes work better than fetch for CORS issues
 		try {
-			const response = await fetch(`${API_BASE_URL}/auth/session`, {
-				method: 'GET',
-				credentials: 'include', // Important: Include credentials with the request
-				headers: {
-					'Content-Type': 'application/json',
-					Accept: 'application/json',
-				},
-			})
+			// Create a Promise-based wrapper for XMLHttpRequest
+			const sessionData = await new Promise((resolve, reject) => {
+				const xhr = new XMLHttpRequest()
+				xhr.withCredentials = true // Include credentials
+				xhr.open('GET', `${API_BASE_URL}/auth/session`, true)
+				xhr.setRequestHeader('Content-Type', 'application/json')
+				xhr.setRequestHeader('Accept', 'application/json')
 
-			if (!response.ok) {
-				// No valid session found through API either
-				console.log('No valid website session found via API:', response.status)
-				sendResponse({
-					success: false,
-					hasSession: false,
-					error: 'No valid session found',
-				})
-				return
-			}
-
-			// Check content type to avoid parsing HTML as JSON
-			const contentType = response.headers.get('content-type')
-			if (!contentType || !contentType.includes('application/json')) {
-				console.error('Unexpected content type:', contentType)
-
-				// If it's HTML content, try a different endpoint or approach
-				if (contentType && contentType.includes('text/html')) {
-					// Try a different approach - use cookies directly instead
-					try {
-						const cookies = await chrome.cookies.getAll({
-							domain: 'jobtrakr.co.uk',
-						})
-
-						// Look for auth cookies
-						const authCookie = cookies.find(
-							(cookie) =>
-								cookie.name === 'jobtrakr-auth-token' ||
-								cookie.name === 'sb-kffbwemulhhsyaiooabh-auth-token' ||
-								cookie.name.includes('auth') ||
-								cookie.name.includes('session') ||
-								cookie.name.includes('supabase')
-						)
-
-						if (authCookie) {
-							// Try to verify this cookie
-							const verifyResponse = await fetch(
-								`${API_BASE_URL}/auth/verify`,
-								{
-									method: 'GET',
-									headers: {
-										Authorization: `Bearer ${authCookie.value}`,
-										'Content-Type': 'application/json',
-										Accept: 'application/json',
-									},
-									credentials: 'include',
-								}
-							)
-
-							if (verifyResponse.ok) {
-								const userData = await verifyResponse.json()
-
-								// Use the cookie to create an auth session
-								const authData = {
-									token: authCookie.value,
-									userId: userData.user.id,
-									email: userData.user.email,
-									expiresAt: calculateExpiryDate(86400), // 24 hours
-									websiteLinked: true,
-									websiteEmail: userData.user.email,
-								}
-
-								await saveAuthData(authData)
-
-								sendResponse({
-									success: true,
-									hasSession: true,
-									email: userData.user.email,
-									userId: userData.user.id,
-									token: authCookie.value,
-								})
-
-								return
-							}
+				xhr.onload = function () {
+					if (xhr.status >= 200 && xhr.status < 300) {
+						try {
+							const response = JSON.parse(xhr.responseText)
+							resolve(response)
+						} catch (e) {
+							reject(new Error('Invalid JSON response'))
 						}
-					} catch (cookieError) {
-						console.error('Error with cookie fallback:', cookieError)
+					} else {
+						reject(new Error(`HTTP error: ${xhr.status}`))
 					}
 				}
 
-				// If we get here, all approaches failed
-				sendResponse({
-					success: false,
-					hasSession: false,
-					error: `Unexpected content type: ${contentType || 'unknown'}`,
-				})
-				return
+				xhr.onerror = function () {
+					reject(new Error('Network error'))
+				}
+
+				xhr.send()
+			})
+
+			if (!sessionData || !sessionData.user || !sessionData.token) {
+				throw new Error('Invalid session data from API')
 			}
 
-			const sessionData = await response.json()
-
-			if (!sessionData.user || !sessionData.token) {
-				console.log('Invalid session data:', sessionData)
-				sendResponse({
-					success: false,
-					hasSession: false,
-					error: 'Invalid session data',
-				})
-				return
-			}
-
-			// Session found, save it to extension storage
+			// Valid session data received, save it
 			const authData = {
 				token: sessionData.token,
 				userId: sessionData.user.id,
@@ -661,18 +704,22 @@ async function checkWebsiteSession(sendResponse) {
 			}
 
 			await saveAuthData(authData)
+			success = true
 
 			console.log(
-				'Website session found via API and saved to extension:',
+				'Website session found via XHR and saved to extension:',
 				authData
 			)
-			sendResponse({
-				success: true,
-				hasSession: true,
-				email: sessionData.user.email,
-				userId: sessionData.user.id,
-				token: sessionData.token,
-			})
+
+			if (typeof sendResponse === 'function') {
+				sendResponse({
+					success: true,
+					hasSession: true,
+					email: sessionData.user.email,
+					userId: sessionData.user.id,
+					token: sessionData.token,
+				})
+			}
 
 			// Show a notification
 			chrome.notifications.create({
@@ -681,17 +728,28 @@ async function checkWebsiteSession(sendResponse) {
 				title: 'JobTrakr Authenticated',
 				message: `You are now signed in to JobTrakr extension using your website account (${sessionData.user.email})`,
 			})
-		} catch (apiError) {
-			console.error('Error with API session check:', apiError)
+
+			return success
+		} catch (xhrError) {
+			console.error('Error with XHR session check:', xhrError)
+		}
+
+		// If both methods failed, return failure
+		if (typeof sendResponse === 'function') {
 			sendResponse({
 				success: false,
 				hasSession: false,
-				error: apiError.message,
+				error: 'No valid session found',
 			})
 		}
+
+		return success
 	} catch (error) {
 		console.error('Error checking website session:', error)
-		sendResponse({ success: false, error: error.message })
+		if (typeof sendResponse === 'function') {
+			sendResponse({ success: false, error: error.message })
+		}
+		return false
 	}
 }
 

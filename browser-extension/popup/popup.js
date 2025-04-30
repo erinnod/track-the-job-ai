@@ -49,6 +49,9 @@ let state = {
 function init() {
 	console.log('Initializing JobTrakr extension popup...')
 
+	// Add a manual retry button for sign-in issues
+	addRetryButton()
+
 	// Check if user is authenticated
 	checkAuthStatus()
 
@@ -57,6 +60,63 @@ function init() {
 
 	// Check if we're on a job page
 	checkCurrentPage()
+}
+
+/**
+ * Add a retry button to help with sign-in issues
+ */
+function addRetryButton() {
+	const container = document.querySelector('.popup-header')
+	if (container) {
+		const retryButton = document.createElement('button')
+		retryButton.textContent = '↻'
+		retryButton.title = 'Force refresh auth state'
+		retryButton.id = 'force-refresh'
+		retryButton.style.cssText = `
+			position: absolute;
+			right: 10px;
+			top: 10px;
+			background: none;
+			border: none;
+			font-size: 16px;
+			cursor: pointer;
+			color: #888;
+		`
+		retryButton.addEventListener('click', function () {
+			showNotification('Forcing auth refresh...', 'info')
+			forceAuthRefresh()
+		})
+		container.appendChild(retryButton)
+	}
+}
+
+/**
+ * Force a refresh of authentication state by checking website and clearing storage if needed
+ */
+function forceAuthRefresh() {
+	// First try clearing and re-checking
+	chrome.storage.local.remove(['auth'], () => {
+		console.log('Auth data cleared, re-checking website session')
+		// Force a website session check through the background page
+		chrome.runtime.sendMessage(
+			{ action: 'checkWebsiteSession' },
+			(response) => {
+				console.log('Force auth refresh response:', response)
+
+				if (response && response.success && response.hasSession) {
+					// Successfully refreshed
+					showNotification('Authentication refreshed!', 'success')
+					window.location.reload() // Reload popup to show updated state
+				} else {
+					// Failed to refresh, show login page
+					showNotification('Please sign in again', 'info')
+					setTimeout(() => {
+						signIn()
+					}, 1000)
+				}
+			}
+		)
+	})
 }
 
 /**

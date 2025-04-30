@@ -18,7 +18,16 @@
 			"128": "icons/icon-128.png"
 		}
 	},
-	"permissions": ["storage", "tabs", "activeTab", "notifications", "cookies"],
+	"permissions": [
+		"storage",
+		"tabs",
+		"activeTab",
+		"notifications",
+		"cookies",
+		"webRequest",
+		"webRequestBlocking",
+		"scripting"
+	],
 	"host_permissions": [
 		"*://*.linkedin.com/*",
 		"*://*.indeed.com/*",

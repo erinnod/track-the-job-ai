@@ -134,6 +134,84 @@ function initContentScript() {
 function setupWebsiteToExtensionCommunication() {
 	console.log('Setting up website-to-extension communication')
 
+	// Create a function that can be called from the website
+	window.syncExtensionLogin = function (authData) {
+		console.log('Website called syncExtensionLogin')
+
+		// Get the extension ID either from URL or stored value
+		const extensionId =
+			new URLSearchParams(window.location.search).get('extension_id') ||
+			localStorage.getItem('jobtrakr-extension-id')
+
+		if (extensionId && authData && authData.token && authData.user) {
+			console.log('Sending auth data to extension:', extensionId)
+
+			try {
+				chrome.runtime.sendMessage(
+					extensionId,
+					{
+						action: 'syncAuthState',
+						token: authData.token,
+						user: authData.user,
+					},
+					(response) => {
+						// Check for runtime error
+						if (chrome.runtime.lastError) {
+							console.error(
+								'Error syncing with extension:',
+								chrome.runtime.lastError
+							)
+							return
+						}
+
+						console.log('Extension sync response:', response)
+
+						// Display visual confirmation
+						const notification = document.createElement('div')
+						notification.style.cssText = `
+							position: fixed;
+							bottom: 20px;
+							right: 20px;
+							background-color: #4CAF50;
+							color: white;
+							padding: 10px 20px;
+							border-radius: 4px;
+							box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+							z-index: 9999;
+							animation: slideIn 0.3s ease-out;
+						`
+						notification.textContent = 'Connected to JobTrakr Extension'
+						document.body.appendChild(notification)
+
+						// Remove after 3 seconds
+						setTimeout(() => {
+							notification.style.animation = 'slideOut 0.3s ease-in'
+							setTimeout(() => notification.remove(), 300)
+						}, 3000)
+
+						// Add animation styles
+						const style = document.createElement('style')
+						style.textContent = `
+							@keyframes slideIn {
+								from { transform: translateX(100%); opacity: 0; }
+								to { transform: translateX(0); opacity: 1; }
+							}
+							@keyframes slideOut {
+								from { transform: translateX(0); opacity: 1; }
+								to { transform: translateX(100%); opacity: 0; }
+							}
+						`
+						document.head.appendChild(style)
+
+						return response
+					}
+				)
+			} catch (error) {
+				console.error('Error sending message to extension:', error)
+			}
+		}
+	}
+
 	// Listen for login/logout events from the website
 	document.addEventListener('jobtrakr-auth-changed', function (event) {
 		console.log('Auth event from website:', event.detail)
@@ -148,6 +226,11 @@ function setupWebsiteToExtensionCommunication() {
 			const extensionId = new URLSearchParams(window.location.search).get(
 				'extension_id'
 			)
+
+			// Store extension ID for future use
+			if (extensionId) {
+				localStorage.setItem('jobtrakr-extension-id', extensionId)
+			}
 
 			if (extensionId) {
 				console.log('Syncing login to extension:', extensionId)
@@ -182,7 +265,7 @@ function setupWebsiteToExtensionCommunication() {
 				}
 			}
 		} else if (event.detail && event.detail.action === 'logout') {
-			// User logged out on website, could sync logout to extension
+			// User logged out of website, could sync logout to extension
 			console.log('User logged out of website')
 		}
 	})
@@ -216,6 +299,60 @@ function setupWebsiteToExtensionCommunication() {
 		detail: { extensionId: chrome.runtime.id },
 	})
 	document.dispatchEvent(event)
+
+	// Add script to website to help with auth
+	injectHelperScript()
+}
+
+/**
+ * Inject helper script into the webpage to improve communication
+ */
+function injectHelperScript() {
+	const script = document.createElement('script')
+	script.textContent = `
+		// Listen for auth events
+		window.addEventListener('jobtrakr-auth-ready', function(e) {
+			console.log('JobTrakr auth is ready, checking for extension');
+			
+			// Check if we're coming from extension
+			const urlParams = new URLSearchParams(window.location.search);
+			const extensionId = urlParams.get('extension_id');
+			
+			if (extensionId && window.syncExtensionLogin && window.jobtrakrAuth) {
+				console.log('Extension ID found in URL, syncing auth');
+				// Sync auth state
+				window.syncExtensionLogin(window.jobtrakrAuth);
+			}
+		});
+		
+		// Expose function to sync auth from website code
+		window.syncWithJobTrakrExtension = function(authData) {
+			// First try direct window function
+			if (window.syncExtensionLogin) {
+				window.syncExtensionLogin(authData);
+				return true;
+			}
+			
+			// Otherwise use event
+			const event = new CustomEvent('jobtrakr-auth-changed', {
+				detail: {
+					action: 'login',
+					token: authData.token,
+					user: authData.user
+				}
+			});
+			document.dispatchEvent(event);
+			return true;
+		};
+		
+		// Dispatch event to website code that extension is ready
+		const readyEvent = new Event('jobtrakr-extension-ready');
+		window.dispatchEvent(readyEvent);
+		
+		console.log('JobTrakr extension helper script installed');
+	`
+
+	document.head.appendChild(script)
 }
 
 // Sync login state from website to extension when on job sites
