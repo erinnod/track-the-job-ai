@@ -12,8 +12,61 @@ import {
 	Bell,
 	Chrome,
 } from 'lucide-react'
+import {
+	Carousel,
+	CarouselContent,
+	CarouselItem,
+	CarouselNext,
+	CarouselPrevious,
+} from '@/components/ui/carousel'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import type { CarouselApi } from '@/components/ui/carousel'
 
 const LandingPage = () => {
+	const [api, setApi] = useState<CarouselApi>()
+	const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null)
+	const [current, setCurrent] = useState(0)
+	const [count, setCount] = useState(0)
+
+	const startAutoPlay = useCallback(() => {
+		if (autoPlayIntervalRef.current) {
+			clearInterval(autoPlayIntervalRef.current)
+		}
+
+		autoPlayIntervalRef.current = setInterval(() => {
+			api?.scrollNext()
+		}, 5000) // Change slide every 5 seconds
+	}, [api])
+
+	// Initialize autoplay
+	useEffect(() => {
+		if (!api) return
+
+		startAutoPlay()
+
+		// Reset interval when user interacts
+		api.on('select', startAutoPlay)
+
+		// Clean up
+		return () => {
+			if (autoPlayIntervalRef.current) {
+				clearInterval(autoPlayIntervalRef.current)
+			}
+			api?.off('select', startAutoPlay)
+		}
+	}, [api, startAutoPlay])
+
+	useEffect(() => {
+		if (!api) return
+
+		setCount(api.scrollSnapList().length)
+		setCurrent(api.selectedScrollSnap() + 1)
+
+		api.on('select', () => {
+			setCurrent(api.selectedScrollSnap() + 1)
+		})
+	}, [api])
+
 	return (
 		<div className='min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white'>
 			{/* Header/Navbar */}
@@ -225,6 +278,116 @@ const LandingPage = () => {
 							</p>
 						</div>
 					</div>
+				</div>
+			</section>
+
+			{/* App Screenshots Carousel */}
+			<section className='py-20 bg-gray-50 px-4'>
+				<div className='container mx-auto max-w-6xl'>
+					<div className='text-center mb-16'>
+						<h2 className='text-3xl font-bold text-gray-900 mb-4'>
+							Application Screenshots
+						</h2>
+						<p className='text-lg text-gray-600 max-w-3xl mx-auto'>
+							See JobTrakr in action and explore its features
+						</p>
+					</div>
+
+					<Carousel
+						className='w-full max-w-4xl mx-auto'
+						opts={{
+							align: 'center',
+							loop: true,
+						}}
+						setApi={setApi}
+					>
+						<CarouselContent>
+							<CarouselItem>
+								<div className='p-2'>
+									<div className='rounded-xl overflow-hidden shadow-xl bg-white border border-gray-200'>
+										<div className='relative pt-2 px-2 pb-0 bg-gray-100'>
+											<div className='h-1'></div>
+											<img
+												src='/images/dash.png'
+												alt='Dashboard View'
+												className='w-full h-auto rounded-t-lg shadow-sm'
+											/>
+										</div>
+										<div className='p-6 text-center'>
+											<h3 className='font-semibold text-lg text-gray-900'>
+												Dashboard Overview
+											</h3>
+											<p className='text-gray-600'>
+												Get a complete overview of your job search progress
+											</p>
+										</div>
+									</div>
+								</div>
+							</CarouselItem>
+							<CarouselItem>
+								<div className='p-2'>
+									<div className='rounded-xl overflow-hidden shadow-xl bg-white border border-gray-200'>
+										<div className='relative pt-2 px-2 pb-0 bg-gray-100'>
+											<div className='h-1'></div>
+											<img
+												src='/images/kanban.png'
+												alt='Kanban Board'
+												className='w-full h-auto rounded-t-lg shadow-sm'
+											/>
+										</div>
+										<div className='p-6 text-center'>
+											<h3 className='font-semibold text-lg text-gray-900'>
+												Kanban Board
+											</h3>
+											<p className='text-gray-600'>
+												Track your applications through each stage
+											</p>
+										</div>
+									</div>
+								</div>
+							</CarouselItem>
+							<CarouselItem>
+								<div className='p-2'>
+									<div className='rounded-xl overflow-hidden shadow-xl bg-white border border-gray-200'>
+										<div className='relative pt-2 px-2 pb-0 bg-gray-100'>
+											<div className='h-1'></div>
+											<img
+												src='/images/my-apps.png'
+												alt='My Applications'
+												className='w-full h-auto rounded-t-lg shadow-sm'
+											/>
+										</div>
+										<div className='p-6 text-center'>
+											<h3 className='font-semibold text-lg text-gray-900'>
+												My Applications
+											</h3>
+											<p className='text-gray-600'>
+												Manage all your job applications in one place
+											</p>
+										</div>
+									</div>
+								</div>
+							</CarouselItem>
+						</CarouselContent>
+						<div className='flex flex-col items-center gap-4 mt-6'>
+							<div className='flex justify-center gap-4'>
+								<CarouselPrevious className='static translate-y-0 position-relative h-10 w-10 rounded-full bg-blue-600 text-white hover:bg-blue-700 border-none' />
+								<CarouselNext className='static translate-y-0 position-relative h-10 w-10 rounded-full bg-blue-600 text-white hover:bg-blue-700 border-none' />
+							</div>
+							<div className='flex gap-2 mt-2'>
+								{Array.from({ length: count }).map((_, index) => (
+									<button
+										key={index}
+										className={`w-2.5 h-2.5 rounded-full ${
+											current === index + 1 ? 'bg-blue-600' : 'bg-gray-300'
+										}`}
+										onClick={() => api?.scrollTo(index)}
+										aria-label={`Go to slide ${index + 1}`}
+									/>
+								))}
+							</div>
+						</div>
+					</Carousel>
 				</div>
 			</section>
 
