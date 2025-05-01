@@ -61,10 +61,11 @@ const AddJobModal = ({ onAddJob, buttonId }: AddJobModalProps) => {
 		>
 			<DialogTrigger asChild>
 				<Button
-					className='flex items-center'
+					className='flex items-center text-sm px-2.5 py-1 h-8'
 					id={buttonId}
+					size='sm'
 				>
-					<PlusCircle className='h-4 w-4 mr-2' />
+					<PlusCircle className='h-3.5 w-3.5 mr-1.5' />
 					Add Job
 				</Button>
 			</DialogTrigger>

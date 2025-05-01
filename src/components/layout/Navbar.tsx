@@ -395,9 +395,9 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
 					</Link>
 				</div>
 
-				{/* Center search - hidden on small screens */}
+				{/* Search bar - only visible on desktop */}
 				{isAuthenticated && (
-					<div className='hidden sm:flex-1 sm:flex sm:mx-4 max-w-md'>
+					<div className='hidden'>
 						<div className='relative w-full'>
 							<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
 								<Search className='h-5 w-5 text-gray-400' />
@@ -415,10 +415,7 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
 				<div className='flex items-center space-x-1 sm:space-x-3'>
 					{isAuthenticated ? (
 						<>
-							{/* Mobile search button */}
-							<button className='sm:hidden p-1.5 rounded-lg text-gray-600 hover:bg-gray-100'>
-								<Search className='h-5 w-5' />
-							</button>
+							{/* Remove mobile search button */}
 
 							{/* Add job button - collapsed on mobile */}
 							<div className='hidden sm:block'>
@@ -429,10 +426,11 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
 									document.getElementById('mobile-add-job-trigger')?.click()
 								}
 								size='sm'
-								className='sm:hidden p-1.5 rounded-lg'
-								variant='ghost'
+								className='sm:hidden flex items-center px-1.5 py-0.5 rounded-lg text-xs'
+								variant='default'
 							>
-								<PlusCircle className='h-5 w-5' />
+								<PlusCircle className='h-3.5 w-3.5 mr-1' />
+								<span>Add Job</span>
 							</Button>
 							<div className='hidden'>
 								<AddJobModal buttonId='mobile-add-job-trigger' />
