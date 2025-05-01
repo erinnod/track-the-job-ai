@@ -38,7 +38,7 @@ const LandingPage = () => {
 		}, 5000) // Change slide every 5 seconds
 	}, [api])
 
-	// Initialize autoplay
+	// Initialise autoplay
 	useEffect(() => {
 		if (!api) return
 
@@ -465,7 +465,7 @@ const LandingPage = () => {
 						Ready to Streamline Your Job Search?
 					</h2>
 					<p className='text-xl mb-8 text-blue-100'>
-						Join thousands of job seekers who've optimized their job search
+						Join thousands of job seekers who've optimised their job search
 						process with JobTrakr.
 					</p>
 					<Link to='/signup'>
