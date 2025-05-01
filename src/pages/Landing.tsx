@@ -71,23 +71,31 @@ const LandingPage = () => {
 		<div className='min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white'>
 			{/* Header/Navbar */}
 			<header className='border-b bg-white/90 backdrop-blur-sm sticky top-0 z-10'>
-				<div className='container mx-auto px-4 py-4 flex justify-between items-center'>
+				<div className='container mx-auto px-4 py-2 flex justify-between items-center'>
 					<div className='flex items-center gap-2'>
-						<img
-							src='/images/jobtrakr-logo.png'
-							alt='JobTrakr Logo'
-							className='h-8'
-						/>
+						<div
+							className='cursor-pointer'
+							onClick={() => window.open('/images/jobtrakr-logo.png', '_blank')}
+						>
+							<img
+								src='/images/jobtrakr-logo.png'
+								alt='JobTrakr Logo'
+								className='h-8'
+							/>
+						</div>
 					</div>
-					<div className='flex items-center gap-4'>
+					<div className='flex flex-row items-center gap-3 sm:gap-4'>
 						<Link
 							to='/login'
-							className='text-gray-600 hover:text-blue-600 font-medium'
+							className='text-gray-600 hover:text-blue-600 font-medium flex items-center justify-center h-10'
 						>
 							Log in
 						</Link>
-						<Link to='/signup'>
-							<Button className='bg-blue-600 hover:bg-blue-700'>
+						<Link
+							to='/signup'
+							className='w-auto'
+						>
+							<Button className='bg-blue-600 hover:bg-blue-700 px-4 py-2'>
 								Sign Up Free
 							</Button>
 						</Link>
@@ -130,7 +138,10 @@ const LandingPage = () => {
 								</Link>
 							</div>
 						</div>
-						<div className='rounded-lg shadow-2xl bg-white p-2 border border-gray-200'>
+						<div
+							className='cursor-pointer rounded-lg shadow-2xl bg-white p-2 border border-gray-200'
+							onClick={() => window.open('/images/dash.png', '_blank')}
+						>
 							<img
 								src='/images/dash.png'
 								alt='JobTrakr Dashboard'
@@ -307,11 +318,18 @@ const LandingPage = () => {
 									<div className='rounded-xl overflow-hidden shadow-xl bg-white border border-gray-200'>
 										<div className='relative pt-2 px-2 pb-0 bg-gray-100'>
 											<div className='h-1'></div>
-											<img
-												src='/images/dash.png'
-												alt='Dashboard View'
-												className='w-full h-auto rounded-t-lg shadow-sm'
-											/>
+											<div
+												className='cursor-pointer'
+												onClick={() =>
+													window.open('/images/dash.png', '_blank')
+												}
+											>
+												<img
+													src='/images/dash.png'
+													alt='Dashboard View'
+													className='w-full h-auto rounded-t-lg shadow-sm'
+												/>
+											</div>
 										</div>
 										<div className='p-6 text-center'>
 											<h3 className='font-semibold text-lg text-gray-900'>
@@ -329,11 +347,18 @@ const LandingPage = () => {
 									<div className='rounded-xl overflow-hidden shadow-xl bg-white border border-gray-200'>
 										<div className='relative pt-2 px-2 pb-0 bg-gray-100'>
 											<div className='h-1'></div>
-											<img
-												src='/images/kanban.png'
-												alt='Kanban Board'
-												className='w-full h-auto rounded-t-lg shadow-sm'
-											/>
+											<div
+												className='cursor-pointer'
+												onClick={() =>
+													window.open('/images/kanban.png', '_blank')
+												}
+											>
+												<img
+													src='/images/kanban.png'
+													alt='Kanban Board'
+													className='w-full h-auto rounded-t-lg shadow-sm'
+												/>
+											</div>
 										</div>
 										<div className='p-6 text-center'>
 											<h3 className='font-semibold text-lg text-gray-900'>
@@ -351,11 +376,18 @@ const LandingPage = () => {
 									<div className='rounded-xl overflow-hidden shadow-xl bg-white border border-gray-200'>
 										<div className='relative pt-2 px-2 pb-0 bg-gray-100'>
 											<div className='h-1'></div>
-											<img
-												src='/images/my-apps.png'
-												alt='My Applications'
-												className='w-full h-auto rounded-t-lg shadow-sm'
-											/>
+											<div
+												className='cursor-pointer'
+												onClick={() =>
+													window.open('/images/my-apps.png', '_blank')
+												}
+											>
+												<img
+													src='/images/my-apps.png'
+													alt='My Applications'
+													className='w-full h-auto rounded-t-lg shadow-sm'
+												/>
+											</div>
 										</div>
 										<div className='p-6 text-center'>
 											<h3 className='font-semibold text-lg text-gray-900'>
@@ -489,11 +521,18 @@ const LandingPage = () => {
 					<div className='grid grid-cols-1 md:grid-cols-4 gap-8'>
 						<div>
 							<div className='flex items-center gap-2 mb-4'>
-								<img
-									src='/images/jobtrakr-logo.png'
-									alt='JobTrakr Logo'
-									className='h-8'
-								/>
+								<div
+									className='cursor-pointer'
+									onClick={() =>
+										window.open('/images/jobtrakr-logo.png', '_blank')
+									}
+								>
+									<img
+										src='/images/jobtrakr-logo.png'
+										alt='JobTrakr Logo'
+										className='h-8'
+									/>
+								</div>
 							</div>
 							<p className='text-sm'>
 								The intelligent job application tracking system that helps you

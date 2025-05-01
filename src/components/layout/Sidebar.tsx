@@ -19,6 +19,7 @@ interface SidebarLinkProps {
 	active?: boolean
 	isExternal?: boolean
 	highlight?: boolean
+	onClick?: () => void
 }
 
 const SidebarLink = ({
@@ -28,9 +29,14 @@ const SidebarLink = ({
 	active,
 	isExternal,
 	highlight,
+	onClick,
 }: SidebarLinkProps) => {
 	// Handle click to ensure scroll resets
 	const handleClick = () => {
+		if (onClick) {
+			onClick()
+		}
+
 		if (isExternal) return // Skip scroll handling for external links
 
 		// Add a small delay to ensure the DOM has updated
@@ -61,6 +67,7 @@ const SidebarLink = ({
 						? 'bg-blue-50 text-blue-700'
 						: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
 				)}
+				onClick={handleClick}
 			>
 				<Icon className={cn('h-5 w-5', highlight && 'text-amber-500')} />
 				<span className={highlight ? 'font-medium' : ''}>{label}</span>
@@ -90,7 +97,11 @@ const SidebarLink = ({
 	)
 }
 
-const Sidebar = () => {
+interface SidebarProps {
+	onLinkClick?: () => void
+}
+
+const Sidebar = ({ onLinkClick }: SidebarProps = {}) => {
 	const location = useLocation()
 	const currentPath = location.pathname
 	const [showAnimation, setShowAnimation] = useState(false)
@@ -119,7 +130,7 @@ const Sidebar = () => {
 	}, [])
 
 	return (
-		<div className='w-64 bg-white border-r border-gray-200 h-screen sticky top-16 pt-6 hidden md:block overflow-y-auto'>
+		<div className='h-full w-full overflow-y-auto py-4'>
 			<div className='px-4 mb-6'>
 				<h2 className='text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2'>
 					Main
@@ -130,18 +141,21 @@ const Sidebar = () => {
 						label='Dashboard'
 						to='/dashboard'
 						active={currentPath === '/dashboard'}
+						onClick={onLinkClick}
 					/>
 					<SidebarLink
 						icon={Briefcase}
 						label='My Applications'
 						to='/applications'
 						active={currentPath === '/applications'}
+						onClick={onLinkClick}
 					/>
 					<SidebarLink
 						icon={Kanban}
 						label='Kanban Board'
 						to='/kanban'
 						active={currentPath === '/kanban'}
+						onClick={onLinkClick}
 					/>
 				</nav>
 			</div>
@@ -156,12 +170,14 @@ const Sidebar = () => {
 						label='Documents'
 						to='/documents'
 						active={currentPath === '/documents'}
+						onClick={onLinkClick}
 					/>
 					<SidebarLink
 						icon={Calendar}
 						label='Calendar'
 						to='/calendar'
 						active={currentPath === '/calendar'}
+						onClick={onLinkClick}
 					/>
 				</nav>
 			</div>
@@ -176,12 +192,14 @@ const Sidebar = () => {
 						label='Settings'
 						to='/settings'
 						active={currentPath === '/settings'}
+						onClick={onLinkClick}
 					/>
 					<SidebarLink
 						icon={Briefcase}
 						label='Integrations'
 						to='/settings/integrations'
 						active={currentPath.startsWith('/settings/integrations')}
+						onClick={onLinkClick}
 					/>
 				</nav>
 			</div>
@@ -198,21 +216,34 @@ const Sidebar = () => {
 				<nav className='space-y-1 relative'>
 					<div
 						className={cn(
-							'absolute -right-1 top-3 transition-opacity',
+							'absolute inset-0 pointer-events-none transition-opacity duration-300',
 							showAnimation ? 'opacity-100' : 'opacity-0'
 						)}
 					>
-						<div className='animate-bounce text-amber-500'>
-							<HeartHandshake className='h-4 w-4' />
+						<div className='absolute right-0 top-0 flex space-x-1'>
+							<span className='relative flex h-2 w-2'>
+								<span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75'></span>
+								<span className='relative inline-flex rounded-full h-2 w-2 bg-amber-500'></span>
+							</span>
 						</div>
 					</div>
 					<SidebarLink
 						icon={Coffee}
-						label='Buy Me a Coffee'
-						to='https://buymeacoffee.com/jobtrakr'
-						isExternal={true}
+						label='Buy me a coffee'
+						to='https://ko-fi.com/jobtrakr'
+						isExternal
 						highlight={true}
+						onClick={onLinkClick}
 					/>
+					{/* Temporarily hidden - can be re-enabled later
+					<SidebarLink
+						icon={HeartHandshake}
+						label='Help & Documentation'
+						to='/help/browser-extension'
+						active={currentPath.startsWith('/help')}
+						onClick={onLinkClick}
+					/>
+					*/}
 				</nav>
 			</div>
 		</div>

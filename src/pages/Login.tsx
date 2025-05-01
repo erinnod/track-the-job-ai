@@ -11,7 +11,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/components/ui/card'
-import { useToast } from '@/components/ui/use-toast'
+import { useResponsiveToast } from '@/hooks/use-responsive-toast'
 import { signIn } from '@/lib/auth'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -23,7 +23,7 @@ import {
 import { AuthLayout } from '@/components/auth/AuthLayout'
 
 const Login = () => {
-	const { toast } = useToast()
+	const { toast } = useResponsiveToast()
 	const navigate = useNavigate()
 	const { refreshUser } = useAuth()
 	const [searchParams] = useSearchParams()

@@ -1,6 +1,5 @@
 import { JobApplication, statusLabels } from '@/data/mockJobs'
 import { useState, useEffect } from 'react'
-import JobListHeader from './JobListHeader'
 import JobSearchBar from './JobSearchBar'
 import StatusFilterDropdown from './StatusFilterDropdown'
 import FilterTags from './FilterTags'
@@ -11,20 +10,28 @@ interface JobListProps {
 	jobs: JobApplication[]
 	isLoading?: boolean
 	onRetry?: () => void
+	sortBy?: string
+	setSortBy?: (value: string) => void
 }
 
 const JobList = ({
 	jobs: initialJobs,
 	isLoading = false,
 	onRetry,
+	sortBy: externalSortBy,
+	setSortBy: externalSetSortBy,
 }: JobListProps) => {
-	const [sortBy, setSortBy] = useState('newest')
+	const [internalSortBy, setInternalSortBy] = useState('newest')
 	const [searchTerm, setSearchTerm] = useState('')
 	const [jobs, setJobs] = useState<JobApplication[]>(initialJobs)
 	const [statusFilter, setStatusFilter] = useState<JobApplication['status'][]>(
 		[]
 	)
 	const { deleteJob } = useJobs()
+
+	// Use either external or internal sort state
+	const sortBy = externalSortBy || internalSortBy
+	const setSortBy = externalSetSortBy || setInternalSortBy
 
 	// Update local jobs state when initialJobs prop changes
 	useEffect(() => {
@@ -93,12 +100,6 @@ const JobList = ({
 
 	return (
 		<div className='w-full'>
-			<JobListHeader
-				jobCount={sortedJobs.length}
-				sortBy={sortBy}
-				setSortBy={setSortBy}
-			/>
-
 			<div className='flex flex-col sm:flex-row gap-2 sm:space-x-4 mb-6'>
 				<JobSearchBar
 					searchTerm={searchTerm}

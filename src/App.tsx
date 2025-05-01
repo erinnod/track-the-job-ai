@@ -2,6 +2,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ToastStateProvider } from '@/hooks/use-toast'
+import { MobileToastProvider } from '@/components/ui/mobile-toast'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
 	BrowserRouter,
@@ -83,156 +84,158 @@ const App = () => (
 		<BrowserRouter>
 			<QueryClientProvider client={queryClient}>
 				<ToastStateProvider>
-					<AuthProvider>
-						<AvatarProvider>
-							<JobProvider>
-								<NotificationProvider>
-									<TooltipProvider>
-										<Toaster />
-										<Sonner />
-										<ScrollToTop />
-										<SecurityMonitor />
-										<FaviconNotifier />
-										<Routes>
-											{/* Public routes */}
-											<Route
-												path='/'
-												element={<LandingPage />}
-											/>
-											<Route
-												path='/login'
-												element={<Login />}
-											/>
-											<Route
-												path='/signup'
-												element={<SignUp />}
-											/>
-											<Route
-												path='/forgot-password'
-												element={<ForgotPassword />}
-											/>
-											<Route
-												path='/reset-password'
-												element={<ResetPassword />}
-											/>
-											<Route
-												path='/auth/callback'
-												element={<AuthCallback />}
-											/>
-
-											{/* Legal pages (public) */}
-											<Route
-												path='/privacy-policy'
-												element={<PrivacyPolicy />}
-											/>
-											<Route
-												path='/terms'
-												element={<TermsOfService />}
-											/>
-											<Route
-												path='/contact'
-												element={<Contact />}
-											/>
-
-											{/* Help pages (moved outside of ProtectedRoute) */}
-											<Route
-												path='/help/browser-extension'
-												element={
-													<Suspense fallback={<LoadingFallback />}>
-														<BrowserExtensionHelp />
-													</Suspense>
-												}
-											/>
-
-											{/* Protected routes */}
-											<Route element={<ProtectedRoute />}>
+					<MobileToastProvider>
+						<AuthProvider>
+							<AvatarProvider>
+								<JobProvider>
+									<NotificationProvider>
+										<TooltipProvider>
+											<Toaster />
+											<Sonner />
+											<ScrollToTop />
+											<SecurityMonitor />
+											<FaviconNotifier />
+											<Routes>
+												{/* Public routes */}
 												<Route
-													path='/dashboard'
-													element={<Index />}
+													path='/'
+													element={<LandingPage />}
 												/>
 												<Route
-													path='/applications'
-													element={<Applications />}
+													path='/login'
+													element={<Login />}
 												/>
 												<Route
-													path='/kanban'
-													element={<Kanban />}
+													path='/signup'
+													element={<SignUp />}
 												/>
 												<Route
-													path='/documents'
-													element={<Documents />}
+													path='/forgot-password'
+													element={<ForgotPassword />}
 												/>
 												<Route
-													path='/calendar'
-													element={<Calendar />}
+													path='/reset-password'
+													element={<ResetPassword />}
+												/>
+												<Route
+													path='/auth/callback'
+													element={<AuthCallback />}
 												/>
 
-												{/* Settings routes */}
+												{/* Legal pages (public) */}
 												<Route
-													path='/settings'
+													path='/privacy-policy'
+													element={<PrivacyPolicy />}
+												/>
+												<Route
+													path='/terms'
+													element={<TermsOfService />}
+												/>
+												<Route
+													path='/contact'
+													element={<Contact />}
+												/>
+
+												{/* Help pages (moved outside of ProtectedRoute) */}
+												<Route
+													path='/help/browser-extension'
 													element={
 														<Suspense fallback={<LoadingFallback />}>
-															<SettingsIndex />
-														</Suspense>
-													}
-												/>
-												<Route
-													path='/settings/integrations'
-													element={
-														<Suspense
-															fallback={<LoadingFallback />}
-															key='integrations-page'
-														>
-															<IntegrationsPage />
-														</Suspense>
-													}
-												/>
-												<Route
-													path='/settings/profile'
-													element={
-														<Suspense fallback={<LoadingFallback />}>
-															<ProfilePage />
-														</Suspense>
-													}
-												/>
-												<Route
-													path='/settings/security'
-													element={
-														<Suspense fallback={<LoadingFallback />}>
-															<SecurityPage />
-														</Suspense>
-													}
-												/>
-												<Route
-													path='/settings/notifications'
-													element={
-														<Suspense fallback={<LoadingFallback />}>
-															<NotificationsPage />
+															<BrowserExtensionHelp />
 														</Suspense>
 													}
 												/>
 
-												<Route
-													path='/notifications'
-													element={<Notifications />}
-												/>
-												<Route
-													path='/admin/security'
-													element={<SecurityAdmin />}
-												/>
-											</Route>
+												{/* Protected routes */}
+												<Route element={<ProtectedRoute />}>
+													<Route
+														path='/dashboard'
+														element={<Index />}
+													/>
+													<Route
+														path='/applications'
+														element={<Applications />}
+													/>
+													<Route
+														path='/kanban'
+														element={<Kanban />}
+													/>
+													<Route
+														path='/documents'
+														element={<Documents />}
+													/>
+													<Route
+														path='/calendar'
+														element={<Calendar />}
+													/>
 
-											{/* Catch-all route */}
-											<Route
-												path='*'
-												element={<NotFound />}
-											/>
-										</Routes>
-									</TooltipProvider>
-								</NotificationProvider>
-							</JobProvider>
-						</AvatarProvider>
-					</AuthProvider>
+													{/* Settings routes */}
+													<Route
+														path='/settings'
+														element={
+															<Suspense fallback={<LoadingFallback />}>
+																<SettingsIndex />
+															</Suspense>
+														}
+													/>
+													<Route
+														path='/settings/integrations'
+														element={
+															<Suspense
+																fallback={<LoadingFallback />}
+																key='integrations-page'
+															>
+																<IntegrationsPage />
+															</Suspense>
+														}
+													/>
+													<Route
+														path='/settings/profile'
+														element={
+															<Suspense fallback={<LoadingFallback />}>
+																<ProfilePage />
+															</Suspense>
+														}
+													/>
+													<Route
+														path='/settings/security'
+														element={
+															<Suspense fallback={<LoadingFallback />}>
+																<SecurityPage />
+															</Suspense>
+														}
+													/>
+													<Route
+														path='/settings/notifications'
+														element={
+															<Suspense fallback={<LoadingFallback />}>
+																<NotificationsPage />
+															</Suspense>
+														}
+													/>
+
+													<Route
+														path='/notifications'
+														element={<Notifications />}
+													/>
+													<Route
+														path='/admin/security'
+														element={<SecurityAdmin />}
+													/>
+												</Route>
+
+												{/* Catch-all route */}
+												<Route
+													path='*'
+													element={<NotFound />}
+												/>
+											</Routes>
+										</TooltipProvider>
+									</NotificationProvider>
+								</JobProvider>
+							</AvatarProvider>
+						</AuthProvider>
+					</MobileToastProvider>
 				</ToastStateProvider>
 			</QueryClientProvider>
 		</BrowserRouter>

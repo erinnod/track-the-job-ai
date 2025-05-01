@@ -1,6 +1,7 @@
 import Layout from '@/components/layout/Layout'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import JobList from '@/components/jobs/JobList'
+import JobListHeader from '@/components/jobs/JobListHeader'
 import { JobApplication } from '@/data/mockJobs'
 import { useJobs } from '@/contexts/JobContext'
 import {
@@ -34,6 +35,7 @@ const Applications = () => {
 	const [viewMode, setViewMode] = useState<
 		'all' | 'active' | 'saved' | 'rejected' | 'offers'
 	>('all')
+	const [sortBy, setSortBy] = useState('newest')
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 	const [statusesToDelete, setStatusesToDelete] = useState<
 		Record<string, boolean>
@@ -49,6 +51,25 @@ const Applications = () => {
 	const { toast } = useToast()
 	const navigate = useNavigate()
 	const { jobs, isLoading, deleteJob, refreshJobs } = useJobs()
+
+	// Get the current job count based on active tab
+	const getCurrentJobCount = () => {
+		switch (viewMode) {
+			case 'active':
+				return jobs.filter(
+					(job) => job.status === 'applied' || job.status === 'interview'
+				).length
+			case 'saved':
+				return jobs.filter((job) => job.status === 'saved').length
+			case 'rejected':
+				return jobs.filter((job) => job.status === 'rejected').length
+			case 'offers':
+				return jobs.filter((job) => job.status === 'offer').length
+			case 'all':
+			default:
+				return jobs.length
+		}
+	}
 
 	// Toggle a status selection
 	const toggleStatus = (status: string) => {
@@ -163,8 +184,8 @@ const Applications = () => {
 
 	return (
 		<Layout>
-			<div className='space-y-8'>
-				<div className='flex justify-between items-center mb-6'>
+			<div className='space-y-4'>
+				<div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
 					<div>
 						<h1 className='text-2xl font-bold text-gray-900'>
 							My Applications
@@ -177,8 +198,9 @@ const Applications = () => {
 					<Button
 						onClick={handleRefresh}
 						variant='outline'
+						size='sm'
 						disabled={isRefreshing}
-						className='gap-2'
+						className='gap-2 self-start'
 					>
 						<RefreshCw
 							className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
@@ -190,55 +212,26 @@ const Applications = () => {
 				<Tabs
 					defaultValue='all'
 					className='w-full'
+					onValueChange={(value) => setViewMode(value as any)}
 				>
-					<div className='flex justify-between items-center mb-6'>
-						<TabsList className='bg-gray-100 p-1'>
-							<TabsTrigger
-								value='all'
-								className='rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900'
-								onClick={() => setViewMode('all')}
-							>
-								All Applications
-							</TabsTrigger>
-							<TabsTrigger
-								value='active'
-								className='rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900'
-								onClick={() => setViewMode('active')}
-							>
-								Active
-							</TabsTrigger>
-							<TabsTrigger
-								value='saved'
-								className='rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900'
-								onClick={() => setViewMode('saved')}
-							>
-								Saved
-							</TabsTrigger>
-							<TabsTrigger
-								value='rejected'
-								className='rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900'
-								onClick={() => setViewMode('rejected')}
-							>
-								Rejected
-							</TabsTrigger>
-							<TabsTrigger
-								value='offers'
-								className='rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-900'
-								onClick={() => setViewMode('offers')}
-							>
-								Offers
-							</TabsTrigger>
-						</TabsList>
-					</div>
+					<div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4'>
+						<div className='w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0'>
+							<TabsList className='mb-4'>
+								<TabsTrigger value='all'>All Applications</TabsTrigger>
+								<TabsTrigger value='active'>Active</TabsTrigger>
+								<TabsTrigger value='saved'>Saved</TabsTrigger>
+								<TabsTrigger value='rejected'>Rejected</TabsTrigger>
+								<TabsTrigger value='offers'>Offers</TabsTrigger>
+							</TabsList>
+						</div>
 
-					<div className='flex justify-end mb-4'>
 						<Dialog
 							open={isDeleteDialogOpen}
 							onOpenChange={setIsDeleteDialogOpen}
 						>
 							<DialogTrigger asChild>
 								<Button
-									className='rounded-md text-sm h-9'
+									className='mt-2 sm:mt-0 rounded-md text-sm h-9'
 									variant='destructive'
 									size='sm'
 								>
@@ -361,58 +354,83 @@ const Applications = () => {
 						</Dialog>
 					</div>
 
-					<TabsContent value='all'>
-						<div className='bg-white rounded-lg p-6'>
-							<JobList
-								jobs={jobs}
-								isLoading={isLoading}
-								onRetry={handleRefresh}
-							/>
-						</div>
-					</TabsContent>
+					<div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+						<JobListHeader
+							jobCount={getCurrentJobCount()}
+							sortBy={sortBy}
+							setSortBy={setSortBy}
+						/>
 
-					<TabsContent value='active'>
-						<div className='bg-white rounded-lg p-6'>
-							<JobList
-								jobs={jobs.filter(
-									(job) =>
-										job.status === 'applied' || job.status === 'interview'
-								)}
-								isLoading={isLoading}
-								onRetry={handleRefresh}
-							/>
-						</div>
-					</TabsContent>
+						<div className='mt-6'>
+							<TabsContent
+								value='all'
+								className='p-0 mt-0'
+							>
+								<JobList
+									jobs={jobs}
+									isLoading={isLoading}
+									onRetry={handleRefresh}
+									sortBy={sortBy}
+									setSortBy={setSortBy}
+								/>
+							</TabsContent>
 
-					<TabsContent value='saved'>
-						<div className='bg-white rounded-lg p-6'>
-							<JobList
-								jobs={jobs.filter((job) => job.status === 'saved')}
-								isLoading={isLoading}
-								onRetry={handleRefresh}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value='active'
+								className='p-0 mt-0'
+							>
+								<JobList
+									jobs={jobs.filter(
+										(job) =>
+											job.status === 'applied' || job.status === 'interview'
+									)}
+									isLoading={isLoading}
+									onRetry={handleRefresh}
+									sortBy={sortBy}
+									setSortBy={setSortBy}
+								/>
+							</TabsContent>
 
-					<TabsContent value='rejected'>
-						<div className='bg-white rounded-lg p-6'>
-							<JobList
-								jobs={jobs.filter((job) => job.status === 'rejected')}
-								isLoading={isLoading}
-								onRetry={handleRefresh}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value='saved'
+								className='p-0 mt-0'
+							>
+								<JobList
+									jobs={jobs.filter((job) => job.status === 'saved')}
+									isLoading={isLoading}
+									onRetry={handleRefresh}
+									sortBy={sortBy}
+									setSortBy={setSortBy}
+								/>
+							</TabsContent>
 
-					<TabsContent value='offers'>
-						<div className='bg-white rounded-lg p-6'>
-							<JobList
-								jobs={jobs.filter((job) => job.status === 'offer')}
-								isLoading={isLoading}
-								onRetry={handleRefresh}
-							/>
+							<TabsContent
+								value='rejected'
+								className='p-0 mt-0'
+							>
+								<JobList
+									jobs={jobs.filter((job) => job.status === 'rejected')}
+									isLoading={isLoading}
+									onRetry={handleRefresh}
+									sortBy={sortBy}
+									setSortBy={setSortBy}
+								/>
+							</TabsContent>
+
+							<TabsContent
+								value='offers'
+								className='p-0 mt-0'
+							>
+								<JobList
+									jobs={jobs.filter((job) => job.status === 'offer')}
+									isLoading={isLoading}
+									onRetry={handleRefresh}
+									sortBy={sortBy}
+									setSortBy={setSortBy}
+								/>
+							</TabsContent>
 						</div>
-					</TabsContent>
+					</div>
 				</Tabs>
 			</div>
 		</Layout>

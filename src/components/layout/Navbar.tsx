@@ -1,12 +1,4 @@
-import {
-	Bell,
-	Search,
-	PlusCircle,
-	Menu,
-	Calendar,
-	Bookmark,
-	Info,
-} from 'lucide-react'
+import { Bell, Search, PlusCircle, Menu, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -17,7 +9,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAvatar } from '@/contexts/AvatarContext'
 import { useNotifications } from '@/contexts/NotificationContext'
@@ -25,6 +17,7 @@ import { useToast } from '@/components/ui/use-toast'
 import AddJobModal from '@/components/jobs/AddJobModal'
 import { JobApplication } from '@/data/mockJobs'
 import { supabase } from '@/lib/supabase'
+import { useJobs } from '@/contexts/JobContext'
 
 // Set to false to disable verbose logging in production
 const DEBUG = false
@@ -36,7 +29,11 @@ const debugLog = (...args: any[]) => {
 	}
 }
 
-const Navbar = () => {
+interface NavbarProps {
+	onMenuClick?: () => void
+}
+
+const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 	const [avatarLoading, setAvatarLoading] = useState(true)
@@ -50,6 +47,8 @@ const Navbar = () => {
 	const { notifications, unreadCount, markAsRead, markAllAsRead } =
 		useNotifications()
 	const isMounted = useRef(true)
+	const [addJobModalOpen, setAddJobModalOpen] = useState(false)
+	const { addJob } = useJobs()
 
 	// Get the 3 most recent notifications - memoize to prevent recalculation
 	const recentNotifications = useMemo(() => {
@@ -367,301 +366,281 @@ const Navbar = () => {
 		[navigate]
 	)
 
+	const handleMobileMenuToggle = () => {
+		if (onMenuClick) {
+			onMenuClick()
+		}
+	}
+
+	// Different UI based on authentication status
 	return (
-		<header className='fixed top-0 left-0 right-0 z-30 bg-white'>
-			<div className='mx-auto'>
-				<div className='flex items-center justify-between h-16 px-6 md:px-12 lg:px-16 border-b border-slate-200'>
-					{/* Logo */}
-					<div className='flex items-center'>
-						<Link
-							to={isAuthenticated ? '/dashboard' : '/'}
-							className='flex items-center'
+		<header className='bg-white border-b border-gray-200 fixed w-full z-40'>
+			<div className='px-4 sm:px-6 h-16 flex justify-between items-center'>
+				{/* Logo and menu toggle */}
+				<div className='flex items-center space-x-4'>
+					{isAuthenticated && (
+						<button
+							onClick={handleMobileMenuToggle}
+							className='text-gray-600 focus:outline-none md:hidden'
+							aria-label='Toggle menu'
 						>
-							<img
-								src='/images/jobtrakr-logo.png'
-								alt='JobTrakr Logo'
-								className='h-9'
-								style={{ width: 'auto' }}
+							<Menu className='h-6 w-6' />
+						</button>
+					)}
+					<Link
+						to={isAuthenticated ? '/dashboard' : '/'}
+						className='flex items-center space-x-1.5'
+					>
+						<span className='text-xl font-bold text-blue-600'>JobTrakr</span>
+					</Link>
+				</div>
+
+				{/* Center search - hidden on small screens */}
+				{isAuthenticated && (
+					<div className='hidden sm:flex-1 sm:flex sm:mx-4 max-w-md'>
+						<div className='relative w-full'>
+							<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+								<Search className='h-5 w-5 text-gray-400' />
+							</div>
+							<input
+								type='text'
+								placeholder='Search jobs, companies...'
+								className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
 							/>
-						</Link>
+						</div>
 					</div>
+				)}
 
-					{/* Center navigation */}
-					<nav className='hidden md:flex items-center'>
-						{/* Messages and Community links removed */}
-					</nav>
+				{/* Right side menu - conditionally show based on auth */}
+				<div className='flex items-center space-x-1 sm:space-x-3'>
+					{isAuthenticated ? (
+						<>
+							{/* Mobile search button */}
+							<button className='sm:hidden p-1.5 rounded-lg text-gray-600 hover:bg-gray-100'>
+								<Search className='h-5 w-5' />
+							</button>
 
-					{/* Right section: search, add job, notifications, avatar */}
-					<div className='flex items-center gap-3'>
-						{isAuthenticated && (
-							<>
-								<Button
-									variant='ghost'
-									size='sm'
-									className='text-slate-500 hidden sm:flex hover:bg-slate-100 rounded-full w-9 h-9 p-0'
-									onClick={() => {}}
-								>
-									<Search className='h-4 w-4' />
-								</Button>
+							{/* Add job button - collapsed on mobile */}
+							<div className='hidden sm:block'>
+								<AddJobModal />
+							</div>
+							<Button
+								onClick={() =>
+									document.getElementById('mobile-add-job-trigger')?.click()
+								}
+								size='sm'
+								className='sm:hidden p-1.5 rounded-lg'
+								variant='ghost'
+							>
+								<PlusCircle className='h-5 w-5' />
+							</Button>
+							<div className='hidden'>
+								<AddJobModal buttonId='mobile-add-job-trigger' />
+							</div>
 
-								<div className='hidden sm:block'>
-									<AddJobModal onAddJob={handleAddJob} />
-								</div>
-
-								<DropdownMenu
-									open={notificationsOpen}
-									onOpenChange={setNotificationsOpen}
-								>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant='ghost'
-											size='sm'
-											className='relative text-slate-500 hover:bg-slate-100 rounded-full w-9 h-9 p-0'
-										>
-											<Bell className='h-4 w-4' />
-											{unreadCount > 0 && (
-												<span className='absolute top-0 right-0 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center'>
-													{unreadCount > 9 ? '9+' : unreadCount}
-												</span>
-											)}
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent
-										align='end'
-										className='w-80'
+							{/* Notifications dropdown */}
+							<DropdownMenu
+								open={notificationsOpen}
+								onOpenChange={setNotificationsOpen}
+							>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant='ghost'
+										size='icon'
+										className='relative'
+										onClick={() => setNotificationsOpen(true)}
 									>
-										<div className='flex items-center justify-between p-4 pb-2'>
-											<h3 className='font-medium'>Notifications</h3>
-											{unreadCount > 0 && (
-												<Button
-													variant='ghost'
-													size='sm'
-													className='text-xs text-blue-600 hover:text-blue-800'
-													onClick={() => markAllAsRead()}
-												>
-													Mark all as read
-												</Button>
-											)}
-										</div>
-
-										{notifications.length === 0 ? (
-											<div className='p-4 text-center text-sm text-slate-500'>
-												No notifications yet
-											</div>
-										) : (
-											<>
-												{recentNotifications.map((notification) => (
-													<DropdownMenuItem
-														key={notification.id}
-														className={`p-4 border-b border-slate-100 cursor-pointer ${
-															!notification.read
-																? 'bg-blue-50 hover:bg-blue-100'
-																: ''
-														}`}
-														onClick={() => markAsRead(notification.id)}
-													>
-														<div className='flex gap-3'>
-															<div
-																className={`w-2 h-2 rounded-full mt-2 ${
-																	!notification.read
-																		? 'bg-blue-600'
-																		: 'bg-transparent'
-																}`}
-															></div>
-															<div className='flex-1'>
-																<div className='font-medium text-sm'>
-																	{notification.title}
-																</div>
-																<div className='text-sm text-slate-500 line-clamp-2'>
-																	{notification.description}
-																</div>
-																<div className='text-xs text-slate-400 mt-1'>
-																	{notification.date
-																		? getTimeAgo(notification.date)
-																		: ''}
-																</div>
-															</div>
-														</div>
-													</DropdownMenuItem>
-												))}
-
-												<DropdownMenuSeparator />
-												<DropdownMenuItem
-													className='p-3 text-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer'
-													onClick={() => {
-														setNotificationsOpen(false)
-														navigate('/notifications')
-													}}
-												>
-													View all notifications
-												</DropdownMenuItem>
-											</>
+										<Bell className='h-5 w-5' />
+										{unreadCount > 0 && (
+											<span className='absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white' />
 										)}
-									</DropdownMenuContent>
-								</DropdownMenu>
+									</Button>
+								</DropdownMenuTrigger>
+								{/* Notification dropdown content */}
+								<DropdownMenuContent
+									align='end'
+									className='w-80 overflow-hidden p-0'
+								>
+									<div className='flex items-center justify-between p-4 border-b'>
+										<h3 className='font-medium'>Notifications</h3>
+										{unreadCount > 0 && (
+											<button
+												onClick={() => markAllAsRead()}
+												className='text-xs text-blue-600 hover:underline'
+											>
+												Mark all as read
+											</button>
+										)}
+									</div>
 
+									<div className='max-h-80 overflow-y-auto'>
+										{recentNotifications.length > 0 ? (
+											recentNotifications.map((notification) => (
+												<div
+													key={notification.id}
+													className={`p-4 border-b ${
+														!notification.read
+															? 'bg-blue-50'
+															: 'hover:bg-gray-50'
+													}`}
+													onClick={() => markAsRead(notification.id)}
+												>
+													<div className='flex items-start space-x-3'>
+														<div
+															className={`mt-0.5 rounded-full p-1.5 ${
+																notification.read
+																	? 'bg-gray-100'
+																	: 'bg-blue-100'
+															}`}
+														>
+															{/* Display appropriate icon based on notification type */}
+															<Calendar className='h-4 w-4 text-blue-600' />
+														</div>
+														<div className='flex-1 space-y-1 min-w-0'>
+															<p className='text-sm font-medium text-gray-900 truncate'>
+																{notification.title}
+															</p>
+															<p className='text-xs text-gray-500 truncate'>
+																{notification.description}
+															</p>
+															<p className='text-xs text-gray-400'>
+																{getTimeAgo(notification.date)}
+															</p>
+														</div>
+													</div>
+												</div>
+											))
+										) : (
+											<div className='p-6 text-center text-gray-500'>
+												<p className='text-sm'>No notifications yet</p>
+											</div>
+										)}
+									</div>
+
+									<div className='p-3 bg-gray-50 border-t text-center'>
+										<Link
+											to='/notifications'
+											className='text-xs text-blue-600 hover:underline'
+											onClick={() => setNotificationsOpen(false)}
+										>
+											View all notifications
+										</Link>
+									</div>
+								</DropdownMenuContent>
+							</DropdownMenu>
+
+							{/* User menu */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant='ghost'
+										className='rounded-full w-8 h-8 overflow-hidden p-0'
+									>
+										<div
+											className={`rounded-full overflow-hidden transition-opacity duration-300 ${
+												avatarLoading ? 'opacity-0' : 'opacity-100'
+											} ${avatarFadeIn ? 'animation-fade-in' : ''}`}
+										>
+											<Avatar className='border border-gray-200'>
+												<AvatarImage
+													src={avatarUrl || ''}
+													alt={user?.email || 'User avatar'}
+													onLoad={() => {
+														setAvatarLoading(false)
+														setAvatarFadeIn(true)
+													}}
+												/>
+												<AvatarFallback>
+													{user?.email?.charAt(0).toUpperCase() || 'U'}
+												</AvatarFallback>
+											</Avatar>
+										</div>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align='end'
+									className='w-56'
+								>
+									<div className='p-3 border-b'>
+										<p className='font-medium truncate'>
+											{user?.email || 'User'}
+										</p>
+										<p className='text-xs text-gray-500 mt-0.5 truncate'>
+											{user?.email || ''}
+										</p>
+									</div>
+									<DropdownMenuItem
+										onClick={() => {
+											navigate('/settings/profile')
+										}}
+									>
+										Profile Settings
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onClick={() => {
+											navigate('/settings')
+										}}
+									>
+										Preferences
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem onClick={handleLogout}>
+										Logout
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</>
+					) : (
+						<>
+							{/* Public navigation for non-authenticated users */}
+							<div className='hidden sm:flex space-x-2'>
+								<Link
+									to='/'
+									className='px-3 py-2 text-sm text-gray-700 hover:text-blue-600'
+								>
+									Home
+								</Link>
+								<Link
+									to='/login'
+									className='px-3 py-2 text-sm text-gray-700 hover:text-blue-600'
+								>
+									Log in
+								</Link>
+								<Button
+									asChild
+									size='sm'
+								>
+									<Link to='/signup'>Sign up</Link>
+								</Button>
+							</div>
+							{/* Mobile menu toggle - for non-authenticated */}
+							<div className='sm:hidden'>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
 										<Button
 											variant='ghost'
-											className='relative h-9 w-9 rounded-full overflow-hidden'
+											size='icon'
 										>
-											<Avatar className='h-8 w-8 border border-slate-200'>
-												{avatarUrl ? (
-													<AvatarImage
-														src={avatarUrl}
-														alt='Profile'
-														className='transition-opacity duration-300'
-														style={{ opacity: avatarFadeIn ? 1 : 0 }}
-														onLoad={() => {
-															if (!avatarFadeIn) {
-																console.log('Navbar avatar loaded successfully')
-																setAvatarLoading(false)
-																setTimeout(() => setAvatarFadeIn(true), 50)
-															}
-														}}
-														onError={(e) => {
-															console.error('Error loading navbar avatar:', e)
-															setAvatarLoading(false)
-															setAvatarFadeIn(false)
-														}}
-													/>
-												) : null}
-												<AvatarFallback>{initials}</AvatarFallback>
-											</Avatar>
+											<Menu className='h-5 w-5' />
 										</Button>
 									</DropdownMenuTrigger>
-									<DropdownMenuContent
-										align='end'
-										className='w-56'
-									>
-										<div className='p-2 text-center border-b border-slate-100'>
-											<Avatar className='h-16 w-16 mx-auto mb-2 border border-slate-200'>
-												{avatarUrl ? (
-													<AvatarImage
-														src={avatarUrl}
-														alt='Profile'
-														className='transition-opacity duration-300'
-														style={{ opacity: avatarFadeIn ? 1 : 0 }}
-														onLoad={() => {
-															if (!avatarFadeIn) {
-																console.log(
-																	'Dropdown avatar loaded successfully'
-																)
-																setAvatarLoading(false)
-																setTimeout(() => setAvatarFadeIn(true), 50)
-															}
-														}}
-														onError={(e) => {
-															console.error('Error loading dropdown avatar:', e)
-															setAvatarLoading(false)
-															setAvatarFadeIn(false)
-														}}
-													/>
-												) : null}
-												<AvatarFallback>{initials}</AvatarFallback>
-											</Avatar>
-											<div className='font-medium'>{userDisplayName}</div>
-											<div className='text-xs text-slate-500 truncate'>
-												{user?.email}
-											</div>
-										</div>
-										<DropdownMenuItem
-											onClick={() => navigate('/dashboard')}
-											className='p-2 cursor-pointer'
-										>
-											Dashboard
+									<DropdownMenuContent align='end'>
+										<DropdownMenuItem asChild>
+											<Link to='/'>Home</Link>
 										</DropdownMenuItem>
-										<DropdownMenuItem
-											onClick={() => navigate('/settings')}
-											className='p-2 cursor-pointer'
-										>
-											Settings
+										<DropdownMenuItem asChild>
+											<Link to='/login'>Log in</Link>
 										</DropdownMenuItem>
-										<DropdownMenuItem
-											onClick={() => navigate('/settings/integrations')}
-											className='p-2 cursor-pointer'
-										>
-											Integrations
-										</DropdownMenuItem>
-										<DropdownMenuItem
-											onClick={() =>
-												window.open('/api/auth/extension-redirect', '_blank')
-											}
-											className='p-2 cursor-pointer'
-										>
-											Connect Browser Extension
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem
-											onClick={handleLogout}
-											className='p-2 text-red-600 hover:text-red-800 cursor-pointer'
-										>
-											Log out
+										<DropdownMenuItem asChild>
+											<Link to='/signup'>Sign up</Link>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
-							</>
-						)}
-
-						{!isAuthenticated && (
-							<div className='flex items-center gap-2'>
-								<Link to='/help/browser-extension'>
-									<Button
-										variant='ghost'
-										size='sm'
-										className='text-slate-500'
-									>
-										<Info className='h-4 w-4 mr-1' />
-										Browser Extension
-									</Button>
-								</Link>
-								<Link to='/login'>
-									<Button
-										variant='ghost'
-										size='sm'
-									>
-										Log in
-									</Button>
-								</Link>
-								<Link to='/signup'>
-									<Button size='sm'>Sign up</Button>
-								</Link>
 							</div>
-						)}
-
-						{/* Mobile menu button */}
-						<Button
-							variant='ghost'
-							size='sm'
-							className='text-slate-500 md:hidden hover:bg-slate-100 rounded-full w-9 h-9 p-0'
-							onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-						>
-							<Menu className='h-5 w-5' />
-						</Button>
-					</div>
+						</>
+					)}
 				</div>
 			</div>
-
-			{/* Mobile menu */}
-			{mobileMenuOpen && (
-				<div className='md:hidden bg-white border-b border-slate-200 shadow-md animate-in slide-in-from-top duration-200'>
-					<div className='px-6 py-4 space-y-2'>
-						{/* Messages and Community links removed */}
-						<Button
-							variant='ghost'
-							size='sm'
-							className='w-full justify-start text-slate-600 hover:text-blue-600 hover:bg-slate-50 py-2.5 px-3 h-auto rounded-md'
-						>
-							<Search className='h-4 w-4 mr-2' />
-							Search
-						</Button>
-						<div className='w-full pt-1'>
-							<AddJobModal onAddJob={handleAddJob} />
-						</div>
-					</div>
-				</div>
-			)}
 		</header>
 	)
 }

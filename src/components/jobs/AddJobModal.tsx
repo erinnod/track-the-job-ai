@@ -17,9 +17,10 @@ import JobForm from './JobForm'
 
 interface AddJobModalProps {
 	onAddJob?: (job: JobApplication) => void
+	buttonId?: string
 }
 
-const AddJobModal = ({ onAddJob }: AddJobModalProps) => {
+const AddJobModal = ({ onAddJob, buttonId }: AddJobModalProps) => {
 	const [open, setOpen] = useState(false)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const { addJob } = useJobs()
@@ -59,7 +60,10 @@ const AddJobModal = ({ onAddJob }: AddJobModalProps) => {
 			onOpenChange={setOpen}
 		>
 			<DialogTrigger asChild>
-				<Button className='flex items-center'>
+				<Button
+					className='flex items-center'
+					id={buttonId}
+				>
 					<PlusCircle className='h-4 w-4 mr-2' />
 					Add Job
 				</Button>
