@@ -11,6 +11,15 @@ export default defineConfig(({ mode }) => ({
     cors: {
       origin: ["http://localhost:8080", "http://localhost:3000"],
     },
+    fs: {
+      // Allow serving files from one level up to the project root
+      strict: false,
+    },
+    hmr: {
+      // Make HMR more robust
+      overlay: true,
+      clientPort: 8080,
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(
     Boolean
@@ -18,6 +27,19 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  optimizeDeps: {
+    include: ["framer-motion"],
+    force: true,
+  },
+  build: {
+    // Generate sourcemaps
+    sourcemap: mode === "development",
+    // Ensure proper module handling
+    modulePreload: true,
+    commonjsOptions: {
+      transformMixedEsModules: true,
     },
   },
 }));
