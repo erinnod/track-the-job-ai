@@ -12,6 +12,7 @@ app.use((req, res, next) => {
     "Content-Security-Policy",
     "default-src 'self'; " +
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+      "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://*.jobtrakr.co.uk/ https://jobtrakr.co.uk/ http://localhost:* https://localhost:*; " +
       "connect-src 'self' https://*.supabase.co https://kffbwemulhhsyaiooabh.supabase.co wss://*.supabase.co wss://kffbwemulhhsyaiooabh.supabase.co https://api.jobtrakr.co.uk https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com https://api.openai.com; " +
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' https://*.supabase.co data: blob: https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com; " +

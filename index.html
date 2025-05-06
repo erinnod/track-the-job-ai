@@ -5,6 +5,12 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- CSP Fallback (will be overridden by server headers, but provides a backup) -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval';"
+    />
+
     <!-- Cross-Origin Isolation -->
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
@@ -53,6 +59,7 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- The type="module" script with src attribute should be allowed by CSP, but adding nonce for extra safety -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
