@@ -238,7 +238,22 @@ const fetchProfileData = async (userId: string) => {
   try {
     // Create a new fetch promise and store it
     const fetchPromise = Promise.resolve(
-      supabase.from("profiles").select("*").eq("id", userId).single()
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .then((response) => {
+          // Handle common case of no profile found - avoid using .single() to prevent errors
+          if (response.data && response.data.length > 0) {
+            return { data: response.data[0], error: null };
+          } else if (response.error) {
+            return { data: null, error: response.error };
+          } else {
+            // Return empty data but not an error when profile doesn't exist yet
+            debugLog("No profile found for user", userId);
+            return { data: null, error: null };
+          }
+        })
     );
 
     // Store the promise for deduplication

@@ -1,7 +1,9 @@
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCcw } from "lucide-react";
+import { forceReloadAllAvatars } from "@/lib/avatar-utils";
+import RefreshAvatarButton from "./RefreshAvatarButton";
 
 export const AvatarSection = ({
   getInitials,
@@ -29,12 +31,20 @@ export const AvatarSection = ({
     fileInputRef.current?.click();
   };
 
+  // Handle manual refresh
+  const handleRefresh = () => {
+    forceReloadAllAvatars();
+  };
+
   return (
     <div className="flex flex-col items-center space-y-3 mb-6">
       <div className="relative">
         <Avatar className="h-24 w-24 border">
           {avatarUrl ? (
-            <AvatarImage src={avatarUrl} alt="Profile picture" />
+            <AvatarImage
+              src={`${avatarUrl}?t=${Date.now()}`}
+              alt="Profile picture"
+            />
           ) : null}
           <AvatarFallback className="text-xl bg-blue-100 text-blue-700">
             {getInitials()}
@@ -55,21 +65,25 @@ export const AvatarSection = ({
         className="hidden"
       />
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleButtonClick}
-        disabled={isUploading}
-      >
-        {isUploading ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Uploading...
-          </>
-        ) : (
-          "Change Profile Picture"
-        )}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleButtonClick}
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            "Change Profile Picture"
+          )}
+        </Button>
+
+        <RefreshAvatarButton />
+      </div>
     </div>
   );
 };

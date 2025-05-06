@@ -5,6 +5,10 @@ import { supabase } from "@/lib/supabase";
 import { PersonalFormValues } from "@/components/settings/profile/PersonalInfoForm";
 import { useAvatar } from "@/contexts/AvatarContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { forceReloadAllAvatars } from "@/lib/avatar-utils";
+
+// Constants for storage and caching
+const AVATAR_UPDATE_KEY = "avatar_last_update";
 
 export const useProfileForm = () => {
   const { toast } = useToast();
@@ -76,41 +80,118 @@ export const useProfileForm = () => {
 
       const userId = user.id;
 
+      // Check if profile exists first
+      const { data: profileData, error: profileCheckError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId);
+
+      if (profileCheckError) {
+        console.error("Error checking profile existence:", profileCheckError);
+      }
+
+      const profileExists = profileData && profileData.length > 0;
+
+      // Generate file path with timestamp to prevent caching issues
       const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${userId}-${timestamp}.${fileExt}`;
       const filePath = `${userId}/${fileName}`;
 
+      // Show local preview immediately
       const localPreview = URL.createObjectURL(file);
       setAvatarUrl(localPreview);
 
+      // Upload the file to storage
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, {
-          cacheControl: "3600",
+          cacheControl: "no-cache", // Prevent caching
           upsert: true,
         });
 
       if (uploadError) {
-        throw new Error("Failed to upload file");
+        throw new Error("Failed to upload file: " + uploadError.message);
       }
 
-      await supabase.from("profiles").upsert({
+      // Update profile with the new avatar URL
+      const profileUpdateData = {
         id: userId,
         avatar_url: filePath,
         updated_at: new Date().toISOString(),
-      });
+      };
 
+      let updateError;
+
+      if (profileExists) {
+        // Update existing profile
+        const { error } = await supabase
+          .from("profiles")
+          .update(profileUpdateData)
+          .eq("id", userId);
+        updateError = error;
+      } else {
+        // Insert new profile
+        const { error } = await supabase.from("profiles").insert({
+          ...profileUpdateData,
+          first_name: form.getValues("firstName") || "",
+          last_name: form.getValues("lastName") || "",
+          email: form.getValues("email") || user.email || "",
+          created_at: new Date().toISOString(),
+        });
+        updateError = error;
+      }
+
+      if (updateError) {
+        throw new Error("Failed to update profile: " + updateError.message);
+      }
+
+      // Clean up the local preview
       URL.revokeObjectURL(localPreview);
 
-      getAvatarUrl(filePath);
+      // Aggressively clear all caches
+      sessionStorage.clear(); // Clear all session storage
 
+      // Clear specific avatar-related caches
+      localStorage.removeItem(AVATAR_UPDATE_KEY);
+      sessionStorage.removeItem(`avatar_${userId}`);
+      sessionStorage.removeItem(`avatar_timestamp_${userId}`);
+
+      // Force reload the avatar
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Get the public URL for the avatar with cache busting
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      if (urlData?.publicUrl) {
+        // Add cache busting parameter
+        const cacheBustUrl = `${urlData.publicUrl}?t=${timestamp}`;
+        setAvatarUrl(cacheBustUrl);
+      }
+
+      // Use our utility function to force reload avatars across the app
+      forceReloadAllAvatars();
+
+      // Also do the standard triggers for backup
       triggerAvatarUpdate();
+
+      setTimeout(() => {
+        triggerAvatarUpdate();
+      }, 500);
+
+      setTimeout(() => {
+        // One final force reload after a delay
+        forceReloadAllAvatars();
+      }, 1500);
 
       toast({
         title: "Profile picture updated",
         description: "Your profile picture has been updated successfully.",
       });
     } catch (error: any) {
+      console.error("Profile upload error:", error);
       toast({
         title: "Upload failed",
         description: error.message || "Could not upload your profile picture.",

@@ -34,8 +34,8 @@ export default defineConfig(({ mode }) => ({
     force: true,
   },
   build: {
-    // Generate sourcemaps
-    sourcemap: mode === "development",
+    // Generate sourcemaps - use 'true' instead of conditional for consistent formatting
+    sourcemap: true,
     // Ensure proper module handling
     modulePreload: true,
     commonjsOptions: {
