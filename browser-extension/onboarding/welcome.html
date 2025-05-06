@@ -1,348 +1,396 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to JobTrakr</title>
-    <style>
-      :root {
-        --primary-color: #4a86e8;
-        --primary-hover: #3a76d8;
-        --secondary-color: #f8f9fa;
-        --text-color: #333;
-        --border-color: #e0e0e0;
-        --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-      }
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+		<title>Welcome to JobTrakr</title>
+		<style>
+			:root {
+				--primary-color: #4a86e8;
+				--primary-hover: #3a76d8;
+				--secondary-color: #f8f9fa;
+				--text-color: #333;
+				--border-color: #e0e0e0;
+				--font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+					Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+			}
 
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
 
-      body {
-        font-family: var(--font-family);
-        color: var(--text-color);
-        background-color: var(--secondary-color);
-        line-height: 1.6;
-      }
+			body {
+				font-family: var(--font-family);
+				color: var(--text-color);
+				background-color: var(--secondary-color);
+				line-height: 1.6;
+			}
 
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 40px 20px;
-      }
+			.container {
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 40px 20px;
+			}
 
-      .header {
-        text-align: center;
-        margin-bottom: 40px;
-      }
+			.header {
+				text-align: center;
+				margin-bottom: 40px;
+			}
 
-      .logo-placeholder {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 20px;
-        background-color: #4a86e8;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 40px;
-        font-weight: bold;
-      }
+			.logo-placeholder {
+				width: 80px;
+				height: 80px;
+				margin: 0 auto 20px;
+				background-color: #4a86e8;
+				border-radius: 10px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: white;
+				font-size: 40px;
+				font-weight: bold;
+			}
 
-      h1 {
-        font-size: 32px;
-        font-weight: 600;
-        color: var(--primary-color);
-        margin-bottom: 16px;
-      }
+			h1 {
+				font-size: 32px;
+				font-weight: 600;
+				color: var(--primary-color);
+				margin-bottom: 16px;
+			}
 
-      h2 {
-        font-size: 24px;
-        font-weight: 500;
-        margin-top: 40px;
-        margin-bottom: 16px;
-      }
+			h2 {
+				font-size: 24px;
+				font-weight: 500;
+				margin-top: 40px;
+				margin-bottom: 16px;
+			}
 
-      p {
-        margin-bottom: 20px;
-        font-size: 16px;
-        color: #555;
-      }
+			p {
+				margin-bottom: 20px;
+				font-size: 16px;
+				color: #555;
+			}
 
-      .card {
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 24px;
-        margin-bottom: 24px;
-      }
+			.card {
+				background-color: white;
+				border-radius: 8px;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+				padding: 24px;
+				margin-bottom: 24px;
+			}
 
-      .feature {
-        display: flex;
-        align-items: flex-start;
-        margin-bottom: 24px;
-      }
+			.feature {
+				display: flex;
+				align-items: flex-start;
+				margin-bottom: 24px;
+			}
 
-      .feature-icon {
-        font-size: 24px;
-        margin-right: 16px;
-        min-width: 24px;
-        text-align: center;
-      }
+			.feature-icon {
+				font-size: 24px;
+				margin-right: 16px;
+				min-width: 24px;
+				text-align: center;
+			}
 
-      .feature-content {
-        flex: 1;
-      }
+			.feature-content {
+				flex: 1;
+			}
 
-      .feature-content h3 {
-        font-size: 18px;
-        margin-bottom: 8px;
-      }
+			.feature-content h3 {
+				font-size: 18px;
+				margin-bottom: 8px;
+			}
 
-      .steps {
-        margin-top: 24px;
-        margin-bottom: 32px;
-      }
+			.steps {
+				margin-top: 24px;
+				margin-bottom: 32px;
+			}
 
-      .step {
-        display: flex;
-        margin-bottom: 24px;
-      }
+			.step {
+				display: flex;
+				margin-bottom: 24px;
+			}
 
-      .step-number {
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--primary-color);
-        margin-right: 16px;
-        min-width: 30px;
-      }
+			.step-number {
+				font-size: 24px;
+				font-weight: 600;
+				color: var(--primary-color);
+				margin-right: 16px;
+				min-width: 30px;
+			}
 
-      .step-content {
-        flex: 1;
-      }
+			.step-content {
+				flex: 1;
+			}
 
-      .step-content h3 {
-        font-size: 18px;
-        margin-bottom: 8px;
-      }
+			.step-content h3 {
+				font-size: 18px;
+				margin-bottom: 8px;
+			}
 
-      .button {
-        display: inline-block;
-        padding: 12px 24px;
-        background-color: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        text-decoration: none;
-        transition: background-color 0.2s;
-      }
+			.button {
+				display: inline-block;
+				padding: 12px 24px;
+				background-color: var(--primary-color);
+				color: white;
+				border: none;
+				border-radius: 4px;
+				font-size: 16px;
+				font-weight: 500;
+				cursor: pointer;
+				text-decoration: none;
+				transition: background-color 0.2s;
+			}
 
-      .button:hover {
-        background-color: var(--primary-hover);
-      }
+			.button:hover {
+				background-color: var(--primary-hover);
+			}
 
-      .image-placeholder {
-        width: 100%;
-        height: 160px;
-        background-color: #e9ecef;
-        border-radius: 4px;
-        margin: 16px 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #868e96;
-        font-size: 14px;
-        border: 1px solid var(--border-color);
-      }
+			.screenshot {
+				width: 100%;
+				max-height: 200px;
+				border-radius: 4px;
+				margin: 16px 0;
+				border: 1px solid var(--border-color);
+				object-fit: contain;
+				box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+			}
 
-      .text-center {
-        text-align: center;
-      }
+			.text-center {
+				text-align: center;
+			}
 
-      .cta-container {
-        margin-top: 40px;
-        text-align: center;
-      }
+			.cta-container {
+				margin-top: 40px;
+				text-align: center;
+			}
 
-      footer {
-        margin-top: 60px;
-        text-align: center;
-        font-size: 14px;
-        color: #666;
-      }
+			footer {
+				margin-top: 60px;
+				text-align: center;
+				font-size: 14px;
+				color: #666;
+			}
 
-      footer a {
-        color: var(--primary-color);
-        text-decoration: none;
-      }
+			footer a {
+				color: var(--primary-color);
+				text-decoration: none;
+			}
 
-      footer a:hover {
-        text-decoration: underline;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <div class="logo-placeholder">J</div>
-        <h1>Welcome to JobTrakr</h1>
-        <p>
-          Thanks for installing the JobTrakr extension! Here's how to get
-          started.
-        </p>
-      </div>
+			footer a:hover {
+				text-decoration: underline;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<div class="logo-placeholder">J</div>
+				<h1>Welcome to JobTrakr</h1>
+				<p>
+					Thanks for installing the JobTrakr extension! Here's how to get
+					started.
+				</p>
+			</div>
 
-      <div class="card">
-        <h2>What is JobTrakr?</h2>
-        <p>
-          JobTrakr helps you organize and track your job search in one place.
-          With this extension, you can easily save job listings from LinkedIn
-          and Indeed with a single click, without having to manually copy and
-          paste information.
-        </p>
+			<div class="card">
+				<h2>What is JobTrakr?</h2>
+				<p>
+					JobTrakr helps you organize and track your job search in one place.
+					With this extension, you can easily save job listings from LinkedIn
+					and Indeed with a single click, without having to manually copy and
+					paste information.
+				</p>
 
-        <div class="features">
-          <div class="feature">
-            <div class="feature-icon">💾</div>
-            <div class="feature-content">
-              <h3>Save Jobs with One Click</h3>
-              <p>
-                Automatically extract job details from LinkedIn and Indeed and
-                save them to your JobTrakr account.
-              </p>
-            </div>
-          </div>
+				<div class="features">
+					<div class="feature">
+						<div class="feature-icon">💾</div>
+						<div class="feature-content">
+							<h3>Save Jobs with One Click</h3>
+							<p>
+								Automatically extract job details from LinkedIn and Indeed and
+								save them to your JobTrakr account.
+							</p>
+						</div>
+					</div>
 
-          <div class="feature">
-            <div class="feature-icon">📊</div>
-            <div class="feature-content">
-              <h3>Track Your Progress</h3>
-              <p>
-                Keep track of all your applications, interviews, and follow-ups
-                in one place.
-              </p>
-            </div>
-          </div>
+					<div class="feature">
+						<div class="feature-icon">📊</div>
+						<div class="feature-content">
+							<h3>Track Your Progress</h3>
+							<p>
+								Keep track of all your applications, interviews, and follow-ups
+								in one place.
+							</p>
+						</div>
+					</div>
 
-          <div class="feature">
-            <div class="feature-icon">🔔</div>
-            <div class="feature-content">
-              <h3>Get Reminders</h3>
-              <p>
-                Receive notifications for upcoming interviews and follow-up
-                reminders.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+					<div class="feature">
+						<div class="feature-icon">🔔</div>
+						<div class="feature-content">
+							<h3>Get Reminders</h3>
+							<p>
+								Receive notifications for upcoming interviews and follow-up
+								reminders.
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
 
-      <h2>How to Use the Extension</h2>
+			<h2>How to Use the Extension</h2>
 
-      <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <div class="step-content">
-            <h3>Create a JobTrakr Account</h3>
-            <p>
-              If you don't already have a JobTrakr account, you'll need to
-              create one to start saving jobs.
-            </p>
-            <a
-              href="https://jobtrakr.co.uk/signup"
-              target="_blank"
-              class="button"
-              >Create Account</a
-            >
-          </div>
-        </div>
+			<div class="steps">
+				<div class="step">
+					<div class="step-number">1</div>
+					<div class="step-content">
+						<h3>Create a JobTrakr Account</h3>
+						<p>
+							If you don't already have a JobTrakr account, you'll need to
+							create one to start saving jobs.
+						</p>
+						<a
+							href="https://jobtrakr.co.uk/signup"
+							target="_blank"
+							class="button"
+							>Create Account</a
+						>
+					</div>
+				</div>
 
-        <div class="step">
-          <div class="step-number">2</div>
-          <div class="step-content">
-            <h3>Browse Job Listings</h3>
-            <p>
-              Go to LinkedIn or Indeed and browse job listings as you normally
-              would.
-            </p>
-            <div class="image-placeholder">LinkedIn Jobs Page Example</div>
-          </div>
-        </div>
+				<div class="step">
+					<div class="step-number">2</div>
+					<div class="step-content">
+						<h3>Browse Job Listings</h3>
+						<p>
+							Go to LinkedIn or Indeed and browse job listings as you normally
+							would.
+						</p>
+						<div
+							class="screenshot"
+							style="
+								height: 200px;
+								background-color: #f5f7fa;
+								display: flex;
+								align-items: center;
+								justify-content: center;
+								text-align: center;
+								color: #666;
+								font-size: 16px;
+								border: 1px solid #ddd;
+							"
+						>
+							LinkedIn Jobs Page Example<br />
+							<small>(Search for jobs you're interested in)</small>
+						</div>
+					</div>
+				</div>
 
-        <div class="step">
-          <div class="step-number">3</div>
-          <div class="step-content">
-            <h3>Save Jobs with One Click</h3>
-            <p>
-              When you find a job you're interested in, click the "Save to
-              JobTrakr" button that appears on the job listing page.
-            </p>
-            <div class="image-placeholder">Save to JobTrakr Button Example</div>
-          </div>
-        </div>
+				<div class="step">
+					<div class="step-number">3</div>
+					<div class="step-content">
+						<h3>Save Jobs with One Click</h3>
+						<p>
+							When you find a job you're interested in, click the "Save to
+							JobTrakr" button that appears on the job listing page.
+						</p>
+						<div
+							class="screenshot"
+							style="
+								height: 200px;
+								background-color: #f5f7fa;
+								display: flex;
+								align-items: center;
+								justify-content: center;
+								text-align: center;
+								color: #666;
+								font-size: 16px;
+								border: 1px solid #ddd;
+							"
+						>
+							<div
+								style="
+									background-color: #4a86e8;
+									color: white;
+									padding: 10px 20px;
+									border-radius: 4px;
+									font-weight: bold;
+									box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+								"
+							>
+								Save to JobTrakr
+							</div>
+						</div>
+					</div>
+				</div>
 
-        <div class="step">
-          <div class="step-number">4</div>
-          <div class="step-content">
-            <h3>Track Your Job Search</h3>
-            <p>
-              Visit your JobTrakr dashboard to view all saved jobs, update their
-              status, add notes, and track your overall progress.
-            </p>
-            <div class="step-content">
-              <a
-                href="https://www.jobtrakr.co.uk/dashboard"
-                target="_blank"
-                class="button"
-                >Go to Dashboard</a
-              >
-            </div>
-          </div>
-        </div>
-      </div>
+				<div class="step">
+					<div class="step-number">4</div>
+					<div class="step-content">
+						<h3>Track Your Job Search</h3>
+						<p>
+							Visit your JobTrakr dashboard to view all saved jobs, update their
+							status, add notes, and track your overall progress.
+						</p>
+						<div class="step-content">
+							<a
+								href="https://www.jobtrakr.co.uk/dashboard"
+								target="_blank"
+								class="button"
+								>Go to Dashboard</a
+							>
+						</div>
+					</div>
+				</div>
+			</div>
 
-      <div class="cta-container">
-        <h2>Ready to Start Your Organized Job Search?</h2>
-        <p>Start saving jobs now or customize your extension settings.</p>
-        <a href="https://www.jobtrakr.co.uk/" target="_blank" class="button"
-          >Open JobTrakr</a
-        >
-        <button
-          id="options-button"
-          class="button"
-          style="
-            background-color: white;
-            color: var(--primary-color);
-            border: 1px solid var(--primary-color);
-            margin-left: 16px;
-          "
-        >
-          Extension Options
-        </button>
-      </div>
+			<div class="cta-container">
+				<h2>Ready to Start Your Organised Job Search?</h2>
+				<p>Start saving jobs now or customise your extension settings.</p>
+				<a
+					href="https://www.jobtrakr.co.uk/"
+					target="_blank"
+					class="button"
+					>Open JobTrakr</a
+				>
+				<button
+					id="options-button"
+					class="button"
+					style="
+						background-color: white;
+						color: var(--primary-color);
+						border: 1px solid var(--primary-color);
+						margin-left: 16px;
+					"
+				>
+					Extension Options
+				</button>
+			</div>
 
-      <footer>
-        <p>
-          Need help? Visit our
-          <a href="https://www.jobtrakr.co.uk/help" target="_blank"
-            >Help Center</a
-          >
-          or
-          <a href="https://www.jobtrakr.co.uk/contact" target="_blank"
-            >Contact Support</a
-          >.
-        </p>
-        <p>JobTrakr &copy; 2023. All rights reserved.</p>
-      </footer>
-    </div>
+			<footer>
+				<p>
+					Need help? Visit our
+					<a
+						href="https://www.jobtrakr.co.uk/help"
+						target="_blank"
+						>Help Center</a
+					>
+					or
+					<a
+						href="https://www.jobtrakr.co.uk/contact"
+						target="_blank"
+						>Contact Support</a
+					>.
+				</p>
+				<p>JobTrakr &copy; 2025. All rights reserved.</p>
+			</footer>
+		</div>
 
-    <script src="welcome.js"></script>
-  </body>
+		<script src="welcome.js"></script>
+	</body>
 </html>

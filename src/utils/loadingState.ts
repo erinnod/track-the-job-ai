@@ -5,7 +5,7 @@
  */
 
 // Create a global store for loading keys
-const loadingKeys: Record<string, number> = {};
+const loadingKeys: Record<string, number> = {}
 
 /**
  * Gets a loading key for a specific component/page
@@ -13,12 +13,12 @@ const loadingKeys: Record<string, number> = {};
  * @returns The current timestamp key
  */
 export const getLoadingKey = (id: string): number => {
-  // If no key exists for this ID, create one
-  if (!loadingKeys[id]) {
-    refreshLoadingKey(id);
-  }
-  return loadingKeys[id];
-};
+	// If no key exists for this ID, create one
+	if (!loadingKeys[id]) {
+		refreshLoadingKey(id)
+	}
+	return loadingKeys[id]
+}
 
 /**
  * Refreshes a loading key to force data refresh
@@ -26,14 +26,14 @@ export const getLoadingKey = (id: string): number => {
  * @returns The new timestamp key
  */
 export const refreshLoadingKey = (id: string): number => {
-  loadingKeys[id] = Date.now();
-  return loadingKeys[id];
-};
+	loadingKeys[id] = Date.now()
+	return loadingKeys[id]
+}
 
 /**
  * Gets a key function to use in useEffect dependencies or React keys
  * This ensures that useEffect hooks re-run when navigated to
  */
-export const useLoadingKey = (id: string): (() => number) => {
-  return () => getLoadingKey(id);
-};
+export const getLoadingKeyFn = (id: string): (() => number) => {
+	return () => getLoadingKey(id)
+}

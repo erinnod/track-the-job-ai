@@ -1,250 +1,292 @@
-const express = require("express");
-const path = require("path");
-const cookieParser = require("cookie-parser");
-const app = express();
-const PORT = process.env.PORT || 3000;
+const express = require('express')
+const path = require('path')
+const cookieParser = require('cookie-parser')
+const fs = require('fs')
+const rateLimit = require('express-rate-limit')
+const app = express()
+const PORT = process.env.PORT || 3000
+
+// Configure global rate limiting
+const globalLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100, // Limit each IP to 100 requests per windowMs
+	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+	message: {
+		status: 429,
+		message: 'Too many requests, please try again later.',
+	},
+})
+
+// Apply global rate limiting to all requests
+app.use(globalLimiter)
+
+// More strict rate limiting for authentication endpoints
+const authLimiter = rateLimit({
+	windowMs: 60 * 60 * 1000, // 1 hour
+	max: 10, // limit each IP to 10 login requests per hour
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: {
+		status: 429,
+		message: 'Too many authentication attempts, please try again later.',
+	},
+})
 
 // Middleware to parse JSON bodies
-app.use(express.json());
+app.use(express.json())
 
 // Middleware to parse cookies
-app.use(cookieParser());
+app.use(cookieParser())
 
 // Serve static files from the 'dist' directory
-app.use(express.static(path.join(__dirname, "dist")));
+app.use(express.static(path.join(__dirname, 'dist')))
 
 // Set Content Security Policy headers
 app.use((req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-      "connect-src 'self' https://*.supabase.co https://kffbwemulhhsyaiooabh.supabase.co wss://*.supabase.co wss://kffbwemulhhsyaiooabh.supabase.co https://api.jobtrakr.co.uk https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com https://api.openai.com; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' https://*.supabase.co data: blob: https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com; " +
-      "font-src 'self' data:; " +
-      "frame-src 'self' https://*.supabase.co; " +
-      "worker-src 'self' blob:;"
-  );
+	res.setHeader(
+		'Content-Security-Policy',
+		"default-src 'self'; " +
+			"script-src 'self' 'unsafe-eval'; " +
+			"connect-src 'self' https://*.supabase.co https://kffbwemulhhsyaiooabh.supabase.co wss://*.supabase.co wss://kffbwemulhhsyaiooabh.supabase.co https://api.jobtrakr.co.uk https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com https://api.openai.com; " +
+			"style-src 'self' 'unsafe-inline'; " +
+			"img-src 'self' https://*.supabase.co data: blob: https://*.jobtrakr.co.uk https://*.linkedin.com https://*.indeed.com; " +
+			"font-src 'self' data:; " +
+			"frame-src 'self' https://*.supabase.co; " +
+			"worker-src 'self' blob:;"
+	)
 
-  // Set Cross-Origin headers
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+	// Set Cross-Origin headers
+	res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+	res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
 
-  // Set CORS headers to allow browser extension to access API
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+	// Set CORS headers to allow browser extension to access API
+	const allowedOrigins = [
+		'https://jobtrakr.co.uk',
+		'https://www.jobtrakr.co.uk',
+		'chrome-extension://your-extension-id', // Replace with your actual extension ID
+	]
 
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+	const origin = req.headers.origin
+	if (origin && allowedOrigins.includes(origin)) {
+		res.setHeader('Access-Control-Allow-Origin', origin)
+	} else if (process.env.NODE_ENV === 'development') {
+		// Allow localhost in development
+		res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080')
+	}
 
-  next();
-});
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+	res.setHeader('Access-Control-Allow-Credentials', 'true')
+
+	// Handle preflight requests
+	if (req.method === 'OPTIONS') {
+		return res.status(200).end()
+	}
+
+	next()
+})
 
 // API endpoint for direct extension login
-app.post("/api/auth/signin", async (req, res) => {
-  try {
-    const { email, password } = req.body;
+app.post('/api/auth/signin', async (req, res) => {
+	try {
+		const { email, password } = req.body
 
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      });
-    }
+		if (!email || !password) {
+			return res.status(400).json({
+				success: false,
+				message: 'Email and password are required',
+			})
+		}
 
-    // Import Supabase client
-    const { createClient } = require("@supabase/supabase-js");
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+		// Import Supabase client
+		const { createClient } = require('@supabase/supabase-js')
+		const supabaseUrl =
+			process.env.VITE_SUPABASE_URL ||
+			'https://kffbwemulhhsyaiooabh.supabase.co'
+		const supabaseAnonKey =
+			process.env.VITE_SUPABASE_ANON_KEY ||
+			'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg'
+		const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-    // Sign in with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+		// Sign in with Supabase
+		const { data, error } = await supabase.auth.signInWithPassword({
+			email,
+			password,
+		})
 
-    if (error) {
-      return res.status(401).json({
-        success: false,
-        message: error.message,
-      });
-    }
+		if (error) {
+			return res.status(401).json({
+				success: false,
+				message: error.message,
+			})
+		}
 
-    // Set auth cookie for cross-origin access
-    const token = data.session.access_token;
-    res.cookie("jobtrakr-auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    });
+		// Set auth cookie for cross-origin access
+		const token = data.session.access_token
+		res.cookie('jobtrakr-auth-token', token, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'lax',
+			maxAge: 24 * 60 * 60 * 1000, // 24 hours
+		})
 
-    // Return success with user data
-    return res.json({
-      success: true,
-      user: data.user,
-      message: "Login successful",
-      token: token, // Include token in response for the extension
-    });
-  } catch (error) {
-    console.error("Signin error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error during authentication",
-    });
-  }
-});
+		// Return success with user data
+		return res.json({
+			success: true,
+			user: data.user,
+			message: 'Login successful',
+			token: token, // Include token in response for the extension
+		})
+	} catch (error) {
+		console.error('Signin error:', error)
+		return res.status(500).json({
+			success: false,
+			message: 'Server error during authentication',
+		})
+	}
+})
 
 // API endpoint for browser extension to check for existing session
-app.get("/api/auth/session", async (req, res) => {
-  try {
-    // Get the session cookie
-    const sessionCookie =
-      req.cookies?.["jobtrakr-auth-token"] ||
-      req.cookies?.["sb-kffbwemulhhsyaiooabh-auth-token"] ||
-      req.headers.authorization?.split("Bearer ")[1];
+app.get('/api/auth/session', async (req, res) => {
+	try {
+		// Get the session cookie
+		const sessionCookie =
+			req.cookies?.['jobtrakr-auth-token'] ||
+			req.cookies?.['sb-kffbwemulhhsyaiooabh-auth-token'] ||
+			req.headers.authorization?.split('Bearer ')[1]
 
-    if (!sessionCookie) {
-      return res
-        .status(401)
-        .json({ success: false, message: "No session found" });
-    }
+		if (!sessionCookie) {
+			return res
+				.status(401)
+				.json({ success: false, message: 'No session found' })
+		}
 
-    // Import Supabase client here to avoid top-level await
-    const { createClient } = require("@supabase/supabase-js");
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+		// Import Supabase client here to avoid top-level await
+		const { createClient } = require('@supabase/supabase-js')
+		const supabaseUrl =
+			process.env.VITE_SUPABASE_URL ||
+			'https://kffbwemulhhsyaiooabh.supabase.co'
+		const supabaseAnonKey =
+			process.env.VITE_SUPABASE_ANON_KEY ||
+			'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg'
+		const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-    // Get user from session
-    const { data, error } = await supabase.auth.getUser(sessionCookie);
+		// Get user from session
+		const { data, error } = await supabase.auth.getUser(sessionCookie)
 
-    if (error || !data.user) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid session" });
-    }
+		if (error || !data.user) {
+			return res
+				.status(401)
+				.json({ success: false, message: 'Invalid session' })
+		}
 
-    // Return user info and token for the extension
-    return res.json({
-      success: true,
-      token: sessionCookie,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-      },
-      expiresIn: 86400, // 24 hours
-    });
-  } catch (error) {
-    console.error("Session check error:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+		// Return user info and token for the extension
+		return res.json({
+			success: true,
+			token: sessionCookie,
+			user: {
+				id: data.user.id,
+				email: data.user.email,
+			},
+			expiresIn: 86400, // 24 hours
+		})
+	} catch (error) {
+		console.error('Session check error:', error)
+		return res.status(500).json({ success: false, message: 'Server error' })
+	}
+})
 
 // API endpoint for verifying tokens
-app.get("/api/auth/verify", async (req, res) => {
-  try {
-    // Get the token from authorization header
-    const token = req.headers.authorization?.split("Bearer ")[1];
+app.get('/api/auth/verify', authLimiter, async (req, res) => {
+	try {
+		// Get the token from authorization header
+		const token = req.headers.authorization?.split('Bearer ')[1]
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "No token provided",
-      });
-    }
+		if (!token) {
+			return res.status(401).json({
+				success: false,
+				message: 'No token provided',
+			})
+		}
 
-    // Import Supabase client
-    const { createClient } = require("@supabase/supabase-js");
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+		// Import Supabase client
+		const { createClient } = require('@supabase/supabase-js')
+		const supabaseUrl =
+			process.env.VITE_SUPABASE_URL ||
+			'https://kffbwemulhhsyaiooabh.supabase.co'
+		const supabaseAnonKey =
+			process.env.VITE_SUPABASE_ANON_KEY ||
+			'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg'
+		const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-    // Verify the token
-    const { data, error } = await supabase.auth.getUser(token);
+		// Verify the token
+		const { data, error } = await supabase.auth.getUser(token)
 
-    if (error || !data.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token",
-      });
-    }
+		if (error || !data.user) {
+			return res.status(401).json({
+				success: false,
+				message: 'Invalid token',
+			})
+		}
 
-    // Return user info
-    return res.json({
-      success: true,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-      },
-    });
-  } catch (error) {
-    console.error("Token verification error:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+		// Return user info
+		return res.json({
+			success: true,
+			user: {
+				id: data.user.id,
+				email: data.user.email,
+			},
+		})
+	} catch (error) {
+		console.error('Token verification error:', error)
+		return res.status(500).json({ success: false, message: 'Server error' })
+	}
+})
 
 // Endpoint for website to redirect to extension with token
-app.get("/api/auth/extension-redirect", async (req, res) => {
-  try {
-    // Get the session cookie
-    const sessionCookie =
-      req.cookies?.["jobtrakr-auth-token"] ||
-      req.headers.authorization?.split("Bearer ")[1];
+app.get('/api/auth/extension-redirect', async (req, res) => {
+	try {
+		// Get the session cookie
+		const sessionCookie =
+			req.cookies?.['jobtrakr-auth-token'] ||
+			req.headers.authorization?.split('Bearer ')[1]
 
-    if (!sessionCookie) {
-      return res
-        .status(401)
-        .send("No session found. Please log in to the JobTrakr website first.");
-    }
+		if (!sessionCookie) {
+			return res
+				.status(401)
+				.send('No session found. Please log in to the JobTrakr website first.')
+		}
 
-    // Import Supabase client
-    const { createClient } = require("@supabase/supabase-js");
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+		// Import Supabase client
+		const { createClient } = require('@supabase/supabase-js')
+		const supabaseUrl =
+			process.env.VITE_SUPABASE_URL ||
+			'https://kffbwemulhhsyaiooabh.supabase.co'
+		const supabaseAnonKey =
+			process.env.VITE_SUPABASE_ANON_KEY ||
+			'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg'
+		const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-    // Verify user from session
-    const { data, error } = await supabase.auth.getUser(sessionCookie);
+		// Verify user from session
+		const { data, error } = await supabase.auth.getUser(sessionCookie)
 
-    if (error || !data.user) {
-      return res
-        .status(401)
-        .send("Invalid session. Please log in to the JobTrakr website first.");
-    }
+		if (error || !data.user) {
+			return res
+				.status(401)
+				.send('Invalid session. Please log in to the JobTrakr website first.')
+		}
 
-    // Create a redirect URL with the token for the extension
-    // The extension should be registered to handle this protocol
-    const extensionUrl = `jobtrakr-extension://auth?token=${encodeURIComponent(
-      sessionCookie
-    )}&userId=${data.user.id}&email=${encodeURIComponent(
-      data.user.email
-    )}&source=website`;
+		// Create a redirect URL with the token for the extension
+		// The extension should be registered to handle this protocol
+		const extensionUrl = `jobtrakr-extension://auth?token=${encodeURIComponent(
+			sessionCookie
+		)}&userId=${data.user.id}&email=${encodeURIComponent(
+			data.user.email
+		)}&source=website`
 
-    // Create an HTML page that explains and provides a button to connect
-    res.send(`
+		// Create an HTML page that explains and provides a button to connect
+		res.send(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -307,19 +349,19 @@ app.get("/api/auth/extension-redirect", async (req, res) => {
           </div>
         </body>
       </html>
-    `);
-  } catch (error) {
-    console.error("Extension redirect error:", error);
-    res.status(500).send("Server error. Please try again later.");
-  }
-});
+    `)
+	} catch (error) {
+		console.error('Extension redirect error:', error)
+		res.status(500).send('Server error. Please try again later.')
+	}
+})
 
 // For any other requests, send the index.html file
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
-});
+app.get('*', (req, res) => {
+	res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+})
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+	console.log(`Server is running on port ${PORT}`)
+})

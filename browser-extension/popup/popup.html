@@ -1,205 +1,388 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JobTrakr Extension</title>
-    <link rel="stylesheet" href="popup.css" />
-    <link rel="stylesheet" href="../fonts/local-fonts.css" />
-    <!-- Fallback to Google Fonts if local fonts fail (will be blocked by CSP but that's OK) -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      .account-badge {
-        display: inline-block;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 500;
-        margin-left: 6px;
-        vertical-align: middle;
-      }
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+		<title>JobTrakr Extension</title>
+		<link
+			rel="stylesheet"
+			href="popup.css"
+		/>
+		<link
+			rel="stylesheet"
+			href="../fonts/local-fonts.css"
+		/>
+		<!-- Fallback to Google Fonts if local fonts fail (will be blocked by CSP but that's OK) -->
+		<link
+			href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				--primary: #3b82f6;
+				--primary-dark: #2563eb;
+				--success: #10b981;
+				--error: #ef4444;
+				--warning: #f59e0b;
+				--text: #1e293b;
+				--text-light: #64748b;
+				--text-white: #f8fafc;
+				--bg-light: #f8fafc;
+				--bg-white: #ffffff;
+				--border: #e2e8f0;
+			}
 
-      .extension-badge {
-        background-color: #e3f2fd;
-        color: #1976d2;
-      }
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
 
-      .website-badge {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-      }
+			body {
+				font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+					Helvetica, Arial, sans-serif;
+				color: var(--text);
+				background-color: var(--bg-white);
+				width: 320px;
+				height: auto;
+				overflow-x: hidden;
+			}
 
-      .divider {
-        height: 1px;
-        background-color: var(--border-color);
-        margin: 12px 0;
-      }
+			.container {
+				padding: 16px;
+			}
 
-      .website-account {
-        margin-top: 12px;
-        padding: 8px;
-        background-color: #f5f5f5;
-        border-radius: 4px;
-        font-size: 13px;
-      }
+			.header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding-bottom: 12px;
+				border-bottom: 1px solid var(--border);
+				margin-bottom: 16px;
+			}
 
-      .website-account h4 {
-        margin: 0 0 6px 0;
-        color: #666;
-        font-weight: 500;
-        font-size: 12px;
-        text-transform: uppercase;
-      }
+			.logo {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
 
-      .website-account .account-email {
-        color: var(--primary-color);
-        font-weight: 500;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="popup-container">
-      <!-- Header with logo and status -->
-      <header class="popup-header">
-        <div class="logo-container">
-          <img src="../icons/icon-48.png" alt="JobTrakr Logo" class="logo">
-          <span class="logo-text">JobTrakr</span>
-        </div>
-        <div id="userStatus" class="status-container status-error">
-          <span id="statusText">Not connected</span>
-        </div>
-      </header>
+			.logo img {
+				width: 24px;
+				height: 24px;
+			}
 
-      <!-- Notification area -->
-      <div id="notification" class="notification hidden"></div>
+			.logo-text {
+				font-weight: 700;
+				font-size: 18px;
+				color: var(--primary);
+			}
 
-      <!-- Main content -->
-      <main class="popup-content">
-        <!-- Unauthenticated view -->
-        <div id="unauthenticatedView">
-          <div class="section">
-            <h2 class="section-title">Welcome to JobTrakr</h2>
-            <p class="section-content">
-              Track your job applications effortlessly. Sign in to get started.
-            </p>
-          </div>
-          <div class="action-section">
-            <button id="loginBtn" class="btn btn-primary">Sign In</button>
-          </div>
-        </div>
+			.status {
+				font-size: 12px;
+				padding: 4px 8px;
+				border-radius: 16px;
+				background: #eee;
+			}
 
-        <!-- Authenticated view -->
-        <div id="authenticatedView" class="hidden">
-          <!-- Account info -->
-          <div class="section">
-            <h2 class="section-title">Account</h2>
-            <div class="account-info">
-              <div class="account-item">
-                <span class="account-label">Email:</span>
-                <span id="userEmail">user@example.com</span>
-              </div>
-              <div class="account-item">
-                <span class="account-label">Jobs Tracked:</span>
-                <span id="jobsCount">0</span>
-              </div>
-            </div>
-          </div>
+			.status.online {
+				background: #ecfdf5;
+				color: #059669;
+			}
 
-          <!-- Job Detection (only shown on job pages) -->
-          <div id="jobDetectionSection" class="section hidden">
-      <!-- Content -->
-      <div class="popup-content">
-        <!-- Notification Area -->
-        <div id="notification" class="notification hidden"></div>
+			.notification {
+				padding: 12px;
+				border-radius: 6px;
+				margin-bottom: 16px;
+				font-size: 14px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
 
-        <!-- Account Section (visible when logged in) -->
-        <div id="account-section" class="account-section hidden">
-          <h3>Account Info</h3>
-          <div class="account-info">
-            <span class="account-label">User:</span>
-            <span id="user-email" class="account-value">user@example.com</span>
-          </div>
-          <div class="account-info">
-            <span class="account-label">Last sync:</span>
-            <span id="last-sync" class="account-value">Never</span>
-          </div>
-        </div>
+			.notification.success {
+				background-color: #ecfdf5;
+				color: #059669;
+			}
 
-        <!-- Login Section (visible when logged out) -->
-        <div id="login-section" class="action-section hidden">
-          <h3>Get Started</h3>
-          <button id="login-button" class="button button-primary">
-            Log in to JobTrakr
-          </button>
-          <p
-            style="
-              font-size: 12px;
-              color: #64748b;
-              margin-top: 8px;
-              text-align: center;
-            "
-          >
-            Connect to save job applications directly from job sites.
-          </p>
-        </div>
+			.notification.error {
+				background-color: #fef2f2;
+				color: #dc2626;
+			}
 
-        <!-- Job Actions Section (visible when viewing a job page) -->
-        <div id="job-actions-section" class="action-section hidden">
-          <h3>Current Job</h3>
-          <button id="save-job-button" class="button button-primary">
-            Save to JobTrakr
-          </button>
-          <div
-            id="job-details-preview"
-            style="font-size: 12px; margin-top: 8px; color: #475569"
-          >
-            <!-- Job details will be inserted here by JS -->
-          </div>
-        </div>
+			.notification.info {
+				background-color: #eff6ff;
+				color: #2563eb;
+			}
 
-        <!-- Other Actions Section (visible when logged in) -->
-        <div id="other-actions-section" class="action-section hidden">
-          <h3>Options</h3>
-          <button id="view-dashboard-button" class="button button-secondary">
-            View Dashboard
-          </button>
-          <button id="logout-button" class="button button-danger">
-            Log Out
-          </button>
-        </div>
+			.close-notification {
+				background: none;
+				border: none;
+				cursor: pointer;
+				font-size: 16px;
+			}
 
-        <!-- Not a Job Page Section -->
-        <div id="not-job-page-section" class="action-section hidden">
-          <p style="text-align: center; color: #64748b">
-            Navigate to a supported job listing to save it to JobTrakr.
-          </p>
-          <div style="text-align: center; margin-top: 12px">
-            <p style="font-size: 12px; color: #475569; margin-bottom: 4px">
-              Supported sites:
-            </p>
-            <div style="display: flex; justify-content: center; gap: 12px">
-              <img
-                src="../icons/linkedin.png"
-                alt="LinkedIn"
-                style="height: 20px"
-              />
-              <img
-                src="../icons/indeed.png"
-                alt="Indeed"
-                style="height: 20px"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+			.section {
+				margin-bottom: 20px;
+			}
 
-      <!-- Footer -->
-      <div class="popup-footer">JobTrakr v1.0 &copy; 2023</div>
-    </div>
+			.section-title {
+				font-size: 16px;
+				font-weight: 600;
+				margin-bottom: 12px;
+			}
 
-    <script src="popup.js"></script>
-  </body>
+			.button {
+				display: inline-block;
+				background-color: var(--primary);
+				color: white;
+				border: none;
+				border-radius: 6px;
+				padding: 10px 16px;
+				font-size: 14px;
+				font-weight: 500;
+				cursor: pointer;
+				width: 100%;
+				text-align: center;
+				transition: background-color 0.2s;
+			}
+
+			.button:hover {
+				background-color: var(--primary-dark);
+			}
+
+			.button.secondary {
+				background-color: white;
+				color: var(--primary);
+				border: 1px solid var(--primary);
+			}
+
+			.button.secondary:hover {
+				background-color: #f0f9ff;
+			}
+
+			.button.danger {
+				background-color: var(--error);
+			}
+
+			.job-details {
+				background-color: var(--bg-light);
+				border-radius: 6px;
+				padding: 12px;
+				font-size: 13px;
+				margin-top: 12px;
+			}
+
+			.job-details-item {
+				margin-bottom: 8px;
+			}
+
+			.job-details-label {
+				font-weight: 500;
+				margin-right: 4px;
+			}
+
+			.account-info {
+				background-color: var(--bg-light);
+				border-radius: 6px;
+				padding: 12px;
+				font-size: 13px;
+				margin-bottom: 16px;
+			}
+
+			.account-item {
+				display: flex;
+				justify-content: space-between;
+				margin-bottom: 8px;
+			}
+
+			.account-label {
+				color: var(--text-light);
+			}
+
+			.account-value {
+				font-weight: 500;
+			}
+
+			.footer {
+				font-size: 11px;
+				color: var(--text-light);
+				text-align: center;
+				margin-top: 16px;
+				padding-top: 12px;
+				border-top: 1px solid var(--border);
+			}
+
+			.hidden {
+				display: none !important;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<!-- Header with logo -->
+			<div class="header popup-header">
+				<img
+					src="../icons/icon-48.png"
+					alt="JobTrakr"
+					class="logo"
+				/>
+				<h1>JobTrakr</h1>
+				<div
+					id="status-indicator"
+					class="status-indicator"
+				>
+					Disconnected
+				</div>
+			</div>
+
+			<!-- Notification area -->
+			<div
+				id="notification"
+				class="notification hidden"
+			>
+				<span id="notification-message"></span>
+				<button
+					class="close-notification"
+					id="close-notification"
+				>
+					×
+				</button>
+			</div>
+
+			<!-- Unauthenticated view -->
+			<div id="unauthenticated-view">
+				<div class="section">
+					<h2 class="section-title">Welcome to JobTrakr</h2>
+					<p style="margin-bottom: 16px; font-size: 14px">
+						Save jobs directly from job boards and track your applications in
+						one place.
+					</p>
+					<button
+						id="sign-in-button"
+						class="button"
+					>
+						Sign in with JobTrakr Account
+					</button>
+				</div>
+			</div>
+
+			<!-- Authenticated view -->
+			<div
+				id="authenticated-view"
+				class="hidden"
+			>
+				<!-- Account info -->
+				<div class="section">
+					<h2 class="section-title">Your Account</h2>
+					<div class="account-info">
+						<div class="account-item">
+							<span class="account-label">Email:</span>
+							<span
+								id="user-email"
+								class="account-value"
+								>user@example.com</span
+							>
+						</div>
+						<div class="account-item">
+							<span class="account-label">Tracked Jobs:</span>
+							<span
+								id="jobs-count"
+								class="account-value"
+								>0</span
+							>
+						</div>
+					</div>
+				</div>
+
+				<!-- Job Detection section (shown only on job pages) -->
+				<div
+					id="job-detection-section"
+					class="section hidden"
+				>
+					<h2 class="section-title">Current Job</h2>
+					<div
+						id="job-details"
+						class="job-details"
+					>
+						<div class="job-details-item">
+							<span class="job-details-label">Title:</span>
+							<span id="job-title">Loading...</span>
+						</div>
+						<div class="job-details-item">
+							<span class="job-details-label">Company:</span>
+							<span id="job-company">Loading...</span>
+						</div>
+						<div class="job-details-item">
+							<span class="job-details-label">Location:</span>
+							<span id="job-location">Loading...</span>
+						</div>
+					</div>
+					<button
+						id="save-job-button"
+						class="button"
+						style="margin-top: 12px"
+					>
+						Save to JobTrakr
+					</button>
+				</div>
+
+				<!-- Not on job page message -->
+				<div
+					id="not-job-page-section"
+					class="section"
+				>
+					<h2 class="section-title">Save Jobs</h2>
+					<p style="font-size: 14px; margin-bottom: 12px">
+						Navigate to a job listing on LinkedIn or Indeed to save it to your
+						JobTrakr account.
+					</p>
+					<div
+						style="
+							display: flex;
+							justify-content: center;
+							gap: 16px;
+							margin-bottom: 16px;
+						"
+					>
+						<img
+							src="../icons/linkedin-logo.png"
+							alt="LinkedIn"
+							height="24"
+						/>
+						<img
+							src="../icons/indeed-logo.png"
+							alt="Indeed"
+							height="24"
+						/>
+					</div>
+				</div>
+
+				<!-- Action buttons -->
+				<div class="section">
+					<button
+						id="view-dashboard-button"
+						class="button secondary"
+					>
+						View Dashboard
+					</button>
+					<button
+						id="sign-out-button"
+						class="button danger"
+						style="margin-top: 8px"
+					>
+						Sign Out
+					</button>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<div class="footer">JobTrakr Extension v1.0.0</div>
+		</div>
+
+		<script src="popup.js"></script>
+	</body>
 </html>

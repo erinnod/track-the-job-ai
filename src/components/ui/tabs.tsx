@@ -23,40 +23,16 @@ TabsList.displayName = TabsPrimitive.List.displayName
 const TabsTrigger = React.forwardRef<
 	React.ElementRef<typeof TabsPrimitive.Trigger>,
 	React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, onClick, ...props }, ref) => {
-	// Create a combined click handler that will scroll to top
-	// when a tab is clicked and also call any existing onClick handler
-	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-		// More robust approach to scroll to top
-		setTimeout(() => {
-			// Specifically target the main element from Layout component
-			const mainElement = document.querySelector('main')
-			if (mainElement) {
-				mainElement.scrollTop = 0
-			}
-
-			// Also scroll window to top as a fallback
-			window.scrollTo(0, 0)
-			document.documentElement.scrollTop = 0
-			document.body.scrollTop = 0
-		}, 0)
-
-		// Call the original onClick if it exists
-		onClick && onClick(e)
-	}
-
-	return (
-		<TabsPrimitive.Trigger
-			ref={ref}
-			className={cn(
-				'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm',
-				className
-			)}
-			onClick={handleClick}
-			{...props}
-		/>
-	)
-})
+>(({ className, ...props }, ref) => (
+	<TabsPrimitive.Trigger
+		ref={ref}
+		className={cn(
+			'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+			className
+		)}
+		{...props}
+	/>
+))
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
 const TabsContent = React.forwardRef<

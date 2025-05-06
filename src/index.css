@@ -1,125 +1,208 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 220 33% 98%;
-    --foreground: 222 47% 11%;
+	:root {
+		--background: 220 33% 98%;
+		--foreground: 222 47% 11%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+		--card: 0 0% 100%;
+		--card-foreground: 222 47% 11%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+		--popover: 0 0% 100%;
+		--popover-foreground: 222 47% 11%;
 
-    --primary: 222 47% 31%;
-    --primary-foreground: 0 0% 100%;
+		--primary: 222 47% 31%;
+		--primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
+		--secondary: 210 40% 96.1%;
+		--secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+		--muted: 210 40% 96.1%;
+		--muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
+		--accent: 210 40% 96.1%;
+		--accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+		--destructive: 0 84.2% 60.2%;
+		--destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222 47% 31%;
+		--border: 214.3 31.8% 91.4%;
+		--input: 214.3 31.8% 91.4%;
+		--ring: 222 47% 31%;
 
-    --radius: 0.75rem; /* Increased border radius */
-  }
+		--radius: 0.75rem; /* Increased border radius */
+	}
 
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+	.dark {
+		--background: 222 47% 11%;
+		--foreground: 210 40% 98%;
 
-    --card: 223 47% 14%;
-    --card-foreground: 210 40% 98%;
+		--card: 223 47% 14%;
+		--card-foreground: 210 40% 98%;
 
-    --popover: 223 47% 14%;
-    --popover-foreground: 210 40% 98%;
+		--popover: 223 47% 14%;
+		--popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 11%;
+		--primary: 210 40% 98%;
+		--primary-foreground: 222 47% 11%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+		--secondary: 217.2 32.6% 17.5%;
+		--secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+		--muted: 217.2 32.6% 17.5%;
+		--muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+		--accent: 217.2 32.6% 17.5%;
+		--accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
+		--destructive: 0 62.8% 30.6%;
+		--destructive-foreground: 210 40% 98%;
+
+		--border: 217.2 32.6% 17.5%;
+		--input: 217.2 32.6% 17.5%;
+		--ring: 212.7 26.8% 83.9%;
+	}
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  }
+	* {
+		@apply border-border;
+	}
+	body {
+		@apply bg-background text-foreground;
+		font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+			Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue',
+			sans-serif;
+	}
+
+	/* Make sure the touch targets are large enough on mobile */
+	@media (max-width: 768px) {
+		button,
+		a,
+		input,
+		select,
+		.clickable {
+			@apply min-h-10 min-w-[2.5rem];
+		}
+
+		/* Increase text sizes for better readability on small screens */
+		h1 {
+			@apply text-2xl;
+		}
+		h2 {
+			@apply text-xl;
+		}
+		p,
+		li,
+		a,
+		button {
+			@apply text-base;
+		}
+
+		/* Add proper touch spacing for tappable elements */
+		.touch-spacing > * {
+			@apply mb-2;
+		}
+	}
+
+	/* Prevent horizontal overflow on mobile */
+	.mobile-container {
+		@apply max-w-full overflow-x-hidden;
+	}
 }
 
 /* Clean, minimal card styles */
 .job-card {
-  @apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow;
+	@apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow;
 }
 
 /* Card pastel backgrounds */
 .card-peach {
-  @apply bg-[#FDE1D3];
+	@apply bg-[#FDE1D3];
 }
 
 .card-blue {
-  @apply bg-[#D3E4FD];
+	@apply bg-[#D3E4FD];
 }
 
 .card-green {
-  @apply bg-[#DCFCE7];
+	@apply bg-[#DCFCE7];
 }
 
 .card-purple {
-  @apply bg-[#EDE9FE];
+	@apply bg-[#EDE9FE];
 }
 
 .card-pink {
-  @apply bg-[#FFE4E6];
+	@apply bg-[#FFE4E6];
 }
 
 .card-gray {
-  @apply bg-[#F1F0FB];
+	@apply bg-[#F1F0FB];
 }
 
 #root {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  text-align: left;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	text-align: left;
 }
 
 /* Custom button styles for job cards */
 .job-card-button {
-  @apply rounded-full bg-black text-white hover:bg-gray-800 px-5 py-1.5 text-sm font-medium;
+	@apply rounded-full bg-black text-white hover:bg-gray-800 px-5 py-1.5 text-sm font-medium;
 }
 
 /* Tag styles */
 .job-tag {
-  @apply text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700;
+	@apply text-xs px-3 py-1 bg-white/70 rounded-full text-gray-700;
+}
+
+/* Add responsive styles for grid layouts */
+.responsive-grid {
+	@apply grid gap-4;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+/* Add better table handling for mobile */
+.responsive-table {
+	@apply w-full overflow-x-auto pb-2;
+}
+
+/* Responsive padding classes */
+.responsive-padding {
+	@apply p-3 sm:p-6;
+}
+
+/* Smooth sidebar slide animation */
+.sidebar-slide-in {
+	@apply transform transition-transform duration-300 ease-in-out;
+}
+
+/* Improve form layout on mobile */
+@media (max-width: 640px) {
+	.form-row {
+		@apply flex flex-col space-y-3;
+	}
+
+	.form-row > * {
+		@apply w-full;
+	}
+}
+
+/* Add shadow to bottom of sticky headers on mobile for visual separation */
+.sticky-header {
+	@apply sticky top-0 bg-white z-10;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Make inputs easier to tap on mobile */
+@media (max-width: 768px) {
+	input,
+	select,
+	textarea {
+		@apply p-3;
+	}
 }

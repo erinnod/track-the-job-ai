@@ -162,7 +162,7 @@ const RecentActivity = ({ jobs }: RecentActivityProps) => {
 			</CardHeader>
 			<CardContent className='flex-1 flex flex-col'>
 				{recentActivities.length > 0 ? (
-					<div className='space-y-4 overflow-auto max-h-[380px]'>
+					<div className='space-y-4 overflow-auto flex-1'>
 						{recentActivities.map((activity) => (
 							<div
 								key={activity.id}
@@ -186,7 +186,7 @@ const RecentActivity = ({ jobs }: RecentActivityProps) => {
 						))}
 					</div>
 				) : (
-					<div className='h-[380px] flex items-center justify-center'>
+					<div className='flex-1 flex items-center justify-center'>
 						<p className='text-gray-500'>No recent activity</p>
 					</div>
 				)}
