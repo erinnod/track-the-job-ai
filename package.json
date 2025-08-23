@@ -57,6 +57,8 @@
 		"logrocket": "^8.0.0",
 		"lucide-react": "^0.344.0",
 		"next-themes": "^0.2.1",
+		"node-cron": "^3.0.3",
+		"nodemailer": "^6.9.8",
 		"react": "^18.3.1",
 		"react-day-picker": "^8.10.0",
 		"react-dom": "^18.3.1",
@@ -74,6 +76,8 @@
 		"zustand": "^4.5.2"
 	},
 	"devDependencies": {
+		"@types/node-cron": "^3.0.11",
+		"@types/nodemailer": "^6.4.14",
 		"@types/react": "^18.3.3",
 		"@types/react-dom": "^18.3.0",
 		"@types/uuid": "^10.0.0",

@@ -41,5 +41,11 @@ export default defineConfig(({ mode }) => ({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+    rollupOptions: {
+      external: ['nodemailer', 'node-cron'],
+    },
+  },
+  define: {
+    global: 'globalThis',
   },
 }));

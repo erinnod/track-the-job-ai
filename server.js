@@ -6,6 +6,10 @@ const rateLimit = require('express-rate-limit')
 const app = express()
 const PORT = process.env.PORT || 3000
 
+// Import notification scheduler and email service
+const notificationScheduler = require('./server/notificationScheduler.cjs');
+const emailService = require('./server/emailService.cjs');
+
 // Configure global rate limiting
 const globalLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
@@ -244,6 +248,123 @@ app.get('/api/auth/verify', authLimiter, async (req, res) => {
 	}
 })
 
+// API endpoint to add interview event
+app.post('/api/interviews/add', async (req, res) => {
+	try {
+		const { jobApplicationId, title, description, date } = req.body
+
+		if (!jobApplicationId || !title || !date) {
+			return res.status(400).json({
+				success: false,
+				message: 'Job application ID, title, and date are required',
+			})
+		}
+
+		// Import Supabase client
+		const { createClient } = require('@supabase/supabase-js')
+		const supabaseUrl =
+			process.env.VITE_SUPABASE_URL ||
+			'https://kffbwemulhhsyaiooabh.supabase.co'
+		const supabaseAnonKey =
+			process.env.VITE_SUPABASE_ANON_KEY ||
+			'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg'
+		const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+		// Insert the interview event
+		const { data, error } = await supabase
+			.from('job_application_events')
+			.insert({
+				job_application_id: jobApplicationId,
+				title,
+				description,
+				date: new Date(date).toISOString(),
+			})
+			.select()
+			.single()
+
+		if (error) {
+			return res.status(500).json({
+				success: false,
+				message: error.message,
+			})
+		}
+
+		return res.json({
+			success: true,
+			event: data,
+			message: 'Interview event added successfully',
+		})
+	} catch (error) {
+		console.error('Add interview error:', error)
+		return res.status(500).json({
+			success: false,
+			message: 'Server error while adding interview event',
+		})
+	}
+})
+
+// API endpoint to test notification system
+app.post('/api/notifications/test', async (req, res) => {
+	try {
+		const { userId, email } = req.body
+
+		if (!userId || !email) {
+			return res.status(400).json({
+				success: false,
+				message: 'User ID and email are required',
+			})
+		}
+
+		// Import email service
+		const emailService = require('./server/emailService.cjs');
+
+		// Send a test email
+		const emailSent = await emailService.sendInterviewReminder(
+			email,
+			'Test User',
+			'Test Company',
+			'Test Position',
+			new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+			1
+		)
+
+		if (emailSent) {
+			return res.json({
+				success: true,
+				message: 'Test email sent successfully',
+			})
+		} else {
+			return res.status(500).json({
+				success: false,
+				message: 'Failed to send test email',
+			})
+		}
+	} catch (error) {
+		console.error('Test notification error:', error)
+		return res.status(500).json({
+			success: false,
+			message: 'Server error while testing notification',
+		})
+	}
+})
+
+// API endpoint to get scheduler status
+app.get('/api/notifications/status', async (req, res) => {
+	try {
+		const status = notificationScheduler.getStatus()
+		return res.json({
+			success: true,
+			status,
+		})
+	} catch (error) {
+		console.error('Get status error:', error)
+		return res.status(500).json({
+			success: false,
+			message: 'Server error while getting status',
+		})
+	}
+})
+
 // Endpoint for website to redirect to extension with token
 app.get('/api/auth/extension-redirect', async (req, res) => {
 	try {
@@ -364,4 +485,12 @@ app.get('*', (req, res) => {
 // Start the server
 app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`)
+	
+	// Start the notification scheduler
+	try {
+		notificationScheduler.start()
+		console.log('Notification scheduler started successfully')
+	} catch (error) {
+		console.error('Failed to start notification scheduler:', error)
+	}
 })
