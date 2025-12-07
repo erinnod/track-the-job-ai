@@ -85,11 +85,6 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
 	) => {
 		const { name, value } = e.target
-		console.log(
-			`handleChange: ${name} = ${value.substring(0, 50)}${
-				value.length > 50 ? '...' : ''
-			}`
-		)
 		setJobData((prev) => ({ ...prev, [name]: value }))
 	}
 
@@ -140,14 +135,12 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 		}
 
 		try {
-			console.log('JobForm: preparing job data for submission', jobData)
-			console.log('Job Description from form:', jobData.jobDescription)
-
 			// If initialData exists, we're editing - use its ID, otherwise create new
 			const jobId = initialData?.id || uuidv4()
 
 			// Prepare events array
-			let events = initialData?.events || []
+			const events = initialData?.events ? [...initialData.events] : []
+			let formEvents = events
 
 			// If status is interview and we have a date, add an interview event
 			if (jobData.status === 'interview' && interviewDate) {
@@ -176,13 +169,17 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 					}${jobData.location ? ` (${jobData.location})` : ''}`,
 				}
 
+				const updatedEvents = [...events]
+
 				if (existingInterviewIdx > -1) {
-					// Update existing interview event
-					events[existingInterviewIdx] = interviewEvent
+					updatedEvents[existingInterviewIdx] = interviewEvent
 				} else {
-					// Add new interview event
-					events = [...events, interviewEvent]
+					updatedEvents.push(interviewEvent)
 				}
+
+				formEvents = updatedEvents
+			} else {
+				formEvents = events
 			}
 
 			// Ensure job description is a string
@@ -209,18 +206,11 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 				employmentType: jobData.employmentType,
 				remote: jobData.workType === 'Remote' || jobData.workType === 'Hybrid',
 				// Include the updated events
-				events: events,
+				events: formEvents,
 				// Preserve other fields from initialData if they exist
 				notes: initialData?.notes || [],
 				contacts: initialData?.contacts || [],
 			}
-
-			console.log(
-				'JobForm: submitting form data',
-				formJob.company,
-				formJob.position
-			)
-			console.log('Final job description to submit:', formJob.jobDescription)
 
 			// Pass the job to the parent component
 			onSubmit(formJob)
@@ -245,6 +235,7 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 
 				<LocationStatusFields
 					jobData={jobData}
+					events={initialData?.events}
 					handleChange={handleChange}
 					handleStatusChange={handleStatusChange}
 					handleWorkTypeChange={handleWorkTypeChange}

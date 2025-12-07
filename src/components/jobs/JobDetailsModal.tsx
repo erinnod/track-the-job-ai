@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import {
 	Calendar,
 	MapPin,
-	DollarSign,
 	Building,
 	Globe,
 	Phone,
@@ -21,21 +20,10 @@ import {
 	Clock,
 	CalendarDays,
 	ExternalLink,
-	PoundSterling,
-	PenLine,
-	FileText,
-	X,
-	UserCircle2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useJobs } from '@/contexts/JobContext'
 import EditJobModal from './EditJobModal'
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { getCurrencyIcon } from '@/utils/currencyUtils'
 import { supabase } from '@/lib/supabase'
 

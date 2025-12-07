@@ -14,9 +14,14 @@ class NotificationScheduler {
    * Initialize the notification scheduler
    */
   initializeScheduler() {
-    // Initialize Supabase client
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://kffbwemulhhsyaiooabh.supabase.co';
-    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg';
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.warn('Supabase credentials missing; notification scheduler disabled');
+      return;
+    }
+
     this.supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // Schedule job to run every hour at minute 0
@@ -28,7 +33,7 @@ class NotificationScheduler {
       timezone: 'UTC'
     });
 
-    console.log('Notification scheduler initialized');
+    console.info('Notification scheduler initialized');
   }
 
   /**
@@ -40,11 +45,14 @@ class NotificationScheduler {
       return;
     }
 
-    if (this.cronJob) {
-      this.cronJob.start();
-      this.isRunning = true;
-      console.log('Notification scheduler started');
+    if (!this.cronJob || !this.supabase) {
+      console.warn('Notification scheduler not configured; cannot start');
+      return;
     }
+
+    this.cronJob.start();
+    this.isRunning = true;
+    console.info('Notification scheduler started');
   }
 
   /**
@@ -59,7 +67,7 @@ class NotificationScheduler {
     if (this.cronJob) {
       this.cronJob.stop();
       this.isRunning = false;
-      console.log('Notification scheduler stopped');
+      console.info('Notification scheduler stopped');
     }
   }
 
@@ -67,9 +75,12 @@ class NotificationScheduler {
    * Check for upcoming interviews and send reminders
    */
   async checkUpcomingInterviews() {
-    try {
-      console.log('Checking for upcoming interviews...');
+    if (!this.supabase) {
+      console.warn('Supabase not configured; skipping interview check');
+      return;
+    }
 
+    try {
       // Get current date and calculate future dates
       const now = new Date();
       const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
@@ -94,11 +105,8 @@ class NotificationScheduler {
       }
 
       if (!events || events.length === 0) {
-        console.log('No upcoming interviews found');
         return;
       }
-
-      console.log(`Found ${events.length} upcoming interview events`);
 
       // Process each event
       for (const event of events) {
@@ -114,6 +122,11 @@ class NotificationScheduler {
    * Process a single interview event
    */
   async processInterviewEvent(event) {
+    if (!this.supabase) {
+      console.warn('Supabase not configured; skipping interview processing');
+      return;
+    }
+
     try {
       const interviewDate = new Date(event.date);
       const now = new Date();
@@ -177,7 +190,6 @@ class NotificationScheduler {
 
       // Check if user has email notifications enabled
       if (!preferences.email_enabled || !preferences.interview_reminders) {
-        console.log(`Email notifications disabled for user ${jobApp.user_id}`);
         return;
       }
 
@@ -192,7 +204,6 @@ class NotificationScheduler {
         .single();
 
       if (existingReminder) {
-        console.log(`Reminder already sent for event ${event.id} (${daysUntil} days)`);
         return;
       }
 
@@ -218,8 +229,6 @@ class NotificationScheduler {
           jobApp,
           daysUntil
         );
-
-        console.log(`Interview reminder sent for ${jobApp.position} at ${jobApp.company} (${daysUntil} days)`);
       } else {
         console.error(`Failed to send interview reminder for ${jobApp.position} at ${jobApp.company}`);
       }
@@ -258,7 +267,10 @@ class NotificationScheduler {
    * Manually trigger interview check (for testing)
    */
   async triggerInterviewCheck() {
-    console.log('Manually triggering interview check...');
+    if (!this.supabase) {
+      console.warn('Supabase not configured; cannot trigger interview check');
+      return;
+    }
     await this.checkUpcomingInterviews();
   }
 

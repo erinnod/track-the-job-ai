@@ -20,14 +20,24 @@
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
-const fs = require("fs");
 const rateLimit = require("express-rate-limit");
-const axios = require("axios");
+const { createClient } = require("@supabase/supabase-js");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Load environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ""; // Use environment variables for API keys
+
+const getSupabaseClient = () => {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase credentials are not configured");
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+};
 
 //=============================================================================
 // SECURITY MIDDLEWARE CONFIGURATION
@@ -161,18 +171,7 @@ const authenticateUser = async (req, res, next) => {
         .json({ success: false, message: "Authentication required" });
     }
 
-    // Import Supabase client
-    const { createClient } = require("@supabase/supabase-js");
-
-    // Load Supabase credentials from environment variables
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabaseClient();
 
     // Verify token with Supabase
     const { data, error } = await supabase.auth.getUser(token);
@@ -210,16 +209,7 @@ const authorizeRoles = (allowedRoles) => {
           .json({ success: false, message: "Authentication required" });
       }
 
-      // Set up Supabase client for role verification
-      const { createClient } = require("@supabase/supabase-js");
-      const supabaseUrl =
-        process.env.VITE_SUPABASE_URL ||
-        "https://kffbwemulhhsyaiooabh.supabase.co";
-      const supabaseAnonKey =
-        process.env.VITE_SUPABASE_ANON_KEY ||
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const supabase = getSupabaseClient();
 
       // Get user role from profiles table
       const { data, error } = await supabase
@@ -349,15 +339,7 @@ app.post("/api/auth/signin", authLimiter, async (req, res) => {
       });
     }
 
-    // Import Supabase client
-    const { createClient } = require("@supabase/supabase-js");
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabaseClient();
 
     // Sign in with Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -417,15 +399,7 @@ app.get("/api/auth/session", async (req, res) => {
         .json({ success: false, message: "No session found" });
     }
 
-    // Import Supabase client here to avoid top-level await
-    const { createClient } = require("@supabase/supabase-js");
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabaseClient();
 
     // Get user from session
     const { data, error } = await supabase.auth.getUser(sessionCookie);
@@ -465,15 +439,7 @@ app.get("/api/auth/verify", authLimiter, async (req, res) => {
       });
     }
 
-    // Import Supabase client
-    const { createClient } = require("@supabase/supabase-js");
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      "https://kffbwemulhhsyaiooabh.supabase.co";
-    const supabaseAnonKey =
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabaseClient();
 
     // Verify the token
     const { data, error } = await supabase.auth.getUser(token);

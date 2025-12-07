@@ -21,6 +21,7 @@ import { useState, useEffect } from "react";
 
 interface LocationStatusFieldsProps {
   jobData: Partial<JobApplication>;
+  events?: JobApplication["events"];
   handleChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
@@ -33,6 +34,7 @@ interface LocationStatusFieldsProps {
 
 const LocationStatusFields = ({
   jobData,
+  events,
   handleChange,
   handleStatusChange,
   handleWorkTypeChange,
@@ -51,8 +53,9 @@ const LocationStatusFields = ({
     setShowInterviewFields(jobData.status === "interview");
 
     // If we have event data with interview date, populate the fields
-    if (jobData.events && jobData.events.length > 0) {
-      const interviewEvent = jobData.events.find((event) =>
+    const sourceEvents = events || jobData.events;
+    if (sourceEvents && sourceEvents.length > 0) {
+      const interviewEvent = sourceEvents.find((event) =>
         event.title.toLowerCase().includes("interview")
       );
 
@@ -70,7 +73,7 @@ const LocationStatusFields = ({
         }
       }
     }
-  }, [jobData.status, jobData.events]);
+  }, [jobData.status, events, jobData.events]);
 
   const onDateChange = (date: Date | undefined) => {
     setInterviewDate(date);

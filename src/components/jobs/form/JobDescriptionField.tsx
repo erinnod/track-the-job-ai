@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { ChangeEvent } from 'react'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { JobApplication } from '@/data/mockJobs'
@@ -8,7 +8,7 @@ interface JobDescriptionFieldProps {
 		jobDescription?: string
 	}
 	handleChange: (
-		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+		e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
 	) => void
 }
 
@@ -21,47 +21,7 @@ const JobDescriptionField = ({
 	jobData,
 	handleChange,
 }: JobDescriptionFieldProps) => {
-	// Local state to handle the textarea value
-	const [description, setDescription] = useState<string>(
-		jobData.jobDescription || ''
-	)
-
-	// Update local state when props change
-	useEffect(() => {
-		// Only update if different to avoid unnecessary re-renders
-		if (jobData.jobDescription !== description) {
-			setDescription(jobData.jobDescription || '')
-		}
-	}, [jobData.jobDescription])
-
-	// Handle direct textarea changes with proper event handling
-	const handleDescriptionChange = (
-		e: React.ChangeEvent<HTMLTextAreaElement>
-	) => {
-		const newValue = e.target.value
-
-		// Update local state
-		setDescription(newValue)
-
-		// Create a synthetic event to pass to the parent's handleChange
-		const syntheticEvent = {
-			...e,
-			target: {
-				...e.target,
-				name: 'jobDescription',
-				value: newValue,
-			},
-		} as React.ChangeEvent<HTMLTextAreaElement>
-
-		// Call the parent handler
-		handleChange(syntheticEvent)
-
-		// Log to debug
-		console.log(
-			'JobDescriptionField - description updated:',
-			newValue.substring(0, 50) + (newValue.length > 50 ? '...' : '')
-		)
-	}
+	const description = jobData.jobDescription ?? ''
 
 	return (
 		<div className='space-y-2'>
@@ -70,7 +30,7 @@ const JobDescriptionField = ({
 				id='jobDescription'
 				name='jobDescription'
 				value={description}
-				onChange={handleDescriptionChange}
+				onChange={handleChange}
 				placeholder='Paste job description or add notes...'
 				rows={6}
 				className='min-h-[150px] resize-y'

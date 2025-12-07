@@ -232,9 +232,6 @@ function JobProvider({ children }: JobProviderProps) {
     try {
       // Avoid parallel loading requests if there's already one in progress
       if (fetchInProgressRef.current) {
-        console.log(
-          "Job loading already in progress, returning existing promise"
-        );
         return fetchInProgressRef.current;
       }
 
@@ -244,16 +241,13 @@ function JobProvider({ children }: JobProviderProps) {
       const MIN_REFRESH_INTERVAL = 10000; // 10 seconds
 
       if (timeSinceLastLoad < MIN_REFRESH_INTERVAL && jobs.length > 0) {
-        console.log("Throttling refresh requests, using existing data");
         return Promise.resolve();
       }
 
       safeSetLoading(true);
-      console.log("Loading jobs... Auth status:", !!user?.id);
 
       if (!user?.id) {
         // If no user, use mock data for demo purposes
-        console.log("No authenticated user, loading mock data instead");
         safeSetJobs(mockJobs);
         safeSetLoading(false);
         return Promise.resolve();
@@ -284,7 +278,6 @@ function JobProvider({ children }: JobProviderProps) {
           try {
             const parsed = JSON.parse(effectiveCachedJobs);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              console.log("Using cached jobs data:", parsed.length, "jobs");
               safeSetJobs(parsed);
               safeSetLoading(false);
 
@@ -311,8 +304,6 @@ function JobProvider({ children }: JobProviderProps) {
             console.error("Error parsing cached jobs:", e);
             // Cache is invalid, continue with normal loading
           }
-        } else {
-          console.log("Cache expired, loading fresh data");
         }
       }
 
@@ -401,8 +392,8 @@ function JobProvider({ children }: JobProviderProps) {
           )
         ) {
           // Try fallback to job_application_events if job_events doesn't exist
-          console.log(
-            "Trying fallback events table due to missing job_events table"
+          console.warn(
+            "Falling back to job_application_events because job_events is missing"
           );
           const fallbackResult = await supabase
             .from("job_application_events")

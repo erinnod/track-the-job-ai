@@ -4,16 +4,16 @@
   "version": "1.0.0",
   "description": "Auto-fill job applications and sync job data with JobTrakr",
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
     }
   },
   "permissions": ["storage", "activeTab", "scripting"],
@@ -22,7 +22,8 @@
     "*://*.indeed.com/*",
     "*://*.glassdoor.com/*",
     "*://*.monster.com/*",
-    "*://*.ziprecruiter.com/*"
+    "*://*.ziprecruiter.com/*",
+    "*://*.jobtrakr.co.uk/*"
   ],
   "background": {
     "service_worker": "background.js"

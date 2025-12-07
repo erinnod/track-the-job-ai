@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { PlusCircle } from 'lucide-react'
-import { toast } from 'sonner'
 import { JobApplication } from '@/data/mockJobs'
 import { useJobs } from '@/contexts/JobContext'
 import JobForm from './JobForm'
@@ -31,7 +30,6 @@ const AddJobModal = ({ onAddJob, buttonId }: AddJobModalProps) => {
 
 		try {
 			setIsSubmitting(true)
-			console.log('AddJobModal: submitting job', job.company)
 
 			// Add the job to context
 			await addJob(job)

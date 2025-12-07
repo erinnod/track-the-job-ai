@@ -13,7 +13,7 @@ class EmailService {
       // Get email configuration from environment variables
       const emailConfig = {
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT || '587'),
+      port: parseInt(process.env.EMAIL_PORT || '587', 10),
         secure: process.env.EMAIL_SECURE === 'true',
         auth: {
           user: process.env.EMAIL_USER || '',
@@ -23,9 +23,9 @@ class EmailService {
 
       // Only create transporter if we have valid credentials
       if (emailConfig.auth.user && emailConfig.auth.pass) {
-        this.transporter = nodemailer.createTransporter(emailConfig);
+        this.transporter = nodemailer.createTransport(emailConfig);
         this.isInitialized = true;
-        console.log('Email service initialized successfully');
+        console.info('Email service initialized successfully');
       } else {
         console.warn('Email credentials not configured. Email notifications will be disabled.');
         this.isInitialized = false;

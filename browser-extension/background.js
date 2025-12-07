@@ -7,30 +7,6 @@
 const API_BASE_URL = 'https://jobtrakr.co.uk/api' // Production API endpoint
 const WEB_APP_URL = 'https://jobtrakr.co.uk' // Production web app URL
 
-// Set up web request listener to fix content type issues
-chrome.webRequest.onHeadersReceived.addListener(
-	(details) => {
-		// Only process responses from our API domain
-		if (details.url.includes('jobtrakr.co.uk/api')) {
-			// Check if it's a JSON response with wrong content type
-			const contentTypeHeader = details.responseHeaders.find(
-				(header) => header.name.toLowerCase() === 'content-type'
-			)
-
-			// If content type is HTML but likely contains JSON
-			if (contentTypeHeader && contentTypeHeader.value.includes('text/html')) {
-				// Replace with proper JSON content type
-				contentTypeHeader.value = 'application/json; charset=utf-8'
-				console.log('Fixed content type for:', details.url)
-				return { responseHeaders: details.responseHeaders }
-			}
-		}
-		return { responseHeaders: details.responseHeaders }
-	},
-	{ urls: ['*://*.jobtrakr.co.uk/*'] },
-	['responseHeaders', 'extraHeaders', 'blocking']
-)
-
 // Listen for tab updates to detect successful login on website
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 	// Check if this is the redirect after login

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { useJobs } from "@/contexts/JobContext";
+import JobDetailsModal from "@/components/jobs/JobDetailsModal";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -77,6 +78,7 @@ const CalendarPage = () => {
   const { jobs } = useJobs();
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   // Function to get the start and end of the current week
   const weekInterval = useMemo(() => {
@@ -318,35 +320,50 @@ const CalendarPage = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header with title and description */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Track your upcoming interviews and application deadlines
-          </p>
+        <div className="rounded-2xl bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-purple-500/10 border border-slate-200/80 px-5 py-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+                Calendar
+              </h1>
+              <p className="text-sm text-slate-600 mt-1">
+                Keep interviews, submissions, and follow-ups organized in one view.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600 bg-white/60 border border-slate-200 px-3 py-2 rounded-xl shadow-[0_10px_30px_-15px_rgba(15,23,42,0.35)]">
+              <span className="inline-flex h-2 w-2 rounded-full bg-red-500 mr-1"></span>
+              Live line marks the current time today
+            </div>
+          </div>
         </div>
 
         {/* Week Navigation */}
-        <Card className="border-none shadow-sm bg-white">
-          <div className="flex justify-between items-center p-4">
-            <h2 className="text-lg font-medium">
-              {format(weekInterval.start, "MMMM d")} -{" "}
-              {format(weekInterval.end, "d, yyyy")}
-            </h2>
-            <div className="flex items-center space-x-2">
+        <Card className="border-none shadow-sm bg-white/90 backdrop-blur">
+          <div className="flex justify-between items-center p-4 flex-wrap gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
+                Week of
+              </p>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {format(weekInterval.start, "MMMM d")} -{" "}
+                {format(weekInterval.end, "d, yyyy")}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={goToPreviousWeek}
-                className="h-8 px-3 rounded-md"
+                className="h-9 px-3 rounded-full border-slate-200"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={goToCurrentWeek}
-                className="h-8 px-3 rounded-md"
+                className="h-9 px-3 rounded-full bg-slate-900 text-white hover:bg-slate-800"
               >
                 Today
               </Button>
@@ -354,7 +371,7 @@ const CalendarPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={goToNextWeek}
-                className="h-8 px-3 rounded-md"
+                className="h-9 px-3 rounded-full border-slate-200"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-1" />
@@ -368,7 +385,7 @@ const CalendarPage = () => {
           {/* Left sidebar with date picker and day details */}
           <div className="md:col-span-1 space-y-6">
             {/* Date Picker Card */}
-            <Card className="border-none shadow-sm">
+            <Card className="border border-slate-200 shadow-sm rounded-2xl bg-white/90">
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-md font-medium">
                   Select Date
@@ -415,28 +432,28 @@ const CalendarPage = () => {
             </Card>
 
             {/* Selected Date Events Card */}
-            <Card className="border-none shadow-sm">
+            <Card className="border border-slate-200 shadow-sm rounded-2xl bg-white/90">
               <CardHeader className="pb-3 pt-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-md font-medium flex items-center">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
+                  <CardTitle className="text-md font-semibold flex items-center text-slate-900">
+                    <CalendarIcon className="h-4 w-4 mr-2 text-slate-600" />
                     {format(selectedDate, "EEEE, MMMM d")}
                     {isToday(selectedDate) && (
-                      <Badge className="ml-2 px-1.5 py-0 h-5 text-[10px]">
+                      <Badge className="ml-2 px-1.5 py-0 h-5 text-[10px] bg-slate-900 text-white">
                         Today
                       </Badge>
                     )}
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="p-0 max-h-[400px] overflow-y-auto">
+              <CardContent className="p-0 max-h-[420px] overflow-y-auto">
                 {selectedDateEvents.length > 0 ? (
-                  <div className="px-4 pb-4">
+                  <div className="px-4 pb-4 space-y-3">
                     {Object.entries(groupedEvents).map(([time, events]) => (
-                      <div key={time} className="mb-3">
+                      <div key={time} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
                         <div className="flex items-center mb-2">
-                          <Clock className="h-3 w-3 text-blue-600 mr-2" />
-                          <div className="text-xs font-medium text-blue-600">
+                          <Clock className="h-3.5 w-3.5 text-slate-600 mr-2" />
+                          <div className="text-xs font-semibold text-slate-800">
                             {time}
                           </div>
                         </div>
@@ -444,23 +461,24 @@ const CalendarPage = () => {
                           {events.map((event, index) => (
                             <div
                               key={`${event.jobId}-${index}`}
-                              className={`${event.color} border rounded-md p-3 shadow-sm transition-all hover:shadow-md`}
+                              className={`${event.color} border border-slate-200/60 rounded-lg p-3 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.5)] transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer`}
+                              onClick={() => setSelectedJobId(event.jobId)}
                             >
-                              <div className="font-medium text-sm">
+                              <div className="font-semibold text-sm">
                                 {event.title}
                               </div>
-                              <div className="text-xs mt-1 flex items-center">
+                              <div className="text-xs mt-1 flex items-center text-slate-800">
                                 <span className="font-medium">
                                   {event.company}
                                 </span>
                                 {event.position && (
-                                  <span className="ml-1">
+                                  <span className="ml-1 text-slate-700">
                                     • {event.position}
                                   </span>
                                 )}
                               </div>
                               {event.description && (
-                                <div className="mt-2 text-xs">
+                                <div className="mt-2 text-xs text-slate-700">
                                   {event.description}
                                 </div>
                               )}
@@ -471,8 +489,8 @@ const CalendarPage = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-gray-400 px-4">
-                    <CalendarIcon className="h-8 w-8 mb-2 opacity-20" />
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-400 px-4">
+                    <CalendarIcon className="h-8 w-8 mb-2 opacity-30" />
                     <p className="text-sm text-center">
                       No events scheduled for this day
                     </p>
@@ -484,29 +502,38 @@ const CalendarPage = () => {
 
           {/* Week View - Takes most of the space */}
           <div className="md:col-span-3">
-            <Card className="border-none shadow-sm overflow-hidden">
+            <Card className="border border-slate-200 shadow-lg/30 overflow-hidden rounded-2xl bg-white">
               {/* Header row with day names */}
-              <div className="grid grid-cols-8 border-b">
-                <div className="col-span-1 py-2 px-3 bg-gray-50 border-r">
-                  {/* Empty corner cell */}
+              <div className="grid grid-cols-8 border-b border-slate-200 bg-slate-50/80 backdrop-blur-sm">
+                <div className="col-span-1 py-3 px-3 border-r bg-white flex flex-col gap-0.5">
+                  <span className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-semibold">
+                    Week start
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900 leading-none">
+                    {format(weekInterval.start, "MMM d")}
+                  </span>
                 </div>
                 {weekDays.map((day, dayIndex) => (
                   <div
                     key={dayIndex}
-                    className={`col-span-1 py-2 cursor-pointer flex flex-col items-center justify-center
-                      ${isToday(day) ? "bg-blue-50" : "bg-gray-50"}
-                      ${isSameDay(day, selectedDate) ? "bg-blue-100" : ""}`}
+                    className={`col-span-1 py-3 cursor-pointer flex flex-col items-center justify-center border-l first:border-l-0 border-slate-100 transition-all duration-150
+                      ${isToday(day) ? "bg-indigo-50 text-indigo-900" : "bg-white"}
+                      ${
+                        isSameDay(day, selectedDate)
+                          ? "bg-indigo-100 ring-1 ring-indigo-200 shadow-inner"
+                          : ""
+                      } hover:bg-slate-50`}
                     onClick={() => handleDateSelect(day)}
                   >
-                    <div className="text-xs text-gray-500 mb-1">
+                    <div className="text-[11px] text-slate-600 font-semibold mb-1">
                       {format(day, "EEE")}
                     </div>
                     <div
-                      className={`font-medium rounded-full h-7 w-7 flex items-center justify-center
-                        ${isToday(day) ? "bg-blue-600 text-white" : ""}
+                      className={`font-semibold rounded-full h-9 w-9 flex items-center justify-center text-slate-800 shadow-sm border border-transparent
+                        ${isToday(day) ? "bg-indigo-600 text-white shadow-md border-indigo-500/30" : ""}
                         ${
                           isSameDay(day, selectedDate) && !isToday(day)
-                            ? "bg-blue-100"
+                            ? "bg-white border border-indigo-200"
                             : ""
                         }`}
                     >
@@ -517,19 +544,20 @@ const CalendarPage = () => {
               </div>
 
               {/* Time grid */}
-              <div className="grid grid-cols-8 h-[calc(100vh-180px)] overflow-y-auto bg-white pb-20">
+              <div className="grid grid-cols-8 h-[calc(100vh-200px)] overflow-y-auto bg-white pb-20">
                 {/* Time slots column */}
-                <div className="col-span-1 sticky left-0 bg-gray-50 z-10 border-r">
+                <div className="col-span-1 sticky left-0 bg-white z-20 border-r border-slate-200 shadow-[6px_0_18px_-18px_rgba(15,23,42,0.35)]">
                   {TIME_SLOTS.map((time, i) => (
                     <div
                       key={i}
-                      className="h-12 text-xs text-gray-500 pr-3 text-right border-b flex items-center justify-end"
+                      className={`h-12 text-[11px] text-slate-600 pr-3 text-right border-b border-slate-200/80 flex items-center justify-end font-semibold
+                        ${i % 2 === 0 ? "bg-slate-50/70" : "bg-white"}`}
                     >
                       {time}
                     </div>
                   ))}
                   {/* Add 00:00 time slot at the bottom explicitly */}
-                  <div className="h-12 text-xs text-gray-500 pr-3 text-right border-b flex items-center justify-end">
+                  <div className="h-12 text-[11px] text-slate-600 pr-3 text-right border-b border-slate-200/80 flex items-center justify-end font-semibold bg-slate-50/70">
                     00:00
                   </div>
                 </div>
@@ -539,22 +567,28 @@ const CalendarPage = () => {
                   <div
                     key={dayIndex}
                     className={`col-span-1 relative bg-white
-                      ${dayIndex < weekDays.length - 1 ? "border-r" : ""}
-                      ${isSameDay(day, selectedDate) ? "bg-blue-50/20" : ""}`}
+                      ${dayIndex < weekDays.length - 1 ? "border-r border-slate-100" : ""}
+                      ${isSameDay(day, selectedDate) ? "bg-indigo-50/50 ring-1 ring-indigo-100/70" : ""}
+                      ${isToday(day) ? "bg-indigo-50/40" : ""}`}
                     onClick={() => handleDateSelect(day)}
                   >
                     {/* Time cells */}
                     <div className="relative">
                       {TIME_SLOTS.map((_, i) => (
-                        <div key={i} className="h-12 border-b"></div>
+                        <div
+                          key={i}
+                          className={`h-12 border-b border-slate-200/70 ${
+                            i % 2 === 0 ? "bg-slate-50/50" : "bg-white"
+                          }`}
+                        />
                       ))}
                       {/* Add extra cell for 00:00 */}
-                      <div className="h-12 border-b"></div>
+                      <div className="h-12 border-b border-slate-200/70 bg-slate-50/50"></div>
 
                       {/* Current time indicator */}
                       {isToday(day) && (
                         <div
-                          className="absolute left-0 right-0 border-t border-red-500 z-20"
+                          className="absolute left-2 right-2 border-t-2 border-rose-500/90 z-20"
                           style={{
                             top: `${
                               (new Date().getHours() +
@@ -563,7 +597,7 @@ const CalendarPage = () => {
                             }rem`,
                           }}
                         >
-                          <div className="absolute -left-1 -top-1.5 w-2 h-2 rounded-full bg-red-500"></div>
+                          <div className="absolute -left-2 -top-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(255,255,255,0.85)]"></div>
                         </div>
                       )}
 
@@ -592,26 +626,27 @@ const CalendarPage = () => {
                           return (
                             <div
                               key={eventIndex}
-                              className={`absolute left-0.5 right-0.5 ${event.color} z-10 overflow-visible rounded-sm`}
+                              className={`absolute left-2 right-2 ${event.color} z-10 overflow-visible rounded-xl border border-slate-200/70 shadow-[0_18px_38px_-28px_rgba(15,23,42,0.65)] backdrop-blur-[1px]`}
                               style={{
                                 top: `calc(${position.top} + ${topOffset}rem)`,
                                 height: position.height,
-                                opacity: 0.95, // Slightly transparent to help with overlap
+                                opacity: 0.97, // Slightly transparent to help with overlap
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDateSelect(event.startDate);
+                                setSelectedJobId(event.jobId);
                               }}
                             >
-                              <div className="px-2 py-1.5 h-full flex flex-col justify-between">
-                                <div>
-                                  <div className="font-medium text-xs">
+                              <div className="px-3 py-2 h-full flex flex-col justify-between">
+                                <div className="space-y-1">
+                                  <div className="font-semibold text-xs leading-tight text-slate-900">
                                     {event.title}
                                   </div>
 
                                   {event.startTime && event.endTime && (
-                                    <div className="text-[10px] mt-0.5 text-gray-700 flex items-center">
-                                      <Clock className="h-2.5 w-2.5 mr-0.5 inline-block flex-shrink-0" />
+                                    <div className="text-[11px] text-slate-800 flex items-center gap-1">
+                                      <Clock className="h-3 w-3 inline-block flex-shrink-0" />
                                       <span>
                                         {event.startTime} - {event.endTime}
                                       </span>
@@ -619,12 +654,12 @@ const CalendarPage = () => {
                                   )}
                                 </div>
 
-                                <div className="text-[10px] text-gray-700 mt-1">
+                                <div className="text-[11px] text-slate-800 font-semibold mt-1">
                                   {event.company}
                                 </div>
 
-                                {/* Red marker on right edge */}
-                                <div className="absolute right-0 top-0 bottom-0 w-1 bg-red-500"></div>
+                                {/* Accent on right edge */}
+                                <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-slate-900/50 rounded-r-xl"></div>
                               </div>
                             </div>
                           );
@@ -637,6 +672,15 @@ const CalendarPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Job details modal for quick drill-in from calendar */}
+      {selectedJobId && (
+        <JobDetailsModal
+          isOpen={true}
+          onClose={() => setSelectedJobId(null)}
+          jobId={selectedJobId}
+        />
+      )}
     </Layout>
   );
 };

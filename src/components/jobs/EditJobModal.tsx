@@ -62,9 +62,6 @@ const EditJobModal = ({ isOpen, onClose, jobId }: EditJobModalProps) => {
 	const handleSubmit = (updatedJob: JobApplication) => {
 		if (!initialJob) return
 
-		console.log('EditJobModal - handling submit:', updatedJob)
-		console.log('Job description before update:', updatedJob.jobDescription)
-
 		// Ensure we keep the same ID and created date
 		const jobToUpdate = {
 			...updatedJob,
@@ -74,12 +71,6 @@ const EditJobModal = ({ isOpen, onClose, jobId }: EditJobModalProps) => {
 			jobDescription:
 				updatedJob.jobDescription || initialJob.jobDescription || '',
 		}
-
-		console.log('EditJobModal - job to update:', jobToUpdate)
-		console.log(
-			'Job description after preparing for update:',
-			jobToUpdate.jobDescription
-		)
 
 		// Update the job
 		updateJob(jobToUpdate)
