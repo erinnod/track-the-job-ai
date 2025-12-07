@@ -13,12 +13,14 @@ import DocumentCard from "./DocumentCard";
 import { useDocuments } from "@/hooks/useDocuments";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Document } from "@/hooks/useDocuments";
 
 interface DocumentUploadSectionProps {
   title: string;
   description: string;
   fileType: "resume" | "coverletter" | "other";
   acceptedFileTypes: string;
+  onDocumentClick?: (document: Document) => void;
 }
 
 const DocumentUploadSection = ({
@@ -26,6 +28,7 @@ const DocumentUploadSection = ({
   description,
   fileType,
   acceptedFileTypes,
+  onDocumentClick,
 }: DocumentUploadSectionProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -114,6 +117,12 @@ const DocumentUploadSection = ({
     }
   };
 
+  const handleDocumentCardClick = (document: Document) => {
+    if (onDocumentClick) {
+      onDocumentClick(document);
+    }
+  };
+
   // Render document cards or skeletons
   const renderDocumentList = () => {
     // If we have no documents and loading is complete, show empty state
@@ -145,6 +154,11 @@ const DocumentUploadSection = ({
                 key={doc.id}
                 document={doc}
                 onDelete={deleteDocument}
+                onClick={
+                  onDocumentClick
+                    ? () => handleDocumentCardClick(doc)
+                    : undefined
+                }
               />
             ))}
           </div>

@@ -16,9 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface DocumentCardProps {
   document: Document;
   onDelete: (id: string) => Promise<boolean>;
+  onClick?: () => void;
 }
 
-const DocumentCard = ({ document, onDelete }: DocumentCardProps) => {
+const DocumentCard = ({ document, onDelete, onClick }: DocumentCardProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [downloadError, setDownloadError] = useState(false);
@@ -121,7 +122,12 @@ const DocumentCard = ({ document, onDelete }: DocumentCardProps) => {
   // URL loading is now handled at the hook level with caching,
   // so we always render the full card
   return (
-    <div className="flex items-start p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+    <div
+      className={`flex items-start p-3 border rounded-lg hover:bg-gray-50 transition-colors ${
+        onClick ? "cursor-pointer" : ""
+      }`}
+      onClick={onClick}
+    >
       <div className="mr-3 bg-gray-100 p-2 rounded">
         {downloadError ? (
           <AlertTriangle className="h-8 w-8 text-amber-500" />
@@ -141,7 +147,7 @@ const DocumentCard = ({ document, onDelete }: DocumentCardProps) => {
           </span>
         </div>
       </div>
-      <div className="flex space-x-1">
+      <div className="flex space-x-1" onClick={(e) => e.stopPropagation()}>
         <Button
           variant="ghost"
           size="sm"

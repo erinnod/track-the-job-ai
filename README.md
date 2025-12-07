@@ -215,3 +215,32 @@ Documents are organized by user ID and document type:
 - Each user's documents are stored in a folder with their user ID
 - Within that folder, documents are organized by type (resume, coverletter, other)
 - Filenames include timestamps and random strings to ensure uniqueness
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# AI Configuration
+VITE_GEMINI_API_KEY=your_gemini_api_key
+```
+
+### Gemini API Integration
+
+This application uses Google's Gemini 2.5 Pro AI model for:
+
+- Resume generation
+- Cover letter creation
+- Job recommendations
+- Email parsing
+
+To use these features, you need to:
+
+1. Get a Gemini API key from Google AI Studio (https://ai.google.dev/)
+2. Add it to your `.env` file as `VITE_GEMINI_API_KEY`
+
+If no API key is provided, the application will use placeholder content.

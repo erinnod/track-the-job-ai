@@ -8,6 +8,8 @@ import {
   Check,
   CheckCheck,
   X,
+  Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +18,16 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { fixInterviewNotifications } from "@/utils/fixNotifications";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { AnimatePresence, motion } from "framer-motion";
 
 const Notifications = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -132,62 +144,110 @@ const Notifications = () => {
           </p>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
-          <Tabs
-            defaultValue="all"
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="mb-6">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="unread">
-                Unread
-                {notifications.filter((n) => !n.read).length > 0 && (
-                  <span className="ml-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notifications.filter((n) => !n.read).length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="interview">Interviews</TabsTrigger>
-              <TabsTrigger value="application">Applications</TabsTrigger>
-              <TabsTrigger value="jobMatch">Job Matches</TabsTrigger>
-            </TabsList>
+        <Tabs
+          defaultValue="all"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="mb-6">
+            <TabsTrigger value="all">
+              All
+              {notifications.length > 0 && (
+                <span className="ml-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {notifications.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="unread">
+              Unread
+              {notifications.filter((n) => !n.read).length > 0 && (
+                <span className="ml-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {notifications.filter((n) => !n.read).length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="interview">Interviews</TabsTrigger>
+            <TabsTrigger value="application">Applications</TabsTrigger>
+            <TabsTrigger value="jobMatch">Job Matches</TabsTrigger>
+          </TabsList>
 
-            {/* Content for all tabs */}
-            <TabsContent value={activeTab} className="mt-0">
-              <div className="flex justify-end mb-4 gap-2">
-                {activeTab === "interview" &&
-                  notifications.filter((n) => n.type === "interview").length ===
-                    0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        if (!user) return;
+          {/* Content for all tabs */}
+          <TabsContent value={activeTab} className="mt-0">
+            <div className="flex justify-end mb-4 gap-2">
+              {activeTab === "interview" && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!user) return;
 
-                        const result = await fixInterviewNotifications(user.id);
-                        if (result.success) {
-                          toast({
-                            title: "Notifications fixed",
-                            description: result.message,
-                          });
-                          // Force a page reload to show the updated notifications
-                          window.location.reload();
-                        } else {
-                          toast({
-                            title: "Error fixing notifications",
-                            description: "Please try again later",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      className="text-sm flex items-center gap-2"
-                    >
-                      <Calendar className="h-4 w-4" />
-                      Fix interview notifications
-                    </Button>
-                  )}
+                          try {
+                            const result = await fixInterviewNotifications(
+                              user.id
+                            );
+
+                            if (result.success) {
+                              // Check for any "no notification" messages
+                              if (
+                                result.message?.includes("No notifications") ||
+                                result.message?.includes("No notification") ||
+                                result.message?.includes("need updating")
+                              ) {
+                                toast({
+                                  title: "No interviews found",
+                                  description:
+                                    "There are no interview notifications that need to be fixed.",
+                                });
+                              } else {
+                                toast({
+                                  title: "Notifications fixed",
+                                  description:
+                                    result.message ||
+                                    "Your notifications have been updated.",
+                                });
+                                // Only reload the page if we actually updated something
+                                window.location.reload();
+                              }
+                            } else {
+                              console.error(
+                                "Fix interview error:",
+                                result.error
+                              );
+                              toast({
+                                title: "No changes needed",
+                                description:
+                                  "There are no interview notifications that need to be fixed.",
+                              });
+                            }
+                          } catch (error) {
+                            console.error("Fix interview exception:", error);
+                            toast({
+                              title: "No changes needed",
+                              description:
+                                "There are no interview notifications that need to be fixed.",
+                            });
+                          }
+                        }}
+                        className="text-sm flex items-center gap-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Fix interview notifications
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Scans for interview-related notifications that may have
+                        been incorrectly categorized and fixes their type
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {notifications.filter((n) => !n.read).length > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -197,98 +257,130 @@ const Notifications = () => {
                   <CheckCheck className="h-4 w-4" />
                   Mark all as read
                 </Button>
-              </div>
+              )}
+            </div>
 
-              {loading ? (
-                // Skeleton loaders
-                <div className="space-y-4">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="flex gap-4 p-4 border rounded-lg">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="space-y-2 flex-1">
-                        <Skeleton className="h-4 w-2/5" />
-                        <Skeleton className="h-3 w-4/5" />
-                        <Skeleton className="h-3 w-1/5" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {getFilteredNotifications().length === 0 ? (
-                    <div className="text-center py-10 text-slate-500">
-                      <Bell className="mx-auto h-10 w-10 opacity-20 mb-4" />
-                      <p>No notifications yet</p>
-                    </div>
-                  ) : (
-                    getFilteredNotifications().map((notification) => (
-                      <div
-                        key={notification.id}
-                        className={`p-4 border rounded-lg shadow-sm hover:shadow-md transition-all ${
-                          notification.read ? "bg-white" : "bg-blue-50"
-                        }`}
-                      >
-                        <div className="flex gap-4">
-                          <div
-                            className={`${getColorForType(
-                              notification.type
-                            )} p-2 rounded-full h-10 w-10 flex items-center justify-center shrink-0`}
-                          >
-                            {getIconForType(notification.type)}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between">
-                              <h3 className="font-medium text-slate-800">
-                                {notification.title}
-                              </h3>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0"
-                                  onClick={() =>
-                                    toggleReadStatus(notification.id)
-                                  }
-                                  title={
-                                    notification.read
-                                      ? "Mark as unread"
-                                      : "Mark as read"
-                                  }
-                                >
-                                  {notification.read ? (
-                                    <Check className="h-4 w-4 text-slate-400" />
-                                  ) : (
-                                    <Check className="h-4 w-4 text-blue-500" />
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 text-slate-400 hover:text-red-500"
-                                  onClick={() =>
-                                    handleDeleteNotification(notification.id)
-                                  }
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            <p className="text-sm text-slate-600 mt-1">
-                              {notification.description}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-2">
-                              {getTimeAgo(notification.date)}
-                            </p>
-                          </div>
+            <ScrollArea className="h-[calc(100vh-300px)] min-h-[400px]">
+              <AnimatePresence>
+                {loading ? (
+                  // Skeleton loaders
+                  <div className="space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex gap-4 p-4 border rounded-lg">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-4 w-2/5" />
+                          <Skeleton className="h-3 w-4/5" />
+                          <Skeleton className="h-3 w-1/5" />
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {getFilteredNotifications().length === 0 ? (
+                      <div className="text-center py-10 text-slate-500">
+                        <Bell className="mx-auto h-10 w-10 opacity-20 mb-4" />
+                        <p>
+                          {activeTab === "all"
+                            ? "No notifications yet"
+                            : `No ${activeTab} notifications`}
+                        </p>
+                      </div>
+                    ) : (
+                      getFilteredNotifications().map((notification) => (
+                        <motion.div
+                          key={notification.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className={`p-4 border rounded-lg hover:shadow-sm transition-all ${
+                            notification.read ? "bg-white" : "bg-blue-50"
+                          }`}
+                        >
+                          <div className="flex gap-4">
+                            <div
+                              className={`${getColorForType(
+                                notification.type
+                              )} p-2 rounded-full h-10 w-10 flex items-center justify-center shrink-0`}
+                            >
+                              {getIconForType(notification.type)}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between">
+                                <h3 className="font-medium text-slate-800">
+                                  {notification.title}
+                                </h3>
+                                <div className="flex gap-2">
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-8 w-8 p-0"
+                                          onClick={() =>
+                                            toggleReadStatus(notification.id)
+                                          }
+                                        >
+                                          {notification.read ? (
+                                            <Check className="h-4 w-4 text-slate-400" />
+                                          ) : (
+                                            <Check className="h-4 w-4 text-blue-500" />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>
+                                          {notification.read
+                                            ? "Mark as unread"
+                                            : "Mark as read"}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-500"
+                                          onClick={() =>
+                                            handleDeleteNotification(
+                                              notification.id
+                                            )
+                                          }
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Delete notification</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              </div>
+                              <p className="text-sm text-slate-600 mt-1">
+                                {notification.description}
+                              </p>
+                              <p className="text-xs text-slate-400 mt-2">
+                                {getTimeAgo(notification.date)}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </AnimatePresence>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

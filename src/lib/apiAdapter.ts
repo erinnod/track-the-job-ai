@@ -11,6 +11,11 @@ import {
   storeIntegration,
   syncAllIntegrations,
 } from "@/services/integrationService";
+import {
+  sanitizeInput,
+  sanitizeNumericInput,
+  isSafeUrl,
+} from "@/utils/security";
 
 // Handler types
 type ApiRequest = {
@@ -347,5 +352,356 @@ export const fetchFromApi = async (path: string, options: RequestInit = {}) => {
   } catch (error) {
     console.error("API request error:", error);
     throw error;
+  }
+};
+
+/**
+ * Validate and clean job data to prevent injection attacks
+ * @param data Raw job data from user input
+ * @returns Sanitized job data
+ */
+export const validateAndCleanJobData = (data: any) => {
+  if (!data) return null;
+
+  // Create a new object with only allowed fields and sanitized values
+  const cleanedData: any = {};
+
+  // Define allowed fields and their validation/sanitization rules
+  const allowedFields = {
+    title: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 200) : null,
+    company: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 100) : null,
+    location: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 100) : null,
+    description: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 5000) : null,
+    job_type: (val: any) =>
+      [
+        "full-time",
+        "part-time",
+        "contract",
+        "temporary",
+        "internship",
+        "other",
+      ].includes(val)
+        ? val
+        : null,
+    salary: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 50) : null,
+    application_date: (val: any) => {
+      // Validate date format (YYYY-MM-DD)
+      if (typeof val !== "string") return null;
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      return dateRegex.test(val) ? val : null;
+    },
+    status: (val: any) =>
+      [
+        "applied",
+        "interview",
+        "offer",
+        "rejected",
+        "accepted",
+        "saved",
+      ].includes(val)
+        ? val
+        : null,
+    notes: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 2000) : null,
+    url: (val: any) =>
+      typeof val === "string" && isSafeUrl(val)
+        ? sanitizeInput(val).substring(0, 500)
+        : null,
+    contact_name: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 100) : null,
+    contact_email: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 100) : null,
+    contact_phone: (val: any) =>
+      typeof val === "string" ? sanitizeInput(val).substring(0, 20) : null,
+    interview_date: (val: any) => {
+      // Validate date format (YYYY-MM-DD)
+      if (typeof val !== "string") return null;
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      return dateRegex.test(val) ? val : null;
+    },
+    priority: (val: any) =>
+      ["low", "medium", "high"].includes(val) ? val : null,
+    user_id: (val: any) => (typeof val === "string" ? val : null), // User IDs should already be validated by Supabase
+  };
+
+  // Apply validation rules to each field
+  for (const [field, validator] of Object.entries(allowedFields)) {
+    if (field in data) {
+      const cleaned = validator(data[field]);
+      // Only include non-null values
+      if (cleaned !== null) {
+        cleanedData[field] = cleaned;
+      }
+    }
+  }
+
+  return cleanedData;
+};
+
+/**
+ * Create a new job with proper validation
+ * @param jobData Job data to save
+ * @returns Result of the operation
+ */
+export const createJob = async (jobData: any) => {
+  try {
+    // Validate and clean job data
+    const cleanedData = validateAndCleanJobData(jobData);
+
+    if (!cleanedData) {
+      throw new Error("Invalid job data");
+    }
+
+    // Ensure required fields are present
+    if (!cleanedData.title || !cleanedData.user_id) {
+      throw new Error("Missing required fields");
+    }
+
+    // Use parameterized query through Supabase
+    const { data, error } = await supabase
+      .from("jobs")
+      .insert(cleanedData)
+      .select();
+
+    if (error) {
+      console.error("Error creating job:", error);
+      throw error;
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Job creation failed:", error);
+    return { success: false, error: error.message || "Failed to create job" };
+  }
+};
+
+/**
+ * Update a job with proper validation
+ * @param jobId ID of the job to update
+ * @param jobData New job data
+ * @returns Result of the operation
+ */
+export const updateJob = async (jobId: string, jobData: any) => {
+  try {
+    // Validate ID
+    if (!jobId || typeof jobId !== "string") {
+      throw new Error("Invalid job ID");
+    }
+
+    // Validate and clean job data
+    const cleanedData = validateAndCleanJobData(jobData);
+
+    if (!cleanedData || Object.keys(cleanedData).length === 0) {
+      throw new Error("Invalid job data");
+    }
+
+    // Use parameterized query through Supabase
+    const { data, error } = await supabase
+      .from("jobs")
+      .update(cleanedData)
+      .eq("id", jobId)
+      .select();
+
+    if (error) {
+      console.error("Error updating job:", error);
+      throw error;
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Job update failed:", error);
+    return { success: false, error: error.message || "Failed to update job" };
+  }
+};
+
+/**
+ * Delete a job with proper validation
+ * @param jobId ID of the job to delete
+ * @returns Result of the operation
+ */
+export const deleteJob = async (jobId: string) => {
+  try {
+    // Validate ID
+    if (!jobId || typeof jobId !== "string") {
+      throw new Error("Invalid job ID");
+    }
+
+    // Use parameterized query through Supabase
+    const { error } = await supabase.from("jobs").delete().eq("id", jobId);
+
+    if (error) {
+      console.error("Error deleting job:", error);
+      throw error;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Job deletion failed:", error);
+    return { success: false, error: error.message || "Failed to delete job" };
+  }
+};
+
+/**
+ * Get a job by ID with proper validation
+ * @param jobId ID of the job to retrieve
+ * @returns The job data
+ */
+export const getJobById = async (jobId: string) => {
+  try {
+    // Validate ID
+    if (!jobId || typeof jobId !== "string") {
+      throw new Error("Invalid job ID");
+    }
+
+    // Use parameterized query through Supabase
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("id", jobId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching job:", error);
+      throw error;
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Job fetch failed:", error);
+    return { success: false, error: error.message || "Failed to fetch job" };
+  }
+};
+
+/**
+ * Get jobs for a user with validation and pagination
+ * @param userId ID of the user to get jobs for
+ * @param options Pagination and filter options
+ * @returns List of jobs
+ */
+export const getJobsForUser = async (userId: string, options: any = {}) => {
+  try {
+    // Validate user ID
+    if (!userId || typeof userId !== "string") {
+      throw new Error("Invalid user ID");
+    }
+
+    // Validate and sanitize pagination options
+    const limit =
+      sanitizeNumericInput(options.limit, { min: 1, max: 100 }) || 50;
+    const page = sanitizeNumericInput(options.page, { min: 1 }) || 1;
+    const offset = (page - 1) * limit;
+
+    // Build the query with parameterized values
+    let query = supabase
+      .from("jobs")
+      .select("*", { count: "exact" })
+      .eq("user_id", userId)
+      .order("application_date", { ascending: false });
+
+    // Apply filters if provided
+    if (options.status && typeof options.status === "string") {
+      // Validate status
+      const validStatuses = [
+        "applied",
+        "interview",
+        "offer",
+        "rejected",
+        "accepted",
+        "saved",
+      ];
+      if (validStatuses.includes(options.status)) {
+        query = query.eq("status", options.status);
+      }
+    }
+
+    // Add pagination
+    query = query.range(offset, offset + limit - 1);
+
+    // Execute the query
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error("Error fetching jobs:", error);
+      throw error;
+    }
+
+    return {
+      success: true,
+      data,
+      pagination: {
+        total: count || 0,
+        page,
+        limit,
+        pages: count ? Math.ceil(count / limit) : 0,
+      },
+    };
+  } catch (error) {
+    console.error("Jobs fetch failed:", error);
+    return { success: false, error: error.message || "Failed to fetch jobs" };
+  }
+};
+
+/**
+ * Search jobs with proper validation
+ * @param userId User ID to search jobs for
+ * @param searchTerm Term to search for
+ * @param options Additional search options
+ * @returns Search results
+ */
+export const searchJobs = async (
+  userId: string,
+  searchTerm: string,
+  options: any = {}
+) => {
+  try {
+    // Validate user ID
+    if (!userId || typeof userId !== "string") {
+      throw new Error("Invalid user ID");
+    }
+
+    // Sanitize search term and prevent injection
+    const sanitizedTerm = sanitizeInput(searchTerm);
+    if (!sanitizedTerm) {
+      return { success: true, data: [], count: 0 }; // Return empty result for empty search
+    }
+
+    // Validate and sanitize pagination options
+    const limit =
+      sanitizeNumericInput(options.limit, { min: 1, max: 100 }) || 50;
+    const page = sanitizeNumericInput(options.page, { min: 1 }) || 1;
+    const offset = (page - 1) * limit;
+
+    // Use parameterized full-text search through Supabase
+    // Note: This requires a text search index on the jobs table
+    const { data, error, count } = await supabase
+      .from("jobs")
+      .select("*", { count: "exact" })
+      .eq("user_id", userId)
+      .textSearch("title", sanitizedTerm)
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error("Error searching jobs:", error);
+      throw error;
+    }
+
+    return {
+      success: true,
+      data,
+      pagination: {
+        total: count || 0,
+        page,
+        limit,
+        pages: count ? Math.ceil(count / limit) : 0,
+      },
+    };
+  } catch (error) {
+    console.error("Job search failed:", error);
+    return { success: false, error: error.message || "Failed to search jobs" };
   }
 };

@@ -19,8 +19,17 @@ import {
   isValidEmail,
   generateCSRFToken,
   storeCSRFToken,
+  validateCSRFToken,
+  throttle,
 } from "@/utils/security";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
+// Constants
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
+const THROTTLE_TIME = 1000; // 1 second throttle for submit
 
 const Login = () => {
   const { toast } = useResponsiveToast();
@@ -33,14 +42,49 @@ const Login = () => {
     password: "",
   });
 
+  // Security enhancement: Login attempt tracking
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [csrfToken, setCsrfToken] = useState<string>("");
+
   // Flag to ensure the toast is only shown once
   const verificationToastShown = useRef(false);
 
-  // Generate CSRF token on component mount
+  // Load stored login attempt data
   useEffect(() => {
-    const csrfToken = generateCSRFToken();
-    storeCSRFToken(csrfToken);
+    try {
+      const storedAttempts = sessionStorage.getItem("login_attempts");
+      const storedLockout = sessionStorage.getItem("login_lockout");
 
+      if (storedAttempts) {
+        setLoginAttempts(parseInt(storedAttempts, 10));
+      }
+
+      if (storedLockout) {
+        const lockoutTime = parseInt(storedLockout, 10);
+        if (lockoutTime > Date.now()) {
+          setLockoutUntil(lockoutTime);
+        } else {
+          // Clear expired lockout
+          sessionStorage.removeItem("login_lockout");
+          setLockoutUntil(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading login security data:", error);
+    }
+  }, []);
+
+  // CSRF token generation - regenerate on component mount
+  useEffect(() => {
+    const token = generateCSRFToken();
+    storeCSRFToken(token);
+    setCsrfToken(token);
+  }, []);
+
+  // Handle search parameters
+  useEffect(() => {
     // Check if user came from signup with pending verification
     const pendingVerification = searchParams.get("pendingVerification");
     if (pendingVerification === "true" && !verificationToastShown.current) {
@@ -51,119 +95,198 @@ const Login = () => {
           "Please check your email and click the verification link before logging in.",
       });
     }
+
+    // Try to pre-fill email from URL parameter (if from verification)
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      // Validate and sanitize the email
+      const sanitizedEmail = sanitizeInput(emailParam);
+      if (isValidEmail(sanitizedEmail)) {
+        setFormData((prev) => ({ ...prev, email: sanitizedEmail }));
+      }
+    }
   }, [searchParams, toast]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  // Check if account is locked
+  const isAccountLocked = () => {
+    if (!lockoutUntil) return false;
+    return Date.now() < lockoutUntil;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // Format remaining lockout time
+  const formatLockoutTime = () => {
+    if (!lockoutUntil) return "";
 
-    // Sanitize the email input
-    const sanitizedEmail = sanitizeInput(formData.email.trim());
-    const password = formData.password;
+    const remainingMs = lockoutUntil - Date.now();
+    if (remainingMs <= 0) return "";
+
+    const minutes = Math.floor(remainingMs / 60000);
+    const seconds = Math.floor((remainingMs % 60000) / 1000);
+
+    return `${minutes}m ${seconds}s`;
+  };
+
+  // Handle input changes with validation
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    // Clear error when user starts typing
+    setErrorMessage(null);
+
+    // Basic validation and sanitization
+    if (name === "email") {
+      setFormData((prev) => ({ ...prev, [name]: value.trim() }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  // Throttled submit handler to prevent brute force attacks
+  const throttledSubmit = throttle(async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Clear previous error
+    setErrorMessage(null);
+
+    // Check if account is locked
+    if (isAccountLocked()) {
+      setErrorMessage(
+        `Too many failed attempts. Please try again in ${formatLockoutTime()}`
+      );
+      return;
+    }
+
+    // Validate CSRF token
+    if (!validateCSRFToken(csrfToken)) {
+      setErrorMessage(
+        "Security validation failed. Please reload the page and try again."
+      );
+      return;
+    }
 
     // Validate inputs
-    if (!sanitizedEmail || !password) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      setIsLoading(false);
+    if (!formData.email || !formData.password) {
+      setErrorMessage("Email and password are required");
       return;
     }
 
-    if (!isValidEmail(sanitizedEmail)) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      setIsLoading(false);
+    // Check email validity
+    if (!isValidEmail(formData.email)) {
+      setErrorMessage("Please enter a valid email address");
       return;
     }
 
-    // Small delay to prevent brute force
-    await new Promise((r) => setTimeout(r, 300));
+    // Additional password validation
+    if (formData.password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters");
+      return;
+    }
 
     try {
-      const result = await signIn(sanitizedEmail, password);
+      setIsLoading(true);
 
-      if (!result.success) {
-        // Dispatch a custom login failure event for security monitoring
-        window.dispatchEvent(
-          new CustomEvent("login-failure", {
-            detail: {
-              email: sanitizedEmail,
-              timestamp: new Date().toISOString(),
-              ip: "client-side", // In a real app, you'd get this from the server
-            },
-          })
-        );
+      // Attempt to sign in
+      const result = await signIn({
+        email: formData.email,
+        password: formData.password,
+      });
 
-        toast({
-          title: "Login Failed",
-          description: result.error,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-      } else {
+      if (result.success) {
+        // Login successful
+        await refreshUser();
+
+        // Reset login attempts on successful login
+        setLoginAttempts(0);
+        sessionStorage.removeItem("login_attempts");
+        sessionStorage.removeItem("login_lockout");
+
+        // Regenerate CSRF token after successful login
+        const newToken = generateCSRFToken();
+        storeCSRFToken(newToken);
+
+        // Navigate to dashboard
         toast({
           title: "Login Successful",
-          description: "Welcome back!",
+          description: "Welcome back to JobTrakr!",
         });
-        await refreshUser();
+
         navigate("/dashboard");
+      } else {
+        // Login failed
+        const newAttempts = loginAttempts + 1;
+        setLoginAttempts(newAttempts);
+        sessionStorage.setItem("login_attempts", newAttempts.toString());
+
+        // Check if we need to lock the account
+        if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+          const lockoutTime = Date.now() + LOGIN_LOCKOUT_TIME;
+          setLockoutUntil(lockoutTime);
+          sessionStorage.setItem("login_lockout", lockoutTime.toString());
+          setErrorMessage(
+            `Too many failed attempts. Your account is locked for ${formatLockoutTime()}`
+          );
+        } else {
+          // Set error with remaining attempts info
+          setErrorMessage(
+            `Invalid email or password. ${
+              MAX_LOGIN_ATTEMPTS - newAttempts
+            } attempts remaining.`
+          );
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
-
-      // Dispatch a custom login failure event for security monitoring
-      window.dispatchEvent(
-        new CustomEvent("login-failure", {
-          detail: {
-            email: sanitizedEmail,
-            timestamp: new Date().toISOString(),
-            ip: "client-side",
-          },
-        })
-      );
-
-      toast({
-        title: "An error occurred",
-        description: "Please try again later",
-        variant: "destructive",
-      });
+      setErrorMessage("An unexpected error occurred. Please try again.");
+    } finally {
       setIsLoading(false);
     }
-  };
+  }, THROTTLE_TIME);
 
   return (
     <AuthLayout>
-      <Card className="w-full max-w-md bg-white/80 backdrop-blur-md shadow-xl border border-white/20 rounded-xl overflow-hidden">
-        <CardHeader className="space-y-1 text-center pb-4">
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Sign in to your JobTrakr account</CardDescription>
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Login</CardTitle>
+          <CardDescription>
+            Enter your email and password to access your account
+          </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+        <CardContent>
+          <form onSubmit={throttledSubmit} className="space-y-4">
+            {/* Security token - hidden from user */}
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+
+            {/* Display error message if present */}
+            {errorMessage && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Lock notification */}
+            {isAccountLocked() && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>Account Temporarily Locked</AlertTitle>
+                <AlertDescription>
+                  Too many failed login attempts. Please try again in{" "}
+                  {formatLockoutTime()}.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
-                placeholder="john.doe@example.com"
                 type="email"
+                autoComplete="email"
+                placeholder="name@example.com"
                 value={formData.email}
                 onChange={handleChange}
-                disabled={isLoading}
                 required
-                autoComplete="email"
-                className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
+                disabled={isLoading || isAccountLocked()}
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
@@ -171,7 +294,7 @@ const Login = () => {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
                 >
                   Forgot password?
                 </Link>
@@ -180,36 +303,47 @@ const Login = () => {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
-                disabled={isLoading}
                 required
-                autoComplete="current-password"
-                className="bg-white/50 border-white/30 focus:border-primary focus:ring-primary shadow-sm"
+                disabled={isLoading || isAccountLocked()}
+                className="w-full"
               />
             </div>
-          </CardContent>
-          <CardFooter>
             <Button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90"
-              disabled={isLoading}
+              className="w-full"
+              disabled={
+                isLoading ||
+                isAccountLocked() ||
+                !formData.email ||
+                !formData.password
+              }
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                "Login"
+              )}
             </Button>
-          </CardFooter>
-        </form>
-        <div className="px-8 py-4 text-center border-t border-white/20">
-          <p className="text-sm text-gray-600">
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="text-center text-sm">
             Don't have an account?{" "}
             <Link
               to="/signup"
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="font-medium text-blue-600 hover:text-blue-500"
             >
               Sign up
             </Link>
-          </p>
-        </div>
+          </div>
+        </CardFooter>
       </Card>
     </AuthLayout>
   );

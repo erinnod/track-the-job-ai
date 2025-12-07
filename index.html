@@ -8,12 +8,20 @@
     <!-- CSP Fallback (will be overridden by server headers, but provides a backup) -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' localhost:*; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' localhost:*; style-src 'self' 'unsafe-inline' localhost:*; style-src-elem 'self' 'unsafe-inline' localhost:*; connect-src 'self' localhost:* ws://localhost:* https://*.supabase.co https://kffbwemulhhsyaiooabh.supabase.co wss://*.supabase.co wss://kffbwemulhhsyaiooabh.supabase.co; img-src 'self' data: blob: https://*.supabase.co https://kffbwemulhhsyaiooabh.supabase.co/storage/*;"
+      content="default-src 'self' localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' localhost:*; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' localhost:*; style-src 'self' 'unsafe-inline' localhost:* https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' localhost:* https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' localhost:* ws://localhost:* https://*.supabase.co https://kffbwemulhhsyaiooabh.supabase.co wss://*.supabase.co wss://kffbwemulhhsyaiooabh.supabase.co https://generativelanguage.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://kffbwemulhhsyaiooabh.supabase.co/storage/*;"
     />
 
     <!-- Cross-Origin Isolation -->
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- SEO meta tags -->
     <title>JobTrakr - Track Your Job Applications</title>

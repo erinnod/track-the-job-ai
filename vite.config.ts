@@ -42,4 +42,22 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
+  define: {
+    // Include these at build time
+    "process.env.VITE_EMAIL_HOST": JSON.stringify(process.env.VITE_EMAIL_HOST),
+    "process.env.VITE_EMAIL_PORT": JSON.stringify(process.env.VITE_EMAIL_PORT),
+    "process.env.VITE_EMAIL_SECURE": JSON.stringify(
+      process.env.VITE_EMAIL_SECURE
+    ),
+    "process.env.VITE_EMAIL_USER": JSON.stringify(process.env.VITE_EMAIL_USER),
+    "process.env.VITE_EMAIL_PASSWORD": JSON.stringify(
+      process.env.VITE_EMAIL_PASSWORD
+    ),
+    "process.env.VITE_GMAIL_CLIENT_ID": JSON.stringify(
+      process.env.VITE_GMAIL_CLIENT_ID
+    ),
+    "process.env.VITE_OUTLOOK_CLIENT_ID": JSON.stringify(
+      process.env.VITE_OUTLOOK_CLIENT_ID
+    ),
+  },
 }));

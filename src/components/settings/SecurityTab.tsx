@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   Form,
   FormControl,
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/form";
 import { updatePassword } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { AlertCircle, ShieldCheck } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { logger } from "@/utils/logger";
 
@@ -47,8 +46,6 @@ export const SecurityTab = () => {
       confirmPassword: "",
     },
   });
-
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // Validate password strength
   const validatePassword = (
@@ -159,38 +156,6 @@ export const SecurityTab = () => {
     }
   };
 
-  // Handle two-factor authentication toggle
-  const handleTwoFactorToggle = async (enabled: boolean) => {
-    try {
-      setIsLoading(true);
-      // Here you would typically call Supabase or your auth provider to enable/disable 2FA
-      // This is a placeholder as Supabase requires additional setup for 2FA
-      logger.info("Setting two-factor authentication to:", enabled);
-
-      // Simulate successful API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      setTwoFactorEnabled(enabled);
-      toast({
-        title: `Two-factor authentication ${enabled ? "enabled" : "disabled"}`,
-        description: `Two-factor authentication has been ${
-          enabled ? "enabled" : "disabled"
-        } for your account.`,
-      });
-    } catch (error: any) {
-      logger.error("Error toggling 2FA:", error);
-      toast({
-        title: "Error updating two-factor authentication",
-        description:
-          error.message ||
-          "There was a problem updating your two-factor authentication settings.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -279,30 +244,6 @@ export const SecurityTab = () => {
             </Button>
           </form>
         </Form>
-
-        <div className="pt-4 border-t">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium">Two-Factor Authentication</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Add an extra layer of security to your account
-              </p>
-            </div>
-            <Switch
-              checked={twoFactorEnabled}
-              onCheckedChange={handleTwoFactorToggle}
-              disabled={isLoading}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground mt-4">
-            When two-factor authentication is enabled, you'll be required to
-            provide a verification code in addition to your password during
-            sign-in.
-          </p>
-        </div>
       </CardContent>
     </Card>
   );

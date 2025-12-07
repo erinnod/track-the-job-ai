@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Mail, Smartphone } from "lucide-react";
+import { Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
 
@@ -22,7 +22,6 @@ export const NotificationsTab = () => {
   // Notifications state
   const [notifications, setNotifications] = useState({
     email: false,
-    sms: true,
     jobMatches: true,
     applicationStatus: true,
     interviewReminders: true,
@@ -62,7 +61,6 @@ export const NotificationsTab = () => {
         if (data) {
           setNotifications({
             email: data.email_enabled || false,
-            sms: data.sms_enabled || true,
             jobMatches: data.job_matches || true,
             applicationStatus: data.application_status || true,
             interviewReminders: data.interview_reminders || true,
@@ -97,7 +95,6 @@ export const NotificationsTab = () => {
       const { error } = await supabase.from("notification_preferences").upsert({
         user_id: userId,
         email_enabled: notifications.email,
-        sms_enabled: notifications.sms,
         job_matches: notifications.jobMatches,
         application_status: notifications.applicationStatus,
         interview_reminders: notifications.interviewReminders,
@@ -157,25 +154,6 @@ export const NotificationsTab = () => {
             checked={notifications.email}
             onCheckedChange={(checked) =>
               handleNotificationChange("email", checked)
-            }
-            disabled={isInitializing}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-medium">SMS Notifications</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Receive updates via text message
-            </p>
-          </div>
-          <Switch
-            checked={notifications.sms}
-            onCheckedChange={(checked) =>
-              handleNotificationChange("sms", checked)
             }
             disabled={isInitializing}
           />
