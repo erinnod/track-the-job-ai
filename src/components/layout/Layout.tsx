@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect } from 'react'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import Footer from './Footer'
-import { Menu } from 'lucide-react'
+import { Menu, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface LayoutProps {
 	children: ReactNode
@@ -10,6 +10,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 	const [isMobile, setIsMobile] = useState(false)
 
 	// Check if we're on mobile and update state
@@ -37,9 +38,10 @@ const Layout = ({ children }: LayoutProps) => {
 
 	// Create backdrop to close sidebar when clicked outside
 	const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
+	const toggleSidebarCollapse = () => setSidebarCollapsed(!sidebarCollapsed)
 
 	return (
-		<div className='min-h-screen bg-gray-100 flex flex-col'>
+		<div className='min-h-screen bg-white flex flex-col'>
 			<Navbar onMenuClick={toggleSidebar} />
 			<div className='flex flex-col md:flex-row pt-16 flex-grow relative'>
 				{/* Mobile sidebar overlay */}
@@ -56,11 +58,29 @@ const Layout = ({ children }: LayoutProps) => {
 					className={`
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
           md:translate-x-0 fixed md:static top-16 left-0 z-30 h-[calc(100vh-4rem)] 
-          transition-transform duration-300 ease-in-out md:transition-none
-          w-64 bg-white border-r border-gray-200 overflow-y-auto
+          transition-all duration-300 ease-in-out md:transition-none
+          ${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white border-r border-gray-200 overflow-y-auto scrollbar-hide
         `}
 				>
-					<Sidebar onLinkClick={() => isMobile && setSidebarOpen(false)} />
+					{/* Sidebar collapse toggle button - only visible on desktop */}
+					<div className='hidden md:flex justify-end p-2 border-b border-gray-100'>
+						<button
+							onClick={toggleSidebarCollapse}
+							className='p-1 rounded-md hover:bg-gray-100 transition-colors'
+							aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+						>
+							{sidebarCollapsed ? (
+								<ChevronRight className='h-4 w-4 text-gray-600' />
+							) : (
+								<ChevronLeft className='h-4 w-4 text-gray-600' />
+							)}
+						</button>
+					</div>
+					
+					<Sidebar 
+						onLinkClick={() => isMobile && setSidebarOpen(false)} 
+						collapsed={sidebarCollapsed}
+					/>
 				</div>
 
 				{/* Mobile menu toggle button - visible only on small screens */}

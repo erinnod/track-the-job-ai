@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAvatarRefresh } from "@/hooks/useAvatarRefresh";
 import { useAvatar } from "@/contexts/AvatarContext";
 
@@ -36,18 +36,18 @@ const DirectAvatarImage: React.FC<DirectAvatarImageProps> = ({
   return (
     <Avatar className={className} onClick={onClick}>
       {avatarUrl ? (
-        <div
+        <AvatarImage
           key={imgKey}
-          className={`w-full h-full transition-opacity duration-300 ${
+          src={avatarUrl}
+          alt="Profile picture"
+          className={`transition-opacity duration-300 ${
             fadeIn ? "opacity-100" : "opacity-0"
           }`}
-          style={{
-            backgroundImage: `url("${avatarUrl}")`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
           onLoad={() => setFadeIn(true)}
-          onError={() => console.warn("Failed to load avatar image")}
+          onError={() => {
+            console.warn("Failed to load avatar image");
+            setFadeIn(false);
+          }}
         />
       ) : null}
       <AvatarFallback>{fallback}</AvatarFallback>

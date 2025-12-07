@@ -26,9 +26,52 @@ export function useAvatarRefresh(
 
   // Effect to load and refresh the avatar
   useEffect(() => {
-    if (!userId || !filePath) {
+    if (!userId) {
       setAvatarUrl(null);
       setIsLoading(false);
+      return;
+    }
+
+    // If no filePath is provided, try to fetch it from the profile
+    if (!filePath) {
+      const fetchFilePath = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("avatar_url")
+            .eq("id", userId)
+            .single();
+
+          if (error || !data?.avatar_url) {
+            setAvatarUrl(null);
+            setIsLoading(false);
+            return;
+          }
+
+          // Use the fetched file path
+          const actualFilePath = data.avatar_url;
+          
+          // Get a fresh URL from Supabase
+          const { data: urlData } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(actualFilePath);
+
+          if (urlData?.publicUrl) {
+            const url = `${urlData.publicUrl}?t=${key}`;
+            setAvatarUrl(url);
+          } else {
+            setAvatarUrl(null);
+          }
+          
+          setIsLoading(false);
+        } catch (error) {
+          console.error("Error fetching avatar file path:", error);
+          setAvatarUrl(null);
+          setIsLoading(false);
+        }
+      };
+
+      fetchFilePath();
       return;
     }
 

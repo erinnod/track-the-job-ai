@@ -38,9 +38,6 @@ interface NavbarProps {
 
 const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarLoading, setAvatarLoading] = useState(true);
-  const [avatarFadeIn, setAvatarFadeIn] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const previousUserId = useRef<string | null>(null);
   const navigate = useNavigate();
@@ -52,7 +49,6 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
   const isMounted = useRef(true);
   const [addJobModalOpen, setAddJobModalOpen] = useState(false);
   const { addJob } = useJobs();
-  const [avatarFilePath, setAvatarFilePath] = useState<string | null>(null);
 
   // Get the 3 most recent notifications - memoize to prevent recalculation
   const recentNotifications = useMemo(() => {
@@ -81,82 +77,7 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
     return Math.floor(seconds) + " seconds ago";
   }, []);
 
-  // Add a force reload key to further bypass caching
-  const [forceReloadKey, setForceReloadKey] = useState(Date.now());
 
-  // Add a listener for the force-reload event
-  useEffect(() => {
-    const handleForceReload = () => {
-      console.log("Force reloading avatar in Navbar");
-      setForceReloadKey(Date.now());
-      setAvatarUrl(null);
-      setAvatarLoading(true);
-
-      // If we have a user, reset the URL with cache busting
-      if (user?.id) {
-        // Force fetch a fresh profile
-        const fetchFresh = async () => {
-          try {
-            sessionStorage.removeItem(`avatar_${user.id}`);
-            sessionStorage.removeItem(`avatar_timestamp_${user.id}`);
-
-            const { data, error } = await supabase
-              .from("profiles")
-              .select("avatar_url")
-              .eq("id", user.id)
-              .single();
-
-            if (error) {
-              console.warn("Error fetching fresh profile:", error);
-              setAvatarLoading(false);
-              return;
-            }
-
-            if (data?.avatar_url) {
-              // Get a fresh URL from Supabase
-              const { data: urlData } = supabase.storage
-                .from("avatars")
-                .getPublicUrl(data.avatar_url);
-
-              if (urlData?.publicUrl) {
-                // Add aggressive cache busting
-                const freshUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-                setAvatarUrl(freshUrl);
-
-                // Also update session storage with the fresh URL
-                sessionStorage.setItem(`avatar_${user.id}`, freshUrl);
-                sessionStorage.setItem(
-                  `avatar_timestamp_${user.id}`,
-                  Date.now().toString()
-                );
-
-                // Store the file path
-                setAvatarFilePath(data.avatar_url);
-              }
-            } else {
-              setAvatarFilePath(null);
-            }
-
-            setAvatarLoading(false);
-          } catch (err) {
-            console.error("Error in force fetch:", err);
-            setAvatarLoading(false);
-          }
-        };
-
-        fetchFresh();
-      }
-    };
-
-    // Listen for both event types
-    window.addEventListener("avatar-force-reload", handleForceReload);
-    window.addEventListener("avatar-updated", handleForceReload);
-
-    return () => {
-      window.removeEventListener("avatar-force-reload", handleForceReload);
-      window.removeEventListener("avatar-updated", handleForceReload);
-    };
-  }, [user?.id]);
 
   // Memoize user initials calculation to prevent recalculation on every render
   const initials = useMemo(() => {
@@ -393,7 +314,7 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
                   >
                     <DirectAvatarImage
                       userId={user?.id}
-                      filePath={avatarFilePath}
+                      filePath={null}
                       fallback={initials}
                       className="border border-gray-200"
                     />

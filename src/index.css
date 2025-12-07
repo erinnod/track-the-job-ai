@@ -181,6 +181,26 @@
 	@apply transform transition-transform duration-300 ease-in-out;
 }
 
+/* Hide scrollbar for sidebar */
+.scrollbar-hide {
+	-ms-overflow-style: none;  /* Internet Explorer 10+ */
+	scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;  /* Safari and Chrome */
+}
+
+/* Additional scrollbar hiding for sidebar containers */
+.overflow-y-auto::-webkit-scrollbar {
+	display: none;
+}
+
+.overflow-y-auto {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
 /* Improve form layout on mobile */
 @media (max-width: 640px) {
 	.form-row {
