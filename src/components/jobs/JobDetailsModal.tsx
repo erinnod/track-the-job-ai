@@ -24,7 +24,7 @@ import {
 import { format } from 'date-fns'
 import { useJobs } from '@/contexts/JobContext'
 import EditJobModal from './EditJobModal'
-import { getCurrencyIcon } from '@/utils/currencyUtils'
+import { formatSalaryForDisplay, getCurrencyIcon } from '@/utils/currencyUtils'
 import { supabase } from '@/lib/supabase'
 
 interface JobDetailsModalProps {
@@ -229,7 +229,7 @@ const JobDetailsModal = ({ isOpen, onClose, jobId }: JobDetailsModalProps) => {
 									{getCurrencyIcon(job.location)}
 									<div>
 										<p className='text-sm text-gray-500 font-medium'>Salary</p>
-										<p>{job.salary || 'Not specified'}</p>
+										<p>{formatSalaryForDisplay(job.salary, job.location)}</p>
 									</div>
 								</div>
 

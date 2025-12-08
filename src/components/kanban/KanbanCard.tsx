@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Building, ArrowRightIcon, ArrowLeftIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { formatSalaryForDisplay } from '@/utils/currencyUtils'
 
 interface KanbanCardProps {
 	job: JobApplication
@@ -77,7 +78,9 @@ const KanbanCard = ({ job, onCardMove }: KanbanCardProps) => {
 					</Button>
 
 					{job.salary && (
-						<div className='text-xs font-medium'>{job.salary}</div>
+						<div className='text-xs font-medium'>
+							{formatSalaryForDisplay(job.salary, job.location)}
+						</div>
 					)}
 
 					<Button

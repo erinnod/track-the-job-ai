@@ -1,4 +1,6 @@
-const nodemailer = require('nodemailer');
+// Load environment variables for server-side email service
+require("dotenv").config();
+const nodemailer = require("nodemailer");
 
 // Email service class
 class EmailService {
@@ -12,12 +14,12 @@ class EmailService {
     try {
       // Get email configuration from environment variables
       const emailConfig = {
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT || '587', 10),
-        secure: process.env.EMAIL_SECURE === 'true',
+        host: process.env.EMAIL_HOST || "smtp.gmail.com",
+        port: parseInt(process.env.EMAIL_PORT || "587", 10),
+        secure: process.env.EMAIL_SECURE === "true",
         auth: {
-          user: process.env.EMAIL_USER || '',
-          pass: process.env.EMAIL_PASS || '',
+          user: process.env.EMAIL_USER || "",
+          pass: process.env.EMAIL_PASS || "",
         },
       };
 
@@ -25,13 +27,15 @@ class EmailService {
       if (emailConfig.auth.user && emailConfig.auth.pass) {
         this.transporter = nodemailer.createTransport(emailConfig);
         this.isInitialized = true;
-        console.info('Email service initialized successfully');
+        console.info("Email service initialized successfully");
       } else {
-        console.warn('Email credentials not configured. Email notifications will be disabled.');
+        console.warn(
+          "Email credentials not configured. Email notifications will be disabled."
+        );
         this.isInitialized = false;
       }
     } catch (error) {
-      console.error('Failed to initialize email service:', error);
+      console.error("Failed to initialize email service:", error);
       this.isInitialized = false;
     }
   }
@@ -41,7 +45,7 @@ class EmailService {
    */
   async sendEmail(content) {
     if (!this.isInitialized || !this.transporter) {
-      console.warn('Email service not initialized. Skipping email send.');
+      console.warn("Email service not initialized. Skipping email send.");
       return false;
     }
 
@@ -55,10 +59,10 @@ class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', info.messageId);
+      console.log("Email sent successfully:", info.messageId);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error("Failed to send email:", error);
       return false;
     }
   }
@@ -68,11 +72,11 @@ class EmailService {
    */
   htmlToText(html) {
     return html
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
-      .replace(/&amp;/g, '&') // Replace &amp; with &
-      .replace(/&lt;/g, '<') // Replace &lt; with <
-      .replace(/&gt;/g, '>') // Replace &gt; with >
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
+      .replace(/&nbsp;/g, " ") // Replace &nbsp; with space
+      .replace(/&amp;/g, "&") // Replace &amp; with &
+      .replace(/&lt;/g, "<") // Replace &lt; with <
+      .replace(/&gt;/g, ">") // Replace &gt; with >
       .replace(/&quot;/g, '"') // Replace &quot; with "
       .trim();
   }
@@ -88,21 +92,21 @@ class EmailService {
     interviewDate,
     daysUntil
   ) {
-    const dateString = interviewDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    const dateString = interviewDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
 
-    const timeString = interviewDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short',
+    const timeString = interviewDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
     });
 
     const subject = `Interview Reminder: ${position} at ${company}`;
-    
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -158,7 +162,9 @@ class EmailService {
         <body>
           <div class="header">
             <h1>📅 Interview Reminder</h1>
-            <p>Your interview is coming up in ${daysUntil} day${daysUntil === 1 ? '' : 's'}!</p>
+            <p>Your interview is coming up in ${daysUntil} day${
+      daysUntil === 1 ? "" : "s"
+    }!</p>
           </div>
           
           <div class="content">
@@ -207,13 +213,7 @@ class EmailService {
   /**
    * Send application status update email
    */
-  async sendStatusUpdateEmail(
-    userEmail,
-    userName,
-    company,
-    position,
-    status
-  ) {
+  async sendStatusUpdateEmail(userEmail, userName, company, position, status) {
     const statusMessages = {
       interview: {
         subject: `Interview Scheduled: ${position} at ${company}`,

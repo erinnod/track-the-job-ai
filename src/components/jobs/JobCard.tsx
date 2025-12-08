@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import JobDetailsModal from "./JobDetailsModal";
-import { getCurrencySymbol } from "@/utils/currencyUtils";
+import { formatSalaryForDisplay } from "@/utils/currencyUtils";
 import {
   Dialog,
   DialogContent,
@@ -63,7 +63,7 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
   };
 
   const cardBgColor = getStatusColor(job.status);
-  const currencySymbol = getCurrencySymbol(job.location);
+  const salaryDisplay = formatSalaryForDisplay(job.salary, job.location);
 
   return (
     <>
@@ -126,9 +126,7 @@ const JobCard = ({ job, onRemove }: JobCardProps) => {
 
         <CardFooter className="flex items-center justify-between p-4 pt-0">
           <div className="flex items-center text-sm text-gray-700">
-            {job.salary
-              ? `${currencySymbol}${job.salary.replace(/^[$£]/, "")}`
-              : "Not specified"}
+            {salaryDisplay}
           </div>
           <Button
             variant="default"

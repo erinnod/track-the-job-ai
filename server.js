@@ -16,12 +16,16 @@
 // DEPENDENCIES AND CONFIGURATION
 //=============================================================================
 
+// Load environment variables early
+require("dotenv").config();
+
 // Import dependencies
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const { createClient } = require("@supabase/supabase-js");
+const notificationScheduler = require("./server/notificationScheduler.cjs");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -504,6 +508,8 @@ app.get("*", (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  // Start interview reminder scheduler once server is up
+  notificationScheduler.start();
 });
 
 // Export app for testing

@@ -327,7 +327,7 @@ const CalendarPage = () => {
                 Calendar
               </h1>
               <p className="text-sm text-slate-600 mt-1">
-                Keep interviews, submissions, and follow-ups organized in one view.
+                Keep interviews, submissions, and follow-ups organised in one view.
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-600 bg-white/60 border border-slate-200 px-3 py-2 rounded-xl shadow-[0_10px_30px_-15px_rgba(15,23,42,0.35)]">
