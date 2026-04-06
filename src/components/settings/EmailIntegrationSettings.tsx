@@ -79,7 +79,7 @@ export default function EmailIntegrationSettings() {
     try {
       const [integrations, notificationSettings] = await Promise.all([
         fetchUserEmailIntegrations(user?.id || ""),
-        getNotificationSettings(user?.id || ""),
+        getNotificationSettings(user?.id || "", user?.email || undefined),
       ]);
       setIntegrations(integrations);
       setNotificationSettings(notificationSettings);

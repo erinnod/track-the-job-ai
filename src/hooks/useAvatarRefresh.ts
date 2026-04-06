@@ -40,7 +40,7 @@ export function useAvatarRefresh(
             .from("profiles")
             .select("avatar_url")
             .eq("id", userId)
-            .single();
+            .maybeSingle();
 
           if (error || !data?.avatar_url) {
             setAvatarUrl(null);

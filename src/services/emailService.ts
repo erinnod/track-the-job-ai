@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabase";
 import {
   EmailIntegration,
   EmailProvider,
-  OAuthConfig,
   TrackedEmail,
   EmailNotificationSettings,
   GMAIL_OAUTH_CONFIG,
@@ -110,7 +109,7 @@ export const createEmailIntegration = async (
     }
 
     // Create default notification settings if they don't exist
-    await ensureNotificationSettings(userId);
+    await ensureNotificationSettings(userId, emailAddress);
 
     return mapEmailIntegrationFromDB(data);
   } catch (error) {
@@ -325,22 +324,35 @@ export const updateJobApplicationStatus = async (
 
 // Get notification settings for user
 export const getNotificationSettings = async (
-  userId: string
+  userId: string,
+  email?: string
 ): Promise<EmailNotificationSettings> => {
   try {
     const { data, error } = await supabase
-      .from("email_notification_settings")
+      .from("notification_settings")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 is "no rows returned" error
+    if (error) {
       throw error;
     }
 
     if (!data) {
-      return await createNotificationSettings(userId);
+      // If we don't have an email yet, avoid throwing here. The UI can prompt
+      // the user to connect an email account before enabling settings.
+      if (!email) {
+        return {
+          id: "pending",
+          userId,
+          notifyOnNewEmails: true,
+          notifyOnStatusChange: true,
+          dailyDigest: false,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      return await createNotificationSettings(userId, email);
     }
 
     return mapNotificationSettingsFromDB(data);
@@ -352,26 +364,35 @@ export const getNotificationSettings = async (
 
 // Ensure notification settings exist
 export const ensureNotificationSettings = async (
-  userId: string
+  userId: string,
+  email?: string
 ): Promise<EmailNotificationSettings> => {
   try {
-    const settings = await getNotificationSettings(userId);
+    const settings = await getNotificationSettings(userId, email);
     return settings;
   } catch (error) {
-    return await createNotificationSettings(userId);
+    return await createNotificationSettings(userId, email);
   }
 };
 
 // Create default notification settings
 export const createNotificationSettings = async (
-  userId: string
+  userId: string,
+  email?: string
 ): Promise<EmailNotificationSettings> => {
   try {
+    if (!email) {
+      throw new Error(
+        "Missing email address for notification settings creation."
+      );
+    }
+
     const { data, error } = await supabase
-      .from("email_notification_settings")
+      .from("notification_settings")
       .insert([
         {
           user_id: userId,
+          email,
           notify_on_new_emails: true,
           notify_on_status_change: true,
           daily_digest: false,
@@ -398,7 +419,7 @@ export const updateNotificationSettings = async (
 ): Promise<EmailNotificationSettings> => {
   try {
     const { data, error } = await supabase
-      .from("email_notification_settings")
+      .from("notification_settings")
       .update({
         notify_on_new_emails: settings.notifyOnNewEmails,
         notify_on_status_change: settings.notifyOnStatusChange,
@@ -667,14 +688,14 @@ export const fetchGmailEmails = async (
         // Get the body text
         let bodyText = "";
 
-        const getBodyText = (part: any) => {
+        const getBodyText = (part: any): string => {
           if (part.mimeType === "text/plain" && part.body.data) {
             return atob(part.body.data.replace(/-/g, "+").replace(/_/g, "/"));
           }
 
           if (part.parts) {
             for (const subPart of part.parts) {
-              const text = getBodyText(subPart);
+              const text: string = getBodyText(subPart);
               if (text) return text;
             }
           }
@@ -803,7 +824,14 @@ export const syncEmails = async (userId: string): Promise<number> => {
       // Save relevant emails
       for (const email of emails) {
         try {
-          await saveTrackedEmail(userId, integration.id, email);
+          await saveTrackedEmail(userId, integration.id, {
+            emailId: email.id,
+            subject: email.subject,
+            sender: email.sender,
+            receivedAt: email.receivedAt,
+            snippet: email.snippet,
+            bodyText: email.bodyText,
+          });
           totalProcessed++;
         } catch (error) {
           // Ignore errors for individual emails

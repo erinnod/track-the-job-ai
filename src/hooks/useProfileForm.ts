@@ -35,11 +35,15 @@ export const useProfileForm = () => {
 
     const loadProfileData = async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
 
         if (data) {
           form.reset({

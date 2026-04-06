@@ -30,21 +30,6 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import EmailParserForm from "@/components/ai/EmailParserForm";
-import JobRecommendationsAI from "@/components/ai/JobRecommendationsAI";
-import AIContentDisplay from "@/components/ai/AIContentDisplay";
-import CreditsDisplay from "@/components/payment/CreditsDisplay";
-import { fetchUserAIContent } from "@/lib/ai-service";
-import { AIGeneratedContent } from "@/types/ai";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Sparkles, Lightbulb } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import EmailTrackedItems from "@/components/jobs/EmailTrackedItems";
 
@@ -68,11 +53,6 @@ const Applications = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { jobs, isLoading, deleteJob, refreshJobs } = useJobs();
-  const [jobRecommendations, setJobRecommendations] = useState<
-    AIGeneratedContent[]
-  >([]);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] =
-    useState(true);
   const { user } = useAuth();
 
   // Get the current job count based on active tab
@@ -183,24 +163,6 @@ const Applications = () => {
     }
   };
 
-  // Load AI job recommendations
-  const loadJobRecommendations = async () => {
-    if (!user?.id) return;
-
-    setIsLoadingRecommendations(true);
-    try {
-      const recommendations = await fetchUserAIContent(
-        user.id,
-        "job_recommendation"
-      );
-      setJobRecommendations(recommendations);
-    } catch (error) {
-      console.error("Error loading job recommendations:", error);
-    } finally {
-      setIsLoadingRecommendations(false);
-    }
-  };
-
   // This effect runs when the component mounts to ensure data freshness
   useEffect(() => {
     // Force a rerender when the page is visited
@@ -222,13 +184,6 @@ const Applications = () => {
       isLoading
     );
   }, [jobs, isLoading]);
-
-  // Load job recommendations when user is available
-  useEffect(() => {
-    if (user?.id) {
-      loadJobRecommendations();
-    }
-  }, [user?.id]);
 
   // Function to refresh job applications after email status changes
   const handleEmailStatusChange = () => {
@@ -468,67 +423,8 @@ const Applications = () => {
           </div>
         </Tabs>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="md:col-span-2">
-            {/* All existing filters and search code */}
-          </div>
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-primary" />
-                  Smart Tools
-                </CardTitle>
-                <CardDescription>AI-powered application tools</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <EmailParserForm
-                  onComplete={() => {
-                    if (refreshJobs) refreshJobs();
-                  }}
-                />
-                <JobRecommendationsAI
-                  onComplete={(content) => {
-                    loadJobRecommendations();
-                  }}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Email tracking and job recommendations side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Email tracking */}
-          <div>
-            <EmailTrackedItems
-              limit={10}
-              onStatusChange={handleEmailStatusChange}
-            />
-          </div>
-
-          {/* Job recommendations */}
-          <div>
-            {jobRecommendations.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Lightbulb className="h-5 w-5 text-amber-500" />
-                  <h2 className="text-xl font-semibold">
-                    AI Job Recommendations
-                  </h2>
-                </div>
-                <div className="space-y-4">
-                  {jobRecommendations.slice(0, 1).map((recommendation) => (
-                    <AIContentDisplay
-                      key={recommendation.id}
-                      content={recommendation}
-                      onDelete={loadJobRecommendations}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="mb-6">
+          <EmailTrackedItems limit={10} onStatusChange={handleEmailStatusChange} />
         </div>
       </div>
     </Layout>

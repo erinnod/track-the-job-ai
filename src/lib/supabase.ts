@@ -21,28 +21,17 @@ if (
 }
 
 // Supabase client setup
-// Get URL and key from environment variables with fallback values for development
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  "https://kffbwemulhhsyaiooabh.supabase.co";
+// Get URL and key from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Note: This is the public anon key, not a secret
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZmJ3ZW11bGhoc3lhaW9vYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MDMzNTUsImV4cCI6MjA1OTE3OTM1NX0.CXa9wXaqwD7FVSnfUs120xD3NWg-GsNnBhwfbt4OSNg";
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables");
+}
 
 // Supabase service role key - only used server-side for admin operations
 // NEVER expose this to the client, only use in secure server contexts
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || "";
-
-// Known good certificate hashes for certificate pinning
-// This is a security measure to prevent MITM attacks
-// The values would need to be updated when certificates are rotated
-const CERT_FINGERPRINTS = [
-  // Example SHA-256 fingerprints for the domains we use
-  // These should be replaced with actual values in production
-  "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", // Example for supabase.co
-];
 
 // Enhanced cryptographically secure storage for tokens
 const secureAuthStorage = {
@@ -139,19 +128,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     fetch: (url, options) => {
       // Log all API requests to help debug Content Security Policy issues
       debugLog("Supabase fetch:", url, options?.method || "GET");
-
-      // Add certificate pinning for enhanced security in production
-      if (
-        typeof window !== "undefined" &&
-        window.location.protocol === "https:" &&
-        process.env.NODE_ENV === "production"
-      ) {
-        // In a real implementation, you would use a library that supports certificate pinning
-        // This is a placeholder for actual certificate pinning implementation
-        // You would verify the certificate against known good fingerprints
-        // Example implementation with fetch-certificate-pinning library:
-        // return fetchWithPinning(url, options, CERT_FINGERPRINTS);
-      }
 
       // Add error handling for authentication issues
       return fetch(url, options)

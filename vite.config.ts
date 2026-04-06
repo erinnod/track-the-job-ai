@@ -34,9 +34,7 @@ export default defineConfig(({ mode }) => ({
     force: true,
   },
   build: {
-    // Generate sourcemaps - use 'true' instead of conditional for consistent formatting
     sourcemap: true,
-    // Ensure proper module handling
     modulePreload: true,
     commonjsOptions: {
       transformMixedEsModules: true,
@@ -47,23 +45,12 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     global: 'globalThis',
-  },
-  define: {
-    // Include these at build time
     "process.env.VITE_EMAIL_HOST": JSON.stringify(process.env.VITE_EMAIL_HOST),
     "process.env.VITE_EMAIL_PORT": JSON.stringify(process.env.VITE_EMAIL_PORT),
-    "process.env.VITE_EMAIL_SECURE": JSON.stringify(
-      process.env.VITE_EMAIL_SECURE
-    ),
+    "process.env.VITE_EMAIL_SECURE": JSON.stringify(process.env.VITE_EMAIL_SECURE),
     "process.env.VITE_EMAIL_USER": JSON.stringify(process.env.VITE_EMAIL_USER),
-    "process.env.VITE_EMAIL_PASSWORD": JSON.stringify(
-      process.env.VITE_EMAIL_PASSWORD
-    ),
-    "process.env.VITE_GMAIL_CLIENT_ID": JSON.stringify(
-      process.env.VITE_GMAIL_CLIENT_ID
-    ),
-    "process.env.VITE_OUTLOOK_CLIENT_ID": JSON.stringify(
-      process.env.VITE_OUTLOOK_CLIENT_ID
-    ),
+    "process.env.VITE_EMAIL_PASSWORD": JSON.stringify(process.env.VITE_EMAIL_PASSWORD),
+    "process.env.VITE_GMAIL_CLIENT_ID": JSON.stringify(process.env.VITE_GMAIL_CLIENT_ID),
+    "process.env.VITE_OUTLOOK_CLIENT_ID": JSON.stringify(process.env.VITE_OUTLOOK_CLIENT_ID),
   },
 }));

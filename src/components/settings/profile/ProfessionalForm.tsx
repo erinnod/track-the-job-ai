@@ -50,11 +50,15 @@ export const ProfessionalForm = () => {
 
 		const loadProfessionalData = async () => {
 			try {
-				const { data } = await supabase
+				const { data, error } = await supabase
 					.from('professional_details')
 					.select('*')
 					.eq('user_id', user.id)
-					.single()
+					.maybeSingle()
+
+				if (error) {
+					throw error
+				}
 
 				if (data) {
 					professionalForm.reset({
@@ -89,7 +93,6 @@ export const ProfessionalForm = () => {
 			// Save to database with upsert
 			const { error } = await supabase.from('professional_details').upsert(
 				{
-					id: userId,
 					user_id: userId,
 					title: data.title || null,
 					company: data.company || null,
