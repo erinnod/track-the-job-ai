@@ -41,6 +41,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Context Providers
 import AuthProvider from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import AvatarProvider from "./contexts/AvatarContext";
 import JobProvider from "./contexts/JobContext";
 import NotificationProvider from "./contexts/NotificationContext";
@@ -307,13 +308,15 @@ const AppContent = () => (
  * - BrowserRouter for routing
  */
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ErrorBoundary>
-      <BrowserRouter future={routerFutureConfig}>
-        <AppContent />
-      </BrowserRouter>
-    </ErrorBoundary>
-  </QueryClientProvider>
+  <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <BrowserRouter future={routerFutureConfig}>
+          <AppContent />
+        </BrowserRouter>
+      </ErrorBoundary>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

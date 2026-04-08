@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
 import { JobApplication, statusLabels } from '@/data/mockJobs'
+import TagsManager from './TagsManager'
+import QuickNotes from './QuickNotes'
+import FollowUpReminderPanel from './FollowUpReminder'
+import InterviewChecklist from './InterviewChecklist'
+import ApplicationTimeline from './ApplicationTimeline'
 import {
 	Dialog,
 	DialogContent,
@@ -18,7 +23,6 @@ import {
 	Mail,
 	UserCircle,
 	Clock,
-	CalendarDays,
 	ExternalLink,
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -363,51 +367,50 @@ const JobDetailsModal = ({ isOpen, onClose, jobId }: JobDetailsModalProps) => {
 							</div>
 						)}
 
-						{/* Events / Timeline */}
-						{job.events && job.events.length > 0 && (
+						{/* Interview Prep Checklist — shown for interview/offer stages */}
+						{(job.status === 'interview' || job.status === 'offer') && (
 							<div className='space-y-3'>
 								<h3 className='text-lg font-semibold border-b pb-1'>
-									Interview Process
+									Interview Prep Checklist
 								</h3>
-								<div className='space-y-4 pl-2'>
-									{job.events.map((event, index) => (
-										<div
-											key={index}
-											className='border-l-2 border-blue-400 pl-4 pb-4 relative'
-										>
-											<div className='absolute w-3 h-3 bg-blue-400 rounded-full -left-[7px] top-1'></div>
-											<p className='text-sm text-gray-500 flex items-center'>
-												<CalendarDays className='w-4 h-4 mr-1 flex-shrink-0' />
-												{formatDate(event.date)}
-											</p>
-											<p className='font-medium mt-1'>{event.title}</p>
-											{event.description && (
-												<p className='text-sm text-gray-600 mt-2'>
-													{event.description}
-												</p>
-											)}
-										</div>
-									))}
+								<div className='px-1'>
+									<InterviewChecklist jobId={job.id} />
 								</div>
 							</div>
 						)}
 
-						{/* Notes */}
-						{job.notes && job.notes.length > 0 && (
-							<div className='space-y-3'>
-								<h3 className='text-lg font-semibold border-b pb-1'>Notes</h3>
-								<ul className='space-y-2 list-disc pl-6'>
-									{job.notes.map((note, index) => (
-										<li
-											key={index}
-											className='text-sm'
-										>
-											{note}
-										</li>
-									))}
-								</ul>
+						{/* Application Timeline */}
+						<div className='space-y-3'>
+							<h3 className='text-lg font-semibold border-b pb-1'>
+								Application Timeline
+							</h3>
+							<div className='px-1 pt-2'>
+								<ApplicationTimeline job={job} />
 							</div>
-						)}
+						</div>
+
+						{/* Tags */}
+						<div className='space-y-3'>
+							<h3 className='text-lg font-semibold border-b pb-1'>Tags</h3>
+							<div className='px-1'>
+								<TagsManager jobId={job.id} />
+							</div>
+						</div>
+
+						{/* Follow-Up Reminder */}
+						<div className='space-y-3'>
+							<div className='px-1'>
+								<FollowUpReminderPanel job={job} />
+							</div>
+						</div>
+
+						{/* Quick Notes */}
+						<div className='space-y-3'>
+							<h3 className='text-lg font-semibold border-b pb-1'>Notes</h3>
+							<div className='px-1'>
+								<QuickNotes jobId={job.id} />
+							</div>
+						</div>
 					</div>
 
 					<DialogFooter className='flex justify-between items-center gap-4 pt-6 mt-4 border-t'>

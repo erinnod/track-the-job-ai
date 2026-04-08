@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { JobApplication } from '@/data/mockJobs'
 import CompanyInfoFields from './form/CompanyInfoFields'
@@ -7,6 +7,9 @@ import AdditionalInfoFields from './form/AdditionalInfoFields'
 import JobDescriptionField from './form/JobDescriptionField'
 import { v4 as uuidv4 } from 'uuid'
 import { format } from 'date-fns'
+import { useJobs } from '@/contexts/JobContext'
+import { AlertTriangle } from 'lucide-react'
+import JobDescriptionAnalyzer, { ExtractedJobDetails } from './JobDescriptionAnalyzer'
 
 interface JobFormProps {
 	onSubmit: (job: JobApplication) => void
@@ -15,6 +18,7 @@ interface JobFormProps {
 }
 
 const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
+	const { jobs } = useJobs()
 	const [jobData, setJobData] = useState<{
 		company: string
 		position: string
@@ -128,6 +132,31 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 		setInterviewTime(time)
 	}
 
+	// Auto-fill form from AI-extracted job details
+	const handleExtracted = (details: ExtractedJobDetails) => {
+		setJobData((prev) => ({
+			...prev,
+			...(details.company && { company: details.company }),
+			...(details.position && { position: details.position }),
+			...(details.location && { location: details.location }),
+			...(details.salary && { salary: details.salary }),
+			...(details.workType && { workType: details.workType }),
+			...(details.employmentType && { employmentType: details.employmentType }),
+			...(details.jobDescription && { jobDescription: details.jobDescription }),
+		}))
+	}
+
+	// Detect existing applications at the same company (ignore the current job when editing)
+	const duplicates = useMemo(() => {
+		const companyLower = jobData.company.trim().toLowerCase()
+		if (!companyLower || companyLower.length < 2) return []
+		return jobs.filter(
+			(j) =>
+				j.company.toLowerCase() === companyLower &&
+				j.id !== initialData?.id
+		)
+	}, [jobData.company, jobs, initialData?.id])
+
 	const handleSubmit = () => {
 		if (!jobData.company.trim() || !jobData.position.trim()) {
 			toast.error('Company name and position are required')
@@ -228,6 +257,30 @@ const JobForm = ({ onSubmit, onCancel, initialData }: JobFormProps) => {
 			}}
 		>
 			<div className='grid gap-4 py-4'>
+				{/* AI auto-fill from job posting */}
+				{!initialData && (
+					<div className='flex justify-end'>
+						<JobDescriptionAnalyzer onExtracted={handleExtracted} />
+					</div>
+				)}
+
+				{/* Duplicate company warning */}
+				{duplicates.length > 0 && (
+					<div className='flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2 text-sm text-yellow-800'>
+						<AlertTriangle className='h-4 w-4 mt-0.5 shrink-0 text-yellow-500' />
+						<div>
+							<p className='font-medium'>Possible duplicate</p>
+							<p className='text-xs text-yellow-700 mt-0.5'>
+								You already have {duplicates.length} application{duplicates.length !== 1 ? 's' : ''} at{' '}
+								<strong>{jobData.company}</strong>:{' '}
+								{duplicates
+									.map((j) => `${j.position} (${j.status})`)
+									.join(', ')}
+							</p>
+						</div>
+					</div>
+				)}
+
 				<CompanyInfoFields
 					jobData={jobData}
 					handleChange={handleChange}

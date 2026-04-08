@@ -15,7 +15,10 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Plus, Trash, RefreshCw } from "lucide-react";
-import { useState, useEffect } from "react";
+import CsvExportImport from "@/components/jobs/CsvExportImport";
+import SalaryChart from "@/components/jobs/SalaryChart";
+import DueRemindersBanner from "@/components/jobs/DueRemindersBanner";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import {
@@ -32,6 +35,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import EmailTrackedItems from "@/components/jobs/EmailTrackedItems";
+import { useJobTags } from "@/hooks/useJobTags";
+import { tagColor } from "@/components/jobs/TagsManager";
+import { X as XIcon } from "lucide-react";
 
 const Applications = () => {
   const [viewMode, setViewMode] = useState<
@@ -50,10 +56,12 @@ const Applications = () => {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { jobs, isLoading, deleteJob, refreshJobs } = useJobs();
   const { user } = useAuth();
+  const { getTags, allTags } = useJobTags();
 
   // Get the current job count based on active tab
   const getCurrentJobCount = () => {
@@ -185,6 +193,12 @@ const Applications = () => {
     );
   }, [jobs, isLoading]);
 
+  // Filter jobs by selected tag (cross-tabs)
+  const filterByTag = (jobList: typeof jobs) => {
+    if (!selectedTag) return jobList;
+    return jobList.filter((job) => getTags(job.id).includes(selectedTag));
+  };
+
   // Function to refresh job applications after email status changes
   const handleEmailStatusChange = () => {
     refreshJobs();
@@ -193,6 +207,8 @@ const Applications = () => {
   return (
     <Layout>
       <div className="space-y-4">
+        <DueRemindersBanner />
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
@@ -203,19 +219,51 @@ const Applications = () => {
             </p>
           </div>
 
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            size="sm"
-            disabled={isRefreshing}
-            className="gap-2 self-start"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </Button>
+          <div className="flex items-center gap-2 self-start flex-wrap">
+            <CsvExportImport />
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              size="sm"
+              disabled={isRefreshing}
+              className="gap-2"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
         </div>
+
+        {/* Tag filter strip */}
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-500 font-medium">Filter by tag:</span>
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-opacity ${tagColor(tag)} ${
+                  selectedTag && selectedTag !== tag ? "opacity-40" : "opacity-100"
+                }`}
+              >
+                {tag}
+                {selectedTag === tag && (
+                  <XIcon className="h-3 w-3" />
+                )}
+              </button>
+            ))}
+            {selectedTag && (
+              <button
+                onClick={() => setSelectedTag(null)}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+        )}
 
         <Tabs
           defaultValue="all"
@@ -369,7 +417,7 @@ const Applications = () => {
             <div className="mt-6">
               <TabsContent value="all" className="p-0 mt-0">
                 <JobList
-                  jobs={jobs}
+                  jobs={filterByTag(jobs)}
                   isLoading={isLoading}
                   onRetry={handleRefresh}
                   sortBy={sortBy}
@@ -379,9 +427,11 @@ const Applications = () => {
 
               <TabsContent value="active" className="p-0 mt-0">
                 <JobList
-                  jobs={jobs.filter(
-                    (job) =>
-                      job.status === "applied" || job.status === "interview"
+                  jobs={filterByTag(
+                    jobs.filter(
+                      (job) =>
+                        job.status === "applied" || job.status === "interview"
+                    )
                   )}
                   isLoading={isLoading}
                   onRetry={handleRefresh}
@@ -392,7 +442,7 @@ const Applications = () => {
 
               <TabsContent value="saved" className="p-0 mt-0">
                 <JobList
-                  jobs={jobs.filter((job) => job.status === "saved")}
+                  jobs={filterByTag(jobs.filter((job) => job.status === "saved"))}
                   isLoading={isLoading}
                   onRetry={handleRefresh}
                   sortBy={sortBy}
@@ -402,7 +452,7 @@ const Applications = () => {
 
               <TabsContent value="rejected" className="p-0 mt-0">
                 <JobList
-                  jobs={jobs.filter((job) => job.status === "rejected")}
+                  jobs={filterByTag(jobs.filter((job) => job.status === "rejected"))}
                   isLoading={isLoading}
                   onRetry={handleRefresh}
                   sortBy={sortBy}
@@ -412,7 +462,7 @@ const Applications = () => {
 
               <TabsContent value="offers" className="p-0 mt-0">
                 <JobList
-                  jobs={jobs.filter((job) => job.status === "offer")}
+                  jobs={filterByTag(jobs.filter((job) => job.status === "offer"))}
                   isLoading={isLoading}
                   onRetry={handleRefresh}
                   sortBy={sortBy}
@@ -422,6 +472,13 @@ const Applications = () => {
             </div>
           </div>
         </Tabs>
+
+        {/* Salary comparison chart — only shown when there's salary data */}
+        {jobs.some((j) => j.salary?.trim()) && (
+          <div className="mb-6">
+            <SalaryChart jobs={jobs} />
+          </div>
+        )}
 
         <div className="mb-6">
           <EmailTrackedItems limit={10} onStatusChange={handleEmailStatusChange} />

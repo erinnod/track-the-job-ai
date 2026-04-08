@@ -302,6 +302,24 @@ const NotificationSettings = () => {
                 }
               />
             </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <h3 className="font-medium">Weekly Summary</h3>
+                <p className="text-sm text-slate-500">
+                  Receive a Monday morning summary with your stats, new
+                  applications, and upcoming interviews
+                </p>
+              </div>
+              <Switch
+                checked={(settings as any)?.weeklySummary ?? false}
+                onCheckedChange={() => handleToggle("weeklySummary")}
+                disabled={
+                  !settings?.emailVerified ||
+                  !settings?.emailNotificationsEnabled
+                }
+              />
+            </div>
           </div>
 
           <Button

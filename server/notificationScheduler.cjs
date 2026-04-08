@@ -31,16 +31,28 @@ class NotificationScheduler {
     }
 
     this.supabase = createClient(supabaseUrl, supabaseServiceKey);
+    this.weeklyJob = null;
 
-    // Schedule job to run every hour at minute 0
-    // This checks for interviews coming up in the next 3 days
+    // Schedule hourly interview reminder check
     this.cronJob = cron.schedule(
       "0 * * * *",
       () => {
         this.checkUpcomingInterviews();
       },
       {
-        scheduled: false, // Don't start automatically
+        scheduled: false,
+        timezone: "UTC",
+      }
+    );
+
+    // Schedule weekly summary email: every Monday at 9:00 AM UTC
+    this.weeklyJob = cron.schedule(
+      "0 9 * * 1",
+      () => {
+        this.sendWeeklySummaries();
+      },
+      {
+        scheduled: false,
         timezone: "UTC",
       }
     );
@@ -63,6 +75,7 @@ class NotificationScheduler {
     }
 
     this.cronJob.start();
+    if (this.weeklyJob) this.weeklyJob.start();
     this.isRunning = true;
     console.info("Notification scheduler started");
   }
@@ -76,11 +89,10 @@ class NotificationScheduler {
       return;
     }
 
-    if (this.cronJob) {
-      this.cronJob.stop();
-      this.isRunning = false;
-      console.info("Notification scheduler stopped");
-    }
+    if (this.cronJob) this.cronJob.stop();
+    if (this.weeklyJob) this.weeklyJob.stop();
+    this.isRunning = false;
+    console.info("Notification scheduler stopped");
   }
 
   /**
@@ -295,6 +307,246 @@ class NotificationScheduler {
       return;
     }
     await this.checkUpcomingInterviews();
+  }
+
+  /**
+   * Send the weekly job search summary to all opted-in users.
+   * Runs every Monday at 9:00 AM UTC.
+   */
+  async sendWeeklySummaries() {
+    if (!this.supabase) {
+      console.warn("Supabase not configured; skipping weekly summaries");
+      return;
+    }
+
+    console.info("[WeeklySummary] Starting weekly summary run");
+
+    try {
+      // Find users who have opted in to weekly summaries
+      const { data: prefs, error: prefsError } = await this.supabase
+        .from("notification_preferences")
+        .select("user_id, email_enabled, weekly_summary")
+        .eq("email_enabled", true)
+        .eq("weekly_summary", true);
+
+      if (prefsError) {
+        console.error("[WeeklySummary] Error fetching preferences:", prefsError);
+        return;
+      }
+
+      if (!prefs || prefs.length === 0) {
+        console.info("[WeeklySummary] No users opted in to weekly summaries");
+        return;
+      }
+
+      for (const pref of prefs) {
+        try {
+          await this.sendWeeklySummaryForUser(pref.user_id);
+        } catch (err) {
+          console.error(
+            `[WeeklySummary] Error sending summary for user ${pref.user_id}:`,
+            err
+          );
+        }
+      }
+
+      console.info(
+        `[WeeklySummary] Finished: processed ${prefs.length} user(s)`
+      );
+    } catch (err) {
+      console.error("[WeeklySummary] Unexpected error:", err);
+    }
+  }
+
+  /**
+   * Build and send the weekly summary for a single user.
+   */
+  async sendWeeklySummaryForUser(userId) {
+    // Fetch user details
+    const [authResult, profileResult] = await Promise.all([
+      this.supabase.auth.admin.getUserById(userId),
+      this.supabase
+        .from("profiles")
+        .select("first_name, last_name, email")
+        .eq("id", userId)
+        .single(),
+    ]);
+
+    const authUser = authResult.data?.user;
+    const profile = profileResult.data;
+    const userEmail = authUser?.email || profile?.email;
+    const userName =
+      profile?.first_name && profile?.last_name
+        ? `${profile.first_name} ${profile.last_name}`
+        : userEmail?.split("@")[0] || "there";
+
+    if (!userEmail) return;
+
+    // Fetch all applications
+    const { data: jobs, error: jobsError } = await this.supabase
+      .from("job_applications")
+      .select("id, company, position, status, applied_date, last_updated")
+      .eq("user_id", userId);
+
+    if (jobsError || !jobs) return;
+
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const stats = {
+      total: jobs.length,
+      applied: jobs.filter((j) => j.status === "applied").length,
+      interview: jobs.filter((j) => j.status === "interview").length,
+      offer: jobs.filter((j) => j.status === "offer").length,
+      rejected: jobs.filter((j) => j.status === "rejected").length,
+      saved: jobs.filter((j) => j.status === "saved").length,
+      newThisWeek: jobs.filter(
+        (j) => j.applied_date && new Date(j.applied_date) >= oneWeekAgo
+      ).length,
+    };
+
+    // Fetch upcoming interviews
+    const jobIds = jobs.map((j) => j.id);
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    let upcomingInterviews = [];
+    if (jobIds.length > 0) {
+      const { data: events } = await this.supabase
+        .from("job_events")
+        .select("job_application_id, date, title")
+        .in("job_application_id", jobIds)
+        .gte("date", now.toISOString())
+        .lte("date", sevenDaysFromNow.toISOString())
+        .ilike("title", "%interview%")
+        .order("date", { ascending: true });
+
+      if (events) {
+        upcomingInterviews = events.map((e) => {
+          const job = jobs.find((j) => j.id === e.job_application_id);
+          return {
+            company: job?.company || "Unknown",
+            position: job?.position || "Unknown",
+            date: new Date(e.date).toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            }),
+          };
+        });
+      }
+    }
+
+    const html = this.buildWeeklySummaryHtml(
+      userName,
+      stats,
+      upcomingInterviews
+    );
+
+    await emailService.sendEmail({
+      to: userEmail,
+      subject: `Your Weekly Job Search Summary — ${new Date().toLocaleDateString(
+        "en-US",
+        { month: "long", day: "numeric" }
+      )}`,
+      html,
+    });
+
+    console.info(`[WeeklySummary] Sent summary to ${userEmail}`);
+  }
+
+  /**
+   * Build the HTML for the weekly summary email.
+   */
+  buildWeeklySummaryHtml(userName, stats, upcomingInterviews) {
+    const statusRows = [
+      { label: "Applied", count: stats.applied, color: "#6366f1" },
+      { label: "Interviewing", count: stats.interview, color: "#eab308" },
+      { label: "Offers", count: stats.offer, color: "#22c55e" },
+      { label: "Rejected", count: stats.rejected, color: "#ef4444" },
+      { label: "Saved", count: stats.saved, color: "#94a3b8" },
+    ]
+      .filter((r) => r.count > 0)
+      .map(
+        (r) =>
+          `<tr>
+            <td style="padding:6px 12px;border-bottom:1px solid #f0f0f0;">${r.label}</td>
+            <td style="padding:6px 12px;border-bottom:1px solid #f0f0f0;text-align:center;">
+              <span style="background:${r.color}20;color:${r.color};padding:2px 8px;border-radius:9999px;font-weight:600;">${r.count}</span>
+            </td>
+          </tr>`
+      )
+      .join("");
+
+    const interviewSection =
+      upcomingInterviews.length > 0
+        ? `<h3 style="color:#111;margin-bottom:8px;">Upcoming Interviews</h3>
+           <ul style="padding-left:18px;margin:0 0 24px;">
+             ${upcomingInterviews
+               .map(
+                 (i) =>
+                   `<li style="margin-bottom:6px;"><strong>${i.company}</strong> — ${i.position} <span style="color:#6b7280;">(${i.date})</span></li>`
+               )
+               .join("")}
+           </ul>`
+        : "";
+
+    return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:system-ui,-apple-system,sans-serif;max-width:600px;margin:0 auto;color:#111;padding:24px;">
+  <div style="background:#4169E1;padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+    <h1 style="color:#fff;margin:0;font-size:22px;">JobTrakr Weekly Summary</h1>
+    <p style="color:#c7d2fe;margin:8px 0 0;">Week ending ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+  </div>
+
+  <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:24px;border-radius:0 0 12px 12px;">
+    <p>Hi ${userName},</p>
+    <p>Here's how your job search is going this week:</p>
+
+    ${
+      stats.newThisWeek > 0
+        ? `<p style="background:#dbeafe;border-left:4px solid #6366f1;padding:10px 14px;border-radius:4px;margin-bottom:20px;">
+        🎉 <strong>${stats.newThisWeek} new application${stats.newThisWeek !== 1 ? "s" : ""}</strong> submitted this week!
+      </p>`
+        : ""
+    }
+
+    <h3 style="color:#111;margin-bottom:8px;">Applications by Status</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6b7280;text-transform:uppercase;">Status</th>
+          <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6b7280;text-transform:uppercase;">Count</th>
+        </tr>
+      </thead>
+      <tbody>${statusRows}</tbody>
+      <tfoot>
+        <tr style="background:#f9fafb;">
+          <td style="padding:8px 12px;font-weight:600;">Total</td>
+          <td style="padding:8px 12px;text-align:center;font-weight:600;">${stats.total}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    ${interviewSection}
+
+    <p style="color:#6b7280;font-size:14px;">Keep up the great work! Consistency is key. 💪</p>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
+    <p style="color:#9ca3af;font-size:12px;text-align:center;">
+      You're receiving this because you enabled weekly summaries in JobTrakr.<br>
+      <a href="${process.env.APP_URL || "https://jobtrakr.app"}/settings/notifications" style="color:#6366f1;">Manage preferences</a>
+    </p>
+  </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Manually trigger weekly summary (for testing)
+   */
+  async triggerWeeklySummary() {
+    await this.sendWeeklySummaries();
   }
 
   /**

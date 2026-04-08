@@ -3,6 +3,9 @@ import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import Footer from './Footer'
 import { Menu, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import KeyboardShortcutsHelp from '@/components/KeyboardShortcutsHelp'
+import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 
 interface LayoutProps {
 	children: ReactNode
@@ -12,6 +15,15 @@ const Layout = ({ children }: LayoutProps) => {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 	const [isMobile, setIsMobile] = useState(false)
+	const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false)
+
+	useKeyboardShortcuts({
+		onShowHelp: () => setShortcutsHelpOpen(true),
+		onAddJob: () => {
+			// Click the hidden "Add Job" button already in the Navbar
+			document.getElementById('navbar-add-job-trigger')?.click()
+		},
+	})
 
 	// Check if we're on mobile and update state
 	useEffect(() => {
@@ -41,7 +53,12 @@ const Layout = ({ children }: LayoutProps) => {
 	const toggleSidebarCollapse = () => setSidebarCollapsed(!sidebarCollapsed)
 
 	return (
-		<div className='min-h-screen bg-white flex flex-col'>
+		<div className='min-h-screen bg-background text-foreground flex flex-col'>
+			<KeyboardShortcutsHelp
+				open={shortcutsHelpOpen}
+				onClose={() => setShortcutsHelpOpen(false)}
+			/>
+			<OnboardingFlow />
 			<Navbar onMenuClick={toggleSidebar} />
 			<div className='flex flex-col md:flex-row pt-16 flex-grow relative'>
 				{/* Mobile sidebar overlay */}

@@ -1,4 +1,4 @@
-import { Bell, Search, PlusCircle, Menu, Calendar, User } from "lucide-react";
+import { Bell, Search, PlusCircle, Menu, Calendar, User, Sun, Moon, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import CacheBreakingAvatar from "@/components/common/CacheBreakingAvatar";
@@ -12,6 +12,7 @@ import {
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAvatar } from "@/contexts/AvatarContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -42,6 +43,7 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
   const previousUserId = useRef<string | null>(null);
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const { lastUpdate } = useAvatar();
   const { toast } = useToast();
   const { notifications, unreadCount, markAsRead, markAllAsRead } =
@@ -197,7 +199,7 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
 
               {/* Add job button - collapsed on mobile */}
               <div className="hidden sm:block">
-                <AddJobModal />
+                <AddJobModal buttonId="navbar-add-job-trigger" />
               </div>
               <Button
                 onClick={() =>
@@ -213,6 +215,30 @@ const Navbar = ({ onMenuClick }: NavbarProps = {}) => {
               <div className="hidden">
                 <AddJobModal buttonId="mobile-add-job-trigger" />
               </div>
+
+              {/* Theme toggle */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" title="Toggle theme">
+                    {resolvedTheme === "dark" ? (
+                      <Moon className="h-5 w-5" />
+                    ) : (
+                      <Sun className="h-5 w-5" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36">
+                  <DropdownMenuItem onClick={() => setTheme("light")} className={theme === "light" ? "font-medium text-blue-600" : ""}>
+                    <Sun className="h-4 w-4 mr-2" /> Light
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("dark")} className={theme === "dark" ? "font-medium text-blue-600" : ""}>
+                    <Moon className="h-4 w-4 mr-2" /> Dark
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("system")} className={theme === "system" ? "font-medium text-blue-600" : ""}>
+                    <Monitor className="h-4 w-4 mr-2" /> System
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Notifications dropdown */}
               <DropdownMenu

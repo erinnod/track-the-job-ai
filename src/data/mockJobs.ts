@@ -11,6 +11,7 @@ export interface JobApplication {
 	salary?: string
 	jobDescription: string
 	notes?: string[]
+	tags?: string[]
 	contacts?: {
 		name: string
 		email: string

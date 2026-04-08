@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import Layout from '@/components/layout/Layout'
 import {
 	Card,
@@ -7,11 +8,20 @@ import {
 	CardTitle,
 	CardDescription,
 } from '@/components/ui/card'
-import { User, Bell, Shield } from 'lucide-react'
+import { User, Bell, Shield, BookOpen } from 'lucide-react'
+import OnboardingFlow, { resetOnboarding } from '@/components/onboarding/OnboardingFlow'
 
 const SettingsIndex = () => {
+	const [showTour, setShowTour] = useState(false)
+
 	return (
 		<Layout>
+			{showTour && (
+				<OnboardingFlow
+					forceShow
+					onComplete={() => setShowTour(false)}
+				/>
+			)}
 			<div className='container mx-auto max-w-4xl py-6'>
 				<div className='border-b border-gray-200 pb-4 mb-6'>
 					<h1 className='text-2xl font-bold text-slate-800'>Settings</h1>
@@ -75,6 +85,28 @@ const SettingsIndex = () => {
 							</CardContent>
 						</Card>
 					</Link>
+
+					{/* Product Tour */}
+					<button
+						type='button'
+						onClick={() => {
+							resetOnboarding()
+							setShowTour(true)
+						}}
+						className='block h-full text-left w-full'
+					>
+						<Card className='hover:bg-slate-50 transition-colors cursor-pointer h-full'>
+							<CardHeader className='flex flex-row items-center gap-3'>
+								<BookOpen className='h-6 w-6 text-blue-500' />
+								<CardTitle className='text-lg'>Product Tour</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<p className='text-slate-500'>
+									Re-watch the getting-started walkthrough to discover features
+								</p>
+							</CardContent>
+						</Card>
+					</button>
 				</div>
 			</div>
 		</Layout>
